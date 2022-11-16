@@ -14,16 +14,15 @@ If you need to import more raw data, let's coordinate to do this so we can keep 
 
 ## Keep figures in notebooks
 
-- For making publication-ready plots, keep one notebook per figure.
-- Don't give figure numbers, since this may change. Instead, you can name each
-    notebook as something descriptive, e.g.:
-      - `2022_11_15_fig_effect_of_pressure.ipynb`
-      - `2022_11_15_fig_expanded_stoichiometry_model.ipynb`
+For making publication-ready plots, keep one notebook per figure. I generally don't bother putting figure numbers in the filenames, since figure numbers may change very quickly, especially during the last odd hours leading up to a paper submission. Instead, try to give each notebook a descriptive name, e.g.:
+  - `2022_11_15_fig_effect_of_pressure.ipynb`
+  - `2022_11_15_fig_expanded_stoichiometry_model.ipynb`
 
+## Use Markdown generously
 
-## Start notebooks with `yyyy_mm_dd`
+## Start notebooks with `yyyy_mm_dd...`
 
-- I find this to be the best way to track and sort through notebooks
+I find this to be the best way to track and sort through notebooks as the number of notebooks grow
 
 ## One figure, one notebook
 

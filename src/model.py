@@ -42,11 +42,12 @@ def Up(sto):
     sto : Stochiometry of material (lithium fraction)
     """
 
-    if sto < 0:
-        raise ValueError('stoichiometry cannot be less than zero.')
+    # Don't extrapolate too much with these functions
+    if sto < -0.1:
+        raise ValueError(f'stoichiometry ({sto}) is too small.')
 
-    if sto > 1:
-        raise ValueError('Stoichiometry cannot be greater than one.')
+    if sto > +1.1:
+        raise ValueError(f'Stoichiometry ({sto}) is too large.')
 
     u_eq = (
         4.3452
@@ -74,11 +75,12 @@ def Un(sto):
     sto : Stoichiometry of material (lithium fraction0)
     """
 
-    if sto < 0:
-        raise ValueError('stoichiometry cannot be less than zero.')
+    # Don't extrapolate too much with these functions
+    if sto < -0.1:
+        raise ValueError(f'stoichiometry ({sto}) is too small.')
 
-    if sto > 1:
-        raise ValueError('Stoichiometry cannot be greater than one.')
+    if sto > +1.1:
+        raise ValueError(f'Stoichiometry ({sto}) is too large.')
 
     u_eq = (
         0.063

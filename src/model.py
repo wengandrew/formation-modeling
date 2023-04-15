@@ -29,6 +29,48 @@ def initialize_sim_vec(time_vec, initial_val=np.NaN):
     return output_vec
 
 
+def En(sto):
+    """
+    Graphite expansion function
+
+    Cite: Mohtat et al. 2020. “Differential Expansion and Voltage Model for
+    Li-Ion Batteries at Practical Charging Rates.” Journal of the
+    Electrochemical Society 167 (11): 110561.
+
+    Parameters
+    ----------
+    sto : stoichiometry of material (lithium fraction)
+    """
+
+    if sto < 0.12:
+        expansion = 0.2 * sto
+    elif sto >= 0.12 and sto < 0.18:
+        expansion = 0.16 * sto + 5e-3
+    elif sto >= 0.18 and sto < 0.24:
+        expansion = 0.17 * sto + 3e-3
+    elif sto >= 0.24 and sto < 0.50:
+        expansion = 0.05 * sto + 0.03
+    elif sto >= 0.5:
+        expansion = 0.15 * sto - 0.02
+
+    return expansion
+
+def Ep(sto):
+    """
+    Nickel Manganese Cobalt Oxide (NMC) expansion function
+
+    Cite: Mohtat et al. 2020. “Differential Expansion and Voltage Model for
+    Li-Ion Batteries at Practical Charging Rates.” Journal of the
+    Electrochemical Society 167 (11): 110561.
+
+    Parameters
+    ----------
+    sto : stoichiometry of material (lithium fraction)
+    """
+
+    return -1.1e-2 * (1 - sto)
+
+
 def Up(sto):
     """
     Nickel Managanese Cobalt Oxide (NMC) Open Circuit Potential (OCP) as a

@@ -34,7 +34,7 @@ class Cell:
         self.delta_SEI_0 = 5e-9       # m          Initial SEI thickness
         self.V_sei       = 9.585e-5   # m3/mol     SEI molar volume
         self.L_n         = 80e-6      # m          Negative electrode thickness
-        self.k_SEI       = 1e-14      # m/s        SEI kinetic rate constant
+        self.k_SEI       = 1e-13      # m/s        SEI kinetic rate constant
         self.D_SEI       = 2e-16      # m2/s       SEI layer diffusivity
         self.R_n         = 20e-6      # m          Anode particle radius
         self.epsilon_n   = 0.7        # [-]        Anode solid material fraction
@@ -77,7 +77,7 @@ class Simulation:
 
         # Numerical details
         self.dt = 1.0
-        self.t_vec = np.arange(0, sim_time_s, self.dt)
+        self.t = np.arange(0, sim_time_s, self.dt)
 
         # Simulation parameters
         self.vmax = 4.2
@@ -85,34 +85,35 @@ class Simulation:
         self.i_cv = 0.5 / 20 # CV hold current cut-off condition
 
         # Initialize output vectors
-        self.i_app_vec = np.zeros(self.t_vec.shape)
+        self.i_app = np.zeros(self.t.shape)
 
         # eSOH states
-        self.theta_n_vec = mu.initialize_sim_vec(self.t_vec, cell.theta_n)
-        self.theta_p_vec = mu.initialize_sim_vec(self.t_vec, cell.theta_p)
-        self.ocv_n_vec   = mu.initialize_sim_vec(self.t_vec, mu.Un(cell.theta_n))
-        self.ocv_p_vec   = mu.initialize_sim_vec(self.t_vec, mu.Up(cell.theta_p))
-        self.ocv_vec     = mu.initialize_sim_vec(self.t_vec, self.ocv_p_vec[0] - self.ocv_n_vec[0])
-        self.vt_vec      = mu.initialize_sim_vec(self.t_vec, self.ocv_p_vec[0] - self.ocv_n_vec[0])
+        self.theta_n = mu.initialize(self.t, cell.theta_n)
+        self.theta_p = mu.initialize(self.t, cell.theta_p)
+        self.ocv_n   = mu.initialize(self.t, mu.Un(cell.theta_n))
+        self.ocv_p   = mu.initialize(self.t, mu.Up(cell.theta_p))
+        self.ocv     = mu.initialize(self.t, self.ocv_p[0] - self.ocv_n[0])
+        self.vt      = mu.initialize(self.t, self.ocv_p[0] - self.ocv_n[0])
+        self.i_int   = mu.initialize(self.t, 0)
 
         # RC states
-        self.I_r1p_vec   = mu.initialize_sim_vec(self.t_vec, 0)
-        self.I_r1n_vec   = mu.initialize_sim_vec(self.t_vec, 0)
+        self.i_r1p   = mu.initialize(self.t, 0)
+        self.i_r1n   = mu.initialize(self.t, 0)
 
         # SEI states
-        self.eta_sei_vec = mu.initialize_sim_vec(self.t_vec, 0)
-        self.j_sei_rxn_vec = mu.initialize_sim_vec(self.t_vec, 0)
-        self.j_sei_dif_vec = mu.initialize_sim_vec(self.t_vec, 0)
-        self.j_sei_vec   = mu.initialize_sim_vec(self.t_vec, 0)
-        self.I_sei_vec   = mu.initialize_sim_vec(self.t_vec, 0)
-        self.Q_sei_vec   = mu.initialize_sim_vec(self.t_vec, 0)
+        self.eta_sei = mu.initialize(self.t, 0)
+        self.j_sei_rxn = mu.initialize(self.t, 0)
+        self.j_sei_dif = mu.initialize(self.t, 0)
+        self.j_sei   = mu.initialize(self.t, 0)
+        self.i_sei   = mu.initialize(self.t, 0)
+        self.q_sei   = mu.initialize(self.t, 0)
 
         # Expansion states
-        self.delta_sei_vec = mu.initialize_sim_vec(self.t_vec, cell.delta_SEI_0)
-        self.delta_n_vec = mu.initialize_sim_vec(self.t_vec, mu.En(cell.theta_n))
-        self.delta_p_vec = mu.initialize_sim_vec(self.t_vec, mu.Ep(cell.theta_p))
-        self.expansion_rev_vec = mu.initialize_sim_vec(self.t_vec, 0)
-        self.expansion_irrev_vec = mu.initialize_sim_vec(self.t_vec, 0)
+        self.delta_sei = mu.initialize(self.t, cell.delta_SEI_0)
+        self.delta_n = mu.initialize(self.t, mu.En(cell.theta_n))
+        self.delta_p = mu.initialize(self.t, mu.Ep(cell.theta_p))
+        self.expansion_rev = mu.initialize(self.t, 0)
+        self.expansion_irrev = mu.initialize(self.t, 0)
 
 
     def step(self, k: int, mode: str, icc=0, icv=0):
@@ -131,67 +132,74 @@ class Simulation:
         p = self.cell
 
         if mode == 'cc':
-            self.i_app_vec[k] = icc
+            self.i_app[k] = icc
         elif mode == 'cv':
-            self.i_app_vec[k] = ( self.vt_vec[k] - self.ocv_vec[k] - \
-                           p.R1p * np.exp(-self.dt/(p.R1p*p.C1p)) * self.I_r1p_vec[k] - \
-                           p.R1n * np.exp(-self.dt/(p.R1n*p.C1n)) * self.I_r1n_vec[k] ) / \
+            self.i_app[k] = ( self.vt[k] - self.ocv[k] - \
+                           p.R1p * np.exp(-self.dt/(p.R1p*p.C1p)) * self.i_r1p[k] - \
+                           p.R1n * np.exp(-self.dt/(p.R1n*p.C1n)) * self.i_r1n[k] ) / \
                         ( ( 1 - np.exp(-self.dt/(p.R1n*p.C1n)) ) * p.R1n + p.R0n + \
                           ( 1 - np.exp(-self.dt/(p.R1p*p.C1p)) ) * p.R1p + p.R0p )
 
-        dQ = self.i_app_vec[k] * self.dt / 3600 # Amp-hours
 
-        # Stoichiometry update
-        self.theta_n_vec[k + 1] = self.theta_n_vec[k] + dQ / p.Cn
-        self.theta_p_vec[k + 1] = self.theta_p_vec[k] - dQ / p.Cp
+        # Stoichiometry update; only include intercalation current
+        self.i_int[k] = self.i_app[k] - self.i_sei[k]
+        dQ = self.i_int[k] * self.dt / 3600 # Amp-hours
+        self.theta_n[k + 1] = self.theta_n[k] + dQ / p.Cn
+        self.theta_p[k + 1] = self.theta_p[k] - dQ / p.Cp
 
         # Equilibrium potential updates
-        self.ocv_n_vec[k + 1] = mu.Un(self.theta_n_vec[k + 1])
-        self.ocv_p_vec[k + 1] = mu.Up(self.theta_p_vec[k + 1])
-        self.delta_n_vec[k + 1] = mu.En(self.theta_n_vec[k + 1])
-        self.delta_p_vec[k + 1] = mu.Ep(self.theta_p_vec[k + 1])
+        self.ocv_n[k + 1] = mu.Un(self.theta_n[k + 1])
+        self.ocv_p[k + 1] = mu.Up(self.theta_p[k + 1])
+        self.delta_n[k + 1] = mu.En(self.theta_n[k + 1])
+        self.delta_p[k + 1] = mu.Ep(self.theta_p[k + 1])
 
-        self.ocv_vec[k + 1] = self.ocv_p_vec[k+1] - self.ocv_n_vec[k+1]
+        self.ocv[k + 1] = self.ocv_p[k+1] - self.ocv_n[k+1]
 
         # Current updates (branch current for RC element)
-        self.I_r1p_vec[k+1] =  np.exp(-self.dt/(p.R1p*p.C1p))  * self.I_r1p_vec[k] + \
-                          (1 - np.exp(-self.dt/(p.R1p*p.C1p))) * self.i_app_vec[k]
+        self.i_r1p[k+1] =  np.exp(-self.dt/(p.R1p*p.C1p))  * self.i_r1p[k] + \
+                          (1 - np.exp(-self.dt/(p.R1p*p.C1p))) * self.i_app[k]
 
-        self.I_r1n_vec[k+1] =  np.exp(-self.dt/(p.R1n*p.C1n))  * self.I_r1n_vec[k] + \
-                          (1 - np.exp(-self.dt/(p.R1n*p.C1n))) * self.i_app_vec[k]
+        self.i_r1n[k+1] =  np.exp(-self.dt/(p.R1n*p.C1n))  * self.i_r1n[k] + \
+                          (1 - np.exp(-self.dt/(p.R1n*p.C1n))) * self.i_app[k]
 
         # Terminal voltage update
         # Vt = Up + eta_p - Un + eta_n
         if mode == 'cc':
-            self.vt_vec[k+1] = self.ocv_p_vec[k+1] + p.R1p * self.I_r1p_vec[k] + p.R0p * self.i_app_vec[k] - \
-                        (self.ocv_n_vec[k+1] - p.R1n * self.I_r1n_vec[k] - p.R0n * self.i_app_vec[k])
+            self.vt[k+1] = self.ocv_p[k+1] + p.R1p * self.i_r1p[k] \
+                             + p.R0p * self.i_app[k] - \
+                              (self.ocv_n[k+1] - p.R1n * self.i_r1n[k] - \
+                               p.R0n * self.i_app[k])
         elif mode == 'cv':
-            self.vt_vec[k+1] = self.vmax
+            self.vt[k+1] = self.vmax
 
         # SEI growth update
-        eta_int = self.i_app_vec[k] * p.R0n
-        self.eta_sei_vec[k+1] = eta_int + self.ocv_n_vec[k+1] - p.U_SEI
+        eta_int = self.i_app[k] * p.R0n
+        self.eta_sei[k+1] = eta_int + self.ocv_n[k+1] - p.U_SEI
 
         # Mixed reaction and diffusion limited SEI current density
-        self.j_sei_rxn_vec[k+1] = F * p.c_EC_bulk * p.k_SEI * np.exp( -p.alpha_SEI * F * self.eta_sei_vec[k+1] / (R * T) )
-        self.j_sei_dif_vec[k+1] = p.D_SEI * p.c_EC_bulk * F / (self.delta_sei_vec[k]) # should this be k or k+1?
-        self.j_sei_vec[k+1] = - 1 / (1/self.j_sei_rxn_vec[k+1] + 1/self.j_sei_dif_vec[k+1])
+        self.j_sei_rxn[k+1] = F * p.c_EC_bulk * p.k_SEI * \
+                                np.exp( -p.alpha_SEI * F * self.eta_sei[k+1] / \
+                                       (R * T) )
+        self.j_sei_dif[k+1] = p.D_SEI * p.c_EC_bulk * F / \
+                                (self.delta_sei[k]) # should this be k or k+1?
+        self.j_sei[k+1] = - 1 / (1/self.j_sei_rxn[k+1] + 1/self.j_sei_dif[k+1])
 
         ## Current density to current conversion
-        self.I_sei_vec[k+1] = - self.j_sei_vec[k+1] * (p.a_SEI * p.A_n * p.L_n)
+        self.i_sei[k+1] = - self.j_sei[k+1] * (p.a_SEI * p.A_n * p.L_n)
 
         # Integrate SEI current to get SEI capacity
-        self.Q_sei_vec[k+1] = self.Q_sei_vec[k] + self.I_sei_vec[k+1] * self.dt / 3600
+        self.q_sei[k+1] = self.q_sei[k] + self.i_sei[k+1] * self.dt / 3600
 
         # Update SEI thickness
-        self.delta_sei_vec[k+1] = self.delta_sei_vec[k] + \
-                             self.dt * (p.V_sei * p.a_SEI * np.abs(self.j_sei_vec[k+1]) ) / (2 * F)
+        self.delta_sei[k+1] = self.delta_sei[k] + \
+                             self.dt * (p.V_sei * p.a_SEI * \
+                                        np.abs(self.j_sei[k+1]) ) / (2 * F)
 
         # Expansion update
         # Cathode and anode expansion function update
-        self.expansion_rev_vec[k+1] = p.c1 * self.delta_p_vec[k+1] + \
-                                 p.c2 * self.delta_n_vec[k+1]
-        self.expansion_irrev_vec[k+1] = p.c0 * self.delta_sei_vec[k+1]
+        self.expansion_rev[k+1] = p.c1 * self.delta_p[k+1] + \
+                                 p.c2 * self.delta_n[k+1]
+        self.expansion_irrev[k+1] = p.c0 * self.delta_sei[k+1]
 
 
 
@@ -212,55 +220,56 @@ class Simulation:
         [ax.grid(False) for ax in axs]
 
         # Currents
-        axs[0].plot(self.t_vec/3600, self.i_app_vec, color='k', marker='o', ms=1)
-        axs[0].plot(self.t_vec/3600, self.I_r1n_vec, color='r', marker='o', ms=1)
-        axs[0].plot(self.t_vec/3600, self.I_r1p_vec, color='b', ls='--')
+        axs[0].plot(self.t/3600, self.i_app, color='k', marker='o', ms=1)
+        axs[0].plot(self.t/3600, self.i_int, color='g', ls='--')
+        axs[0].plot(self.t/3600, self.i_r1n, color='r', marker='o', ms=1)
+        axs[0].plot(self.t/3600, self.i_r1p, color='b', ls='--')
         axs[0].set_ylabel('Current (A)')
         axs[0].legend(['$I_{applied}$', '$I_{R_{1,n}}$', '$I_{R_{1,p}}$'])
 
         # Voltages and Potentials
-        axs[1].plot(self.t_vec/3600, self.vt_vec, ls='--', c='k')
-        axs[1].plot(self.t_vec/3600, self.ocv_vec, marker='o', ms=1, color='k')
+        axs[1].plot(self.t/3600, self.vt, ls='--', c='k')
+        axs[1].plot(self.t/3600, self.ocv, marker='o', ms=1, color='k')
         axs[1].legend(['$V_t$', '$V_{oc}$'])
         axs[1].set_ylabel('Voltage (V)')
 
-        axs[2].plot(self.t_vec/3600, self.ocv_p_vec, marker='o', ms=1, color='b')
+        axs[2].plot(self.t/3600, self.ocv_p, marker='o', ms=1, color='b')
         axs[2].legend(['$U_p$'])
         axs[2].set_ylabel('V vs $Li/Li^+$')
 
-        axs[3].plot(self.t_vec/3600, self.ocv_n_vec, marker='o', ms=1, color='r')
+        axs[3].plot(self.t/3600, self.ocv_n, marker='o', ms=1, color='r')
         axs[3].axhline(y=self.cell.U_SEI, linestyle='--', color='k')
         axs[3].legend(['$U_n$', f'$U_{{\mathrm{{SEI}}}}$ = {self.cell.U_SEI} V'])
         axs[3].set_ylabel('V vs $Li/Li^+$')
 
-        axs[4].plot(self.t_vec/3600, self.theta_n_vec, color='r', marker='o', ms=1)
-        axs[4].plot(self.t_vec/3600, self.theta_p_vec, color='b', marker='o', ms=1)
+        axs[4].plot(self.t/3600, self.theta_n, color='r', marker='o', ms=1)
+        axs[4].plot(self.t/3600, self.theta_p, color='b', marker='o', ms=1)
         axs[4].legend([r'$\theta_n$', r'$\theta_p$'])
         axs[4].set_ylabel(r'$\theta$')
         axs[4].set_ylim((-0.1, 1.1))
 
         axs[5].set_ylabel(r'$\delta$')
-        axs[5].plot(self.t_vec/3600, self.delta_n_vec, color='r', marker='o', ms=1)
-        axs[5].plot(self.t_vec/3600, self.delta_p_vec, color='b', marker='o', ms=1)
+        axs[5].plot(self.t/3600, self.delta_n, color='r', marker='o', ms=1)
+        axs[5].plot(self.t/3600, self.delta_p, color='b', marker='o', ms=1)
         axs[5].legend([r'$\delta_n$', r'$\delta_p$'])
 
-        axs[6].plot(self.t_vec/3600, self.delta_sei_vec, color='r', marker='o', ms=1)
+        axs[6].plot(self.t/3600, self.delta_sei, color='r', marker='o', ms=1)
         axs[6].legend([r'$\delta_{\mathrm{sei}}$'])
         axs[6].set_ylabel(r'$\delta_{\mathrm{sei}}$ [$m$]')
 
         axs[7].set_ylabel(r'$\epsilon$ ($\mu$m)')
-        axs[7].plot(self.t_vec/3600, self.expansion_irrev_vec*1e6, color='b', marker='o', ms=1, label='$\epsilon_{irrev}$')
-        axs[7].plot(self.t_vec/3600, (self.expansion_rev_vec + self.expansion_irrev_vec)*1e6, color='k', marker='o', ms=1, label='$\epsilon_{irrev} + \epsilon_{rev}$')
+        axs[7].plot(self.t/3600, self.expansion_irrev*1e6, color='b', marker='o', ms=1, label='$\epsilon_{irrev}$')
+        axs[7].plot(self.t/3600, (self.expansion_rev + self.expansion_irrev)*1e6, color='k', marker='o', ms=1, label='$\epsilon_{irrev} + \epsilon_{rev}$')
         axs[7].legend()
 
         axs[8].set_yscale('log')
-        axs[8].plot(self.t_vec/3600, self.j_sei_rxn_vec, color='r', marker='o', ms=1, label='$j_{sei,rxn}$')
-        axs[8].plot(self.t_vec/3600, self.j_sei_dif_vec, color='b', marker='o', ms=1, label='$j_{sei,dif}$')
-        axs[8].plot(self.t_vec/3600, np.abs(self.j_sei_vec), color='k', ls='--', label='$j_{sei}$')
+        axs[8].plot(self.t/3600, self.j_sei_rxn, color='r', marker='o', ms=1, label='$j_{sei,rxn}$')
+        axs[8].plot(self.t/3600, self.j_sei_dif, color='b', marker='o', ms=1, label='$j_{sei,dif}$')
+        axs[8].plot(self.t/3600, np.abs(self.j_sei), color='k', ls='--', label='$j_{sei}$')
         axs[8].legend()
         axs[8].set_ylabel(r'$|j_{\mathrm{sei}}|$ [A/m$^2$]')
 
-        axs[9].plot(self.t_vec/3600, self.Q_sei_vec, color='r', marker='o', ms=1)
+        axs[9].plot(self.t/3600, self.q_sei, color='r', marker='o', ms=1)
         axs[9].legend([r'$Q_{\mathrm{sei}}$'])
         axs[9].set_ylabel(r'$Q_{\mathrm{sei}}$ [Ah]')
         axs[9].set_xlabel('Time (hr)')

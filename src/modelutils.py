@@ -4,7 +4,7 @@ Equivalent circuit models for batteries
 
 import numpy as np
 
-def initialize_sim_vec(time_vec, initial_val=np.NaN):
+def initialize(time_vec, initial_val=np.NaN):
     """
     Initialize a vector to store simulation results.
     Allows a user to specify the initial value.

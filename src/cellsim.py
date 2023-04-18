@@ -35,7 +35,7 @@ class Cell:
         self.V_sei       = 9.585e-5   # m3/mol     SEI molar volume
         self.L_n         = 80e-6      # m          Negative electrode thickness
         self.k_SEI       = 1e-11      # m/s        SEI kinetic rate constant
-        self.D_SEI       = 2e-12      # m2/s       SEI layer diffusivity
+        self.D_SEI       = 2e-16      # m2/s       SEI layer diffusivity
         self.R_n         = 20e-6      # m          Anode particle radius
         self.epsilon_n   = 0.7        # [-]        Anode solid material fraction
         self.a_SEI       = 3 * self.epsilon_n / self.R_n # 1/m   Anode specific surface area
@@ -43,7 +43,7 @@ class Cell:
         self.U_SEI       = 0.4        # V          SEI equilibrium reaction potential
 
         # Expansion parameters
-        self.c0 = 1/6
+        self.c0 = 15
         self.c1 = 1/600
         self.c2 = 1/600
 
@@ -196,7 +196,8 @@ class Simulation:
 
         # Update the intercalation current for the next time step
         # Stoichiometry update; only include intercalation current
-        self.i_int[k+1] = self.i_app[k] - self.i_sei[k]
+        sign = self.i_app[k] < 0
+        self.i_int[k+1] = self.i_app[k] + sign*self.i_sei[k]
 
         # Integrate SEI current to get SEI capacity
         self.q_sei[k+1] = self.q_sei[k] + self.i_sei[k+1] * self.dt / 3600
@@ -264,9 +265,9 @@ class Simulation:
         axs[5].plot(self.t/3600, self.delta_p, color='b', marker='o', ms=1)
         axs[5].legend([r'$\delta_n$', r'$\delta_p$'])
 
-        axs[6].plot(self.t/3600, self.delta_sei, color='g', marker='o', ms=1)
+        axs[6].plot(self.t/3600, self.delta_sei * 1e9, color='g', marker='o', ms=1)
         axs[6].legend([r'$\delta_{\mathrm{sei}}$'])
-        axs[6].set_ylabel(r'$\delta_{\mathrm{sei}}$ [$m$]')
+        axs[6].set_ylabel(r'$\delta_{\mathrm{sei}}$ [$nm$]')
 
         axs[7].set_ylabel(r'$\epsilon$ ($\mu$m)')
         axs[7].plot(self.t/3600, self.expansion_irrev*1e6, color='g', marker='o', ms=1, label='$\epsilon_{irrev}$')
@@ -274,7 +275,7 @@ class Simulation:
                     color='k', marker='o', ms=1, label='$\epsilon_{irrev} + \epsilon_{rev}$')
         axs[7].legend()
 
-        axs[8].set_yscale('log')
+        # axs[8].set_yscale('log')
         axs[8].plot(self.t/3600, self.j_sei_rxn, color='r', marker='o', ms=1, label='$j_{sei,rxn}$')
         axs[8].plot(self.t/3600, self.j_sei_dif, color='b', marker='o', ms=1, label='$j_{sei,dif}$')
         axs[8].plot(self.t/3600, np.abs(self.j_sei), color='g', ls='--', lw=2, label='$j_{sei}$')

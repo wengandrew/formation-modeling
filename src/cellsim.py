@@ -34,8 +34,8 @@ class Cell:
         self.delta_SEI_0 = 5e-9       # m          Initial SEI thickness
         self.V_sei       = 9.585e-5   # m3/mol     SEI molar volume
         self.L_n         = 80e-6      # m          Negative electrode thickness
-        self.k_SEI       = 1e-13      # m/s        SEI kinetic rate constant
-        self.D_SEI       = 2e-16      # m2/s       SEI layer diffusivity
+        self.k_SEI       = 1e-11      # m/s        SEI kinetic rate constant
+        self.D_SEI       = 2e-12      # m2/s       SEI layer diffusivity
         self.R_n         = 20e-6      # m          Anode particle radius
         self.epsilon_n   = 0.7        # [-]        Anode solid material fraction
         self.a_SEI       = 3 * self.epsilon_n / self.R_n # 1/m   Anode specific surface area
@@ -87,6 +87,9 @@ class Simulation:
         # Initialize output vectors
         self.i_app = np.zeros(self.t.shape)
 
+        self.cycle_number = np.zeros(self.t.shape)
+        self.step_number = np.zeros(self.t.shape)
+
         # eSOH states
         self.theta_n = mu.initialize(self.t, cell.theta_n)
         self.theta_p = mu.initialize(self.t, cell.theta_p)
@@ -116,7 +119,7 @@ class Simulation:
         self.expansion_irrev = mu.initialize(self.t, 0)
 
 
-    def step(self, k: int, mode: str, icc=0, icv=0):
+    def step(self, k: int, mode: str, icc=0, icv=0, cyc_num=np.NaN, step_num=np.NaN):
         """
         Run a single step.
 
@@ -124,12 +127,17 @@ class Simulation:
         ----------
         k:         current time index
         mode:      'cc' or 'cv'
-        icc: applied current in CC mode
-        icv: current cut-off in CV mode
+        icc:       applied current in CC mode
+        icv:       current cut-off in CV mode
+        cyc_num:   cycle number to associate with this step
+        step_num:  step number to associate with this step
 
         """
 
         p = self.cell
+
+        self.cycle_number[k] = cyc_num
+        self.step_number[k] = step_num
 
         if mode == 'cc':
             self.i_app[k] = icc
@@ -141,8 +149,7 @@ class Simulation:
                           ( 1 - np.exp(-self.dt/(p.R1p*p.C1p)) ) * p.R1p + p.R0p )
 
 
-        # Stoichiometry update; only include intercalation current
-        self.i_int[k] = self.i_app[k] - self.i_sei[k]
+
         dQ = self.i_int[k] * self.dt / 3600 # Amp-hours
         self.theta_n[k + 1] = self.theta_n[k] + dQ / p.Cn
         self.theta_p[k + 1] = self.theta_p[k] - dQ / p.Cp
@@ -187,12 +194,16 @@ class Simulation:
         ## Current density to current conversion
         self.i_sei[k+1] = - self.j_sei[k+1] * (p.a_SEI * p.A_n * p.L_n)
 
+        # Update the intercalation current for the next time step
+        # Stoichiometry update; only include intercalation current
+        self.i_int[k+1] = self.i_app[k] - self.i_sei[k]
+
         # Integrate SEI current to get SEI capacity
         self.q_sei[k+1] = self.q_sei[k] + self.i_sei[k+1] * self.dt / 3600
 
         # Update SEI thickness
         self.delta_sei[k+1] = self.delta_sei[k] + \
-                             self.dt * (p.V_sei * p.a_SEI * \
+                              self.dt * (p.V_sei * \
                                         np.abs(self.j_sei[k+1]) ) / (2 * F)
 
         # Expansion update
@@ -208,7 +219,7 @@ class Simulation:
         Make a standard plot of the outputs
         """
 
-        num_subplots = 10
+        num_subplots = 11
 
         gridspec = dict(hspace=0.05, height_ratios=np.ones(num_subplots))
 
@@ -220,12 +231,12 @@ class Simulation:
         [ax.grid(False) for ax in axs]
 
         # Currents
-        axs[0].plot(self.t/3600, self.i_app, color='k', marker='o', ms=1)
-        axs[0].plot(self.t/3600, self.i_int, color='g', ls='--')
-        axs[0].plot(self.t/3600, self.i_r1n, color='r', marker='o', ms=1)
-        axs[0].plot(self.t/3600, self.i_r1p, color='b', ls='--')
+        axs[0].plot(self.t/3600, self.i_app, color='k', marker='o', ms=1, label='$I_{app}$')
+        axs[0].plot(self.t/3600, self.i_int, color='g', ls='--', label='$I_{int}$')
+        axs[0].plot(self.t/3600, self.i_r1n, color='r', marker='o', ms=1, label='$I_{R_{1,n}}$')
+        axs[0].plot(self.t/3600, self.i_r1p, color='b', ls='--', label='$I_{R_{1,p}}$')
         axs[0].set_ylabel('Current (A)')
-        axs[0].legend(['$I_{applied}$', '$I_{R_{1,n}}$', '$I_{R_{1,p}}$'])
+        axs[0].legend()
 
         # Voltages and Potentials
         axs[1].plot(self.t/3600, self.vt, ls='--', c='k')
@@ -253,27 +264,33 @@ class Simulation:
         axs[5].plot(self.t/3600, self.delta_p, color='b', marker='o', ms=1)
         axs[5].legend([r'$\delta_n$', r'$\delta_p$'])
 
-        axs[6].plot(self.t/3600, self.delta_sei, color='r', marker='o', ms=1)
+        axs[6].plot(self.t/3600, self.delta_sei, color='g', marker='o', ms=1)
         axs[6].legend([r'$\delta_{\mathrm{sei}}$'])
         axs[6].set_ylabel(r'$\delta_{\mathrm{sei}}$ [$m$]')
 
         axs[7].set_ylabel(r'$\epsilon$ ($\mu$m)')
-        axs[7].plot(self.t/3600, self.expansion_irrev*1e6, color='b', marker='o', ms=1, label='$\epsilon_{irrev}$')
-        axs[7].plot(self.t/3600, (self.expansion_rev + self.expansion_irrev)*1e6, color='k', marker='o', ms=1, label='$\epsilon_{irrev} + \epsilon_{rev}$')
+        axs[7].plot(self.t/3600, self.expansion_irrev*1e6, color='g', marker='o', ms=1, label='$\epsilon_{irrev}$')
+        axs[7].plot(self.t/3600, (self.expansion_rev + self.expansion_irrev)*1e6,
+                    color='k', marker='o', ms=1, label='$\epsilon_{irrev} + \epsilon_{rev}$')
         axs[7].legend()
 
         axs[8].set_yscale('log')
         axs[8].plot(self.t/3600, self.j_sei_rxn, color='r', marker='o', ms=1, label='$j_{sei,rxn}$')
         axs[8].plot(self.t/3600, self.j_sei_dif, color='b', marker='o', ms=1, label='$j_{sei,dif}$')
-        axs[8].plot(self.t/3600, np.abs(self.j_sei), color='k', ls='--', label='$j_{sei}$')
+        axs[8].plot(self.t/3600, np.abs(self.j_sei), color='g', ls='--', lw=2, label='$j_{sei}$')
         axs[8].legend()
         axs[8].set_ylabel(r'$|j_{\mathrm{sei}}|$ [A/m$^2$]')
 
-        axs[9].plot(self.t/3600, self.q_sei, color='r', marker='o', ms=1)
-        axs[9].legend([r'$Q_{\mathrm{sei}}$'])
-        axs[9].set_ylabel(r'$Q_{\mathrm{sei}}$ [Ah]')
-        axs[9].set_xlabel('Time (hr)')
+        axs[9].plot(self.t/3600, self.i_sei, color='g', marker='o', ms=1)
+        axs[9].legend([r'$I_{\mathrm{sei}}$'])
+        axs[9].set_ylabel(r'$I_{\mathrm{sei}}$ [A]')
+
+        axs[10].plot(self.t/3600, self.q_sei, color='g', marker='o', ms=1)
+        axs[10].legend([r'$Q_{\mathrm{sei}}$'])
+        axs[10].set_ylabel(r'$Q_{\mathrm{sei}}$ [Ah]')
+        axs[10].set_xlabel('Time (hr)')
 
         if to_save:
-            plt.savefig('outputs/figures/fig_formation_simulation.png', bbox_inches='tight',
-                    dpi=150)
+            plt.savefig('outputs/figures/fig_formation_simulation.png',
+                        bbox_inches='tight',
+                        dpi=150)

@@ -75,6 +75,7 @@ class Simulation:
 
         self.cell = cell
 
+        # Numerical details
         self.dt = 1.0
         self.t_vec = np.arange(0, sim_time_s, self.dt)
 
@@ -83,22 +84,30 @@ class Simulation:
         self.vmin = 3.0
         self.i_cv = 0.5 / 20 # CV hold current cut-off condition
 
+        # Initialize output vectors
         self.i_app_vec = np.zeros(self.t_vec.shape)
 
+        # eSOH states
         self.theta_n_vec = mu.initialize_sim_vec(self.t_vec, cell.theta_n)
         self.theta_p_vec = mu.initialize_sim_vec(self.t_vec, cell.theta_p)
         self.ocv_n_vec   = mu.initialize_sim_vec(self.t_vec, mu.Un(cell.theta_n))
         self.ocv_p_vec   = mu.initialize_sim_vec(self.t_vec, mu.Up(cell.theta_p))
-        self.vt_vec      = mu.initialize_sim_vec(self.t_vec, self.ocv_p_vec[0] - self.ocv_n_vec[0])
         self.ocv_vec     = mu.initialize_sim_vec(self.t_vec, self.ocv_p_vec[0] - self.ocv_n_vec[0])
+        self.vt_vec      = mu.initialize_sim_vec(self.t_vec, self.ocv_p_vec[0] - self.ocv_n_vec[0])
+
+        # RC states
         self.I_r1p_vec   = mu.initialize_sim_vec(self.t_vec, 0)
         self.I_r1n_vec   = mu.initialize_sim_vec(self.t_vec, 0)
+
+        # SEI states
         self.eta_sei_vec = mu.initialize_sim_vec(self.t_vec, 0)
         self.j_sei_rxn_vec = mu.initialize_sim_vec(self.t_vec, 0)
         self.j_sei_dif_vec = mu.initialize_sim_vec(self.t_vec, 0)
         self.j_sei_vec   = mu.initialize_sim_vec(self.t_vec, 0)
         self.I_sei_vec   = mu.initialize_sim_vec(self.t_vec, 0)
         self.Q_sei_vec   = mu.initialize_sim_vec(self.t_vec, 0)
+
+        # Expansion states
         self.delta_sei_vec = mu.initialize_sim_vec(self.t_vec, cell.delta_SEI_0)
         self.delta_n_vec = mu.initialize_sim_vec(self.t_vec, mu.En(cell.theta_n))
         self.delta_p_vec = mu.initialize_sim_vec(self.t_vec, mu.Ep(cell.theta_p))

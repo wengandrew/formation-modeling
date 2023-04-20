@@ -196,7 +196,7 @@ class Simulation:
 
         # Update the intercalation current for the next time step
         # Stoichiometry update; only include intercalation current
-        sign = self.i_app[k] < 0
+        sign = -np.sign(self.i_app[k])
         self.i_int[k+1] = self.i_app[k] + sign*self.i_sei[k]
 
         # Integrate SEI current to get SEI capacity
@@ -225,13 +225,14 @@ class Simulation:
         gridspec = dict(hspace=0.05, height_ratios=np.ones(num_subplots))
 
         fig, axs = plt.subplots(nrows=num_subplots, ncols=1,
-                                figsize=(12, num_subplots * 4),
+                                figsize=(16, num_subplots * 4),
                                 gridspec_kw=gridspec,
                                 sharex=True)
 
         [ax.grid(False) for ax in axs]
 
         # Currents
+        axs[0].axhline(y=0, linestyle='-', label='', color='k', linewidth=0.5)
         axs[0].plot(self.t/3600, self.i_app, color='k', marker='o', ms=1, label='$I_{app}$')
         axs[0].plot(self.t/3600, self.i_int, color='g', ls='--', label='$I_{int}$')
         axs[0].plot(self.t/3600, self.i_r1n, color='r', marker='o', ms=1, label='$I_{R_{1,n}}$')
@@ -245,47 +246,58 @@ class Simulation:
         axs[1].legend(['$V_t$', '$V_{oc}$'])
         axs[1].set_ylabel('Voltage (V)')
 
+        # Positive potential
         axs[2].plot(self.t/3600, self.ocv_p, marker='o', ms=1, color='b')
         axs[2].legend(['$U_p$'])
         axs[2].set_ylabel('V vs $Li/Li^+$')
 
+        # Negative potential
         axs[3].plot(self.t/3600, self.ocv_n, marker='o', ms=1, color='r')
         axs[3].axhline(y=self.cell.U_SEI, linestyle='--', color='k')
         axs[3].legend(['$U_n$', f'$U_{{\mathrm{{SEI}}}}$ = {self.cell.U_SEI} V'])
         axs[3].set_ylabel('V vs $Li/Li^+$')
 
+        # Electrode stoichiometries
         axs[4].plot(self.t/3600, self.theta_n, color='r', marker='o', ms=1)
         axs[4].plot(self.t/3600, self.theta_p, color='b', marker='o', ms=1)
+        axs[4].axhline(y=1, linestyle='-', label='', color='k', linewidth=0.5)
+        axs[4].axhline(y=0, linestyle='-', label='', color='k', linewidth=0.5)
         axs[4].legend([r'$\theta_n$', r'$\theta_p$'])
         axs[4].set_ylabel(r'$\theta$')
         axs[4].set_ylim((-0.1, 1.1))
 
+        # Electrode expansion factors
         axs[5].set_ylabel(r'$\delta$')
         axs[5].plot(self.t/3600, self.delta_n, color='r', marker='o', ms=1)
         axs[5].plot(self.t/3600, self.delta_p, color='b', marker='o', ms=1)
         axs[5].legend([r'$\delta_n$', r'$\delta_p$'])
 
+        # SEI expansion factor
         axs[6].plot(self.t/3600, self.delta_sei * 1e9, color='g', marker='o', ms=1)
         axs[6].legend([r'$\delta_{\mathrm{sei}}$'])
         axs[6].set_ylabel(r'$\delta_{\mathrm{sei}}$ [$nm$]')
 
+        # Total cell expansion
         axs[7].set_ylabel(r'$\epsilon$ ($\mu$m)')
         axs[7].plot(self.t/3600, self.expansion_irrev*1e6, color='g', marker='o', ms=1, label='$\epsilon_{irrev}$')
         axs[7].plot(self.t/3600, (self.expansion_rev + self.expansion_irrev)*1e6,
                     color='k', marker='o', ms=1, label='$\epsilon_{irrev} + \epsilon_{rev}$')
         axs[7].legend()
 
-        # axs[8].set_yscale('log')
+        # SEI reaction current densities
+        axs[8].set_yscale('log')
         axs[8].plot(self.t/3600, self.j_sei_rxn, color='r', marker='o', ms=1, label='$j_{sei,rxn}$')
         axs[8].plot(self.t/3600, self.j_sei_dif, color='b', marker='o', ms=1, label='$j_{sei,dif}$')
         axs[8].plot(self.t/3600, np.abs(self.j_sei), color='g', ls='--', lw=2, label='$j_{sei}$')
         axs[8].legend()
         axs[8].set_ylabel(r'$|j_{\mathrm{sei}}|$ [A/m$^2$]')
 
+        # Total SEI reaction current
         axs[9].plot(self.t/3600, self.i_sei, color='g', marker='o', ms=1)
         axs[9].legend([r'$I_{\mathrm{sei}}$'])
         axs[9].set_ylabel(r'$I_{\mathrm{sei}}$ [A]')
 
+        # Total SEI capacity
         axs[10].plot(self.t/3600, self.q_sei, color='g', marker='o', ms=1)
         axs[10].legend([r'$Q_{\mathrm{sei}}$'])
         axs[10].set_ylabel(r'$Q_{\mathrm{sei}}$ [Ah]')

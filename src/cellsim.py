@@ -95,6 +95,8 @@ class Simulation:
         self.theta_p = mu.initialize(self.t, cell.theta_p)
         self.ocv_n   = mu.initialize(self.t, mu.Un(cell.theta_n))
         self.ocv_p   = mu.initialize(self.t, mu.Up(cell.theta_p))
+        self.eta_n   = mu.initialize(self.t, 0)
+        self.eta_p   = mu.initialize(self.t, 0)
         self.ocv     = mu.initialize(self.t, self.ocv_p[0] - self.ocv_n[0])
         self.vt      = mu.initialize(self.t, self.ocv_p[0] - self.ocv_n[0])
         self.i_int   = mu.initialize(self.t, 0)
@@ -149,7 +151,6 @@ class Simulation:
                           ( 1 - np.exp(-self.dt/(p.R1p*p.C1p)) ) * p.R1p + p.R0p )
 
 
-
         dQ = self.i_int[k] * self.dt / 3600 # Amp-hours
         self.theta_n[k + 1] = self.theta_n[k] + dQ / p.Cn
         self.theta_p[k + 1] = self.theta_p[k] - dQ / p.Cp
@@ -163,25 +164,25 @@ class Simulation:
         self.ocv[k + 1] = self.ocv_p[k+1] - self.ocv_n[k+1]
 
         # Current updates (branch current for RC element)
-        self.i_r1p[k+1] =  np.exp(-self.dt/(p.R1p*p.C1p))  * self.i_r1p[k] + \
+        self.i_r1p[k+1] =      np.exp(-self.dt/(p.R1p*p.C1p))  * self.i_r1p[k] + \
                           (1 - np.exp(-self.dt/(p.R1p*p.C1p))) * self.i_app[k]
 
-        self.i_r1n[k+1] =  np.exp(-self.dt/(p.R1n*p.C1n))  * self.i_r1n[k] + \
+        self.i_r1n[k+1] =      np.exp(-self.dt/(p.R1n*p.C1n))  * self.i_r1n[k] + \
                           (1 - np.exp(-self.dt/(p.R1n*p.C1n))) * self.i_app[k]
 
+        self.eta_p[k+1] = p.R1p * self.i_r1p[k] + p.R0p * self.i_app[k]
+        self.eta_n[k+1] = p.R1n * self.i_r1n[k] + p.R0n * self.i_app[k]
+
         # Terminal voltage update
-        # Vt = Up + eta_p - Un + eta_n
         if mode == 'cc':
-            self.vt[k+1] = self.ocv_p[k+1] + p.R1p * self.i_r1p[k] \
-                             + p.R0p * self.i_app[k] - \
-                              (self.ocv_n[k+1] - p.R1n * self.i_r1n[k] - \
-                               p.R0n * self.i_app[k])
+            self.vt[k+1] = self.ocv_p[k+1] + self.eta_p[k] - \
+                          (self.ocv_n[k+1] - self.eta_n[k])
         elif mode == 'cv':
             self.vt[k+1] = self.vmax
 
         # SEI growth update
-        eta_int = self.i_app[k] * p.R0n
-        self.eta_sei[k+1] = eta_int + self.ocv_n[k+1] - p.U_SEI
+        # eta_int = self.i_app[k] * p.R0n
+        self.eta_sei[k+1] = self.eta_n[k+1] + self.ocv_n[k+1] - p.U_SEI
 
         # Mixed reaction and diffusion limited SEI current density
         self.j_sei_rxn[k+1] = F * p.c_EC_bulk * p.k_SEI * \
@@ -210,7 +211,7 @@ class Simulation:
         # Expansion update
         # Cathode and anode expansion function update
         self.expansion_rev[k+1] = p.c1 * self.delta_p[k+1] + \
-                                 p.c2 * self.delta_n[k+1]
+                                  p.c2 * self.delta_n[k+1]
         self.expansion_irrev[k+1] = p.c0 * self.delta_sei[k+1]
 
 
@@ -247,14 +248,16 @@ class Simulation:
         axs[1].set_ylabel('Voltage (V)')
 
         # Positive potential
-        axs[2].plot(self.t/3600, self.ocv_p, marker='o', ms=1, color='b')
-        axs[2].legend(['$U_p$'])
+        axs[2].plot(self.t/3600, self.ocv_p, marker='o', ms=1, color='b', label='$U_p$')
+        axs[2].plot(self.t/3600, self.ocv_p + self.eta_p, ls='--', color='b', label='$U_p + \eta_p$')
+        axs[2].legend()
         axs[2].set_ylabel('V vs $Li/Li^+$')
 
         # Negative potential
-        axs[3].plot(self.t/3600, self.ocv_n, marker='o', ms=1, color='r')
-        axs[3].axhline(y=self.cell.U_SEI, linestyle='--', color='k')
-        axs[3].legend(['$U_n$', f'$U_{{\mathrm{{SEI}}}}$ = {self.cell.U_SEI} V'])
+        axs[3].plot(self.t/3600, self.ocv_n, marker='o', ms=1, color='r', label='$U_n$')
+        axs[3].plot(self.t/3600, self.ocv_n - self.eta_n, ls='--', color='r', label='$U_n - \eta_n$')
+        axs[3].axhline(y=self.cell.U_SEI, linestyle='--', color='k', label=rf'$U_{{\mathrm{{SEI}}}}$ = {self.cell.U_SEI} V')
+        axs[3].legend()
         axs[3].set_ylabel('V vs $Li/Li^+$')
 
         # Electrode stoichiometries

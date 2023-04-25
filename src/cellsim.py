@@ -22,45 +22,21 @@ R = 8.314          # J/mol/K    Universal gas constant
 
 class Cell:
 
-    def __init__(self, name=''):
+    def __init__(self, config, name=''):
+        """
+        Initialize a cell object.
+
+        Parameters
+        ---------
+        name (str): name of the cell (optional)
+        config (dict): the parameters defining this cell
+        """
 
         self.name = name
 
-        # Initialize default cell parameters
-
-        # SEI growth parameters
-        self.alpha_SEI   = 0.5        # [-]        SEI charge transfer coefficient
-        self.c_EC_bulk   = 4541       # mol/m3     Concentration of EC in bulk electrolyte
-        self.delta_SEI_0 = 5e-9       # m          Initial SEI thickness
-        self.V_sei       = 9.585e-5   # m3/mol     SEI molar volume
-        self.L_n         = 80e-6      # m          Negative electrode thickness
-        self.k_SEI       = 1e-11      # m/s        SEI kinetic rate constant
-        self.D_SEI       = 2e-16      # m2/s       SEI layer diffusivity
-        self.R_n         = 20e-6      # m          Anode particle radius
-        self.epsilon_n   = 0.7        # [-]        Anode solid material fraction
-        self.a_SEI       = 3 * self.epsilon_n / self.R_n # 1/m   Anode specific surface area
-        self.A_n         = 0.100      # m2         Anode active area
-        self.U_SEI       = 0.4        # V          SEI equilibrium reaction potential
-
-        # Expansion parameters
-        self.c0 = 15
-        self.c1 = 1/600
-        self.c2 = 1/600
-
-        # eR-RC parameters
-        self.R0p = 0.041
-        self.R0n = 0.041
-        self.R1p = 0.158
-        self.R1n = 0.158
-        self.C1p = 38000
-        self.C1n = 38000
-
-        # eSOH parameters
-        self.Cn = 5 # Ah
-        self.Cp = 6 # Ah
-        self.theta_n = 0.0
-        self.theta_p = 1.0
-
+        # Initialize cell parameters based on config file
+        for (key, value) in config.items():
+            setattr(self, key, value)
 
 
 class Simulation:

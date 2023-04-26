@@ -158,18 +158,18 @@ class Simulation:
 
         # SEI growth update
         # eta_int = self.i_app[k] * p.R0n
-        self.eta_sei[k+1] = self.eta_n[k+1] + self.ocv_n[k+1] - p.U_SEI
+        self.eta_sei[k+1] = self.eta_n[k+1] + self.ocv_n[k+1] - p.U_SEI1
 
         # Mixed reaction and diffusion limited SEI current density
-        self.j_sei_rxn[k+1] = F * p.c_EC_bulk * p.k_SEI * \
+        self.j_sei_rxn[k+1] = F * p.c_SEI1_0 * p.k_SEI1 * \
                                 np.exp( -p.alpha_SEI * F * self.eta_sei[k+1] / \
                                        (R * T) )
-        self.j_sei_dif[k+1] = p.D_SEI * p.c_EC_bulk * F / \
+        self.j_sei_dif[k+1] = p.D_SEI1 * p.c_SEI1_0 * F / \
                                 (self.delta_sei[k]) # should this be k or k+1?
         self.j_sei[k+1] = - 1 / (1/self.j_sei_rxn[k+1] + 1/self.j_sei_dif[k+1])
 
         ## Current density to current conversion
-        self.i_sei[k+1] = - self.j_sei[k+1] * (p.a_SEI * p.A_n * p.L_n)
+        self.i_sei[k+1] = - self.j_sei[k+1] * (p.a_sn * p.A_n * p.L_n)
 
         # Update the intercalation current for the next time step
         # Stoichiometry update; only include intercalation current
@@ -181,7 +181,7 @@ class Simulation:
 
         # Update SEI thickness
         self.delta_sei[k+1] = self.delta_sei[k] + \
-                              self.dt * (p.V_sei * \
+                              self.dt * (p.V_SEI1 * \
                                         np.abs(self.j_sei[k+1]) ) / (2 * F)
 
         # Expansion update
@@ -232,7 +232,7 @@ class Simulation:
         # Negative potential
         axs[3].plot(self.t/3600, self.ocv_n, marker='o', ms=1, color='r', label='$U_n$')
         axs[3].plot(self.t/3600, self.ocv_n - self.eta_n, ls='--', color='r', label='$U_n - \eta_n$')
-        axs[3].axhline(y=self.cell.U_SEI, linestyle='--', color='k', label=rf'$U_{{\mathrm{{SEI}}}}$ = {self.cell.U_SEI} V')
+        axs[3].axhline(y=self.cell.U_SEI1, linestyle='--', color='k', label=rf'$U_{{\mathrm{{SEI}}}}$ = {self.cell.U_SEI1} V')
         axs[3].legend()
         axs[3].set_ylabel('V vs $Li/Li^+$')
 

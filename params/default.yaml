@@ -11,18 +11,20 @@
 
  # First SEI component: ethylene carbonate
  # Less dense, less passivating (more porous)
+ SEI1_name: Li2EDC
  c_SEI1_0: 4541       # mol/m3     Concentration of EC in bulk electrolyte
  V_SEI1: 9.585e-5     # m3/mol     SEI molar volume (Li2EDC), solid phase
  k_SEI1: 1.0e-11      # m/s        SEI kinetic rate constant
- D_SEI1: 2.0e-15      # m2/s       SEI layer diffusivity
+ D_SEI1: 2.0e-16      # m2/s       SEI layer diffusivity
  U_SEI1: 0.8          # V          SEI equilibrium reaction potential
 
  # Second SEI component: dimethyl carbonate
  # More dense, more passivating (less porous)
+ SEI2_name: LiMC
  c_SEI2_0: 4541       # mol/m3     Concentration of DMC in bulk electrolyte
  V_SEI2: 5.810e-5     # m3/mol     SEI molar volume (LiMC), solid phase
  k_SEI2: 1.0e-11      # m/s        SEI kinetic rate constant
- D_SEI2: 2.0e-16      # m2/s       SEI layer diffusivity
+ D_SEI2: 2.0e-17      # m2/s       SEI layer diffusivity
  U_SEI2: 0.3          # V          SEI equilibrium reaction potential
 
  # Expansion

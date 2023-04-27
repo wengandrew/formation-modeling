@@ -89,7 +89,8 @@ class Simulation:
         self.q_sei   = mu.initialize(self.t, 0)
 
         # Homogenized quantities
-        self.D_sei   = mu.initialize(self.t, 1/(1/cell.D_SEI1 + 1/cell.D_SEI2))
+        self.D_sei1   = mu.initialize(self.t, 1/(1/cell.D_SEI11 + 1/cell.D_SEI12))
+        self.D_sei2  = mu.initialize(self.t, 1/(1/cell.D_SEI21 + 1/cell.D_SEI22))
         self.V_sei   = mu.initialize(self.t, (cell.V_SEI1 + cell.V_SEI2)/2)
 
         # Individual components
@@ -108,6 +109,8 @@ class Simulation:
 
         # Expansion states
         self.delta_sei = mu.initialize(self.t, cell.delta_SEI_0)
+        self.delta_sei1 = mu.initialize(self.t, cell.delta_SEI_0/2)
+        self.delta_sei2 = mu.initialize(self.t, cell.delta_SEI_0/2)
         self.delta_n = mu.initialize(self.t, mu.En(cell.theta_n))
         self.delta_p = mu.initialize(self.t, mu.Ep(cell.theta_p))
         self.expansion_rev = mu.initialize(self.t, 0)
@@ -144,9 +147,10 @@ class Simulation:
                           ( 1 - np.exp(-self.dt/(p.R1p*p.C1p)) ) * p.R1p + p.R0p )
 
 
-        dQ = self.i_int[k] * self.dt / 3600 # Amp-hours
-        self.theta_n[k + 1] = self.theta_n[k] + dQ / p.Cn
-        self.theta_p[k + 1] = self.theta_p[k] - dQ / p.Cp
+        dQint = self.i_int[k] * self.dt / 3600 # Amp-hours
+        dQapp = self.i_app[k] * self.dt / 3600 # Amp-hours
+        self.theta_n[k + 1] = self.theta_n[k] + dQint / p.Cn
+        self.theta_p[k + 1] = self.theta_p[k] - dQapp / p.Cp
 
         # Equilibrium potential updates
         self.ocv_n[k + 1] = mu.Un(self.theta_n[k + 1])
@@ -183,14 +187,14 @@ class Simulation:
                                 np.exp( -p.alpha_SEI * F * self.eta_sei1[k+1] / \
                                        (R * T) )
 
-        self.j_sei_dif1[k+1] = self.D_sei[k] * p.c_SEI1_0 * F / \
+        self.j_sei_dif1[k+1] = self.D_sei1[k] * p.c_SEI1_0 * F / \
                                 (self.delta_sei[k]) # should this be k or k+1?
 
         self.j_sei_rxn2[k+1] = F * p.c_SEI2_0 * p.k_SEI2 * \
                                 np.exp( -p.alpha_SEI * F * self.eta_sei2[k+1] / \
                                        (R * T) )
 
-        self.j_sei_dif2[k+1] = self.D_sei[k] * p.c_SEI2_0 * F / \
+        self.j_sei_dif2[k+1] = self.D_sei2[k] * p.c_SEI2_0 * F / \
                                 (self.delta_sei[k]) # should this be k or k+1?
 
         self.j_sei1[k+1] = - 1 / (1/self.j_sei_rxn1[k+1] + 1/self.j_sei_dif1[k+1])
@@ -206,6 +210,11 @@ class Simulation:
         # Update the intercalation current for the next time step
         # Stoichiometry update; only include intercalation current
         sign = -np.sign(self.i_app[k])
+
+        # Detect if we're resting
+        if self.i_app[k] == 0:
+            sign = -1
+
         self.i_int[k+1] = self.i_app[k] + sign*self.i_sei[k]
 
         # Integrate SEI current to get SEI capacity
@@ -216,13 +225,23 @@ class Simulation:
         # Update homogenized variables
         mu1 = self.q_sei1[k+1] / (self.q_sei[k+1])
         mu2 = self.q_sei2[k+1] / (self.q_sei[k+1])
-        self.D_sei[k+1] = 1 / (mu1/p.D_SEI1 + mu2/p.D_SEI2)
+        self.D_sei1[k+1] = 1 / (mu1/p.D_SEI11 + mu2/p.D_SEI12)
+        self.D_sei2[k+1] = 1 / (mu1/p.D_SEI21 + mu2/p.D_SEI22)
         self.V_sei[k+1] = mu1 * p.V_SEI1 + mu2 * p.V_SEI2
 
         # Update SEI thickness
         self.delta_sei[k+1] = self.delta_sei[k] + \
                               self.dt * (self.V_sei[k+1] * \
                                         np.abs(self.j_sei[k+1]) ) / (2 * F)
+        self.delta_sei1[k+1] = self.delta_sei1[k] + \
+                              self.dt * (p.V_SEI1 * \
+                                        np.abs(self.j_sei1[k+1]) ) / (2 * F)
+
+        self.delta_sei2[k+1] = self.delta_sei2[k] + \
+                              self.dt * (p.V_SEI2 * \
+                                        np.abs(self.j_sei2[k+1]) ) / (2 * F)
+
+
 
         # Expansion update
         # Cathode and anode expansion function update
@@ -257,7 +276,7 @@ class Simulation:
         axs[0].plot(xx, self.i_r1n, color='r', marker='o', ms=1, label='$I_{R_{1,n}}$')
         axs[0].plot(xx, self.i_r1p, color='b', ls='--', label='$I_{R_{1,p}}$')
         axs[0].set_ylabel('Current (A)')
-        axs[0].legend()
+        axs[0].legend(loc='upper right')
 
         # Voltages and Potentials
         axs[1].plot(xx, self.vt, ls='-', c='k')
@@ -292,11 +311,13 @@ class Simulation:
         axs[5].set_ylabel(r'$\delta$')
         axs[5].plot(xx, self.delta_n, c='r')
         axs[5].plot(xx, self.delta_p, c='b')
-        axs[5].legend([r'$\delta_n$', r'$\delta_p$'])
+        axs[5].legend([r'$\delta_n$', r'$\delta_p$'], loc='upper right')
 
         # SEI expansion factor
-        axs[6].plot(xx, self.delta_sei * 1e9, c='g')
-        axs[6].legend([r'$\delta_{\mathrm{sei}}$'])
+        axs[6].plot(xx, self.delta_sei * 1e9, c='k', label=r'$\delta_{\mathrm{sei}}$')
+        axs[6].plot(xx, self.delta_sei1 * 1e9, c='m', label=r'$\delta_{\mathrm{sei,1}}$')
+        axs[6].plot(xx, self.delta_sei1 * 1e9 + self.delta_sei2 * 1e9, c='g', label=r'$\delta_{\mathrm{sei,1+2}}$')
+        axs[6].legend(loc='upper right')
         axs[6].set_ylabel(r'$\delta_{\mathrm{sei}}$ [$nm$]')
 
         # Total cell expansion
@@ -337,9 +358,10 @@ class Simulation:
         axs[11].set_ylabel(r'$Q_{\mathrm{sei}}$ [Ah]')
 
         axs[12].set_yscale('log')
-        axs[12].plot(xx, self.D_sei, c='k', label='$D_{sei}$')
-        axs[12].axhline(y=self.cell.D_SEI1, label='$D_{sei,1}$', color='g')
-        axs[12].axhline(y=self.cell.D_SEI2, label='$D_{sei,2}$', color='m')
+        axs[12].plot(xx, self.D_sei1, c='g', label='$D_{sei,1}$')
+        axs[12].plot(xx, self.D_sei2, c='m', label='$D_{sei,2}$')
+        axs[12].axhline(y=self.cell.D_SEI11, linestyle='--', label='$D_{sei,11}$', color='g')
+        axs[12].axhline(y=self.cell.D_SEI22, linestyle='--', label='$D_{sei,22}$', color='m')
         axs[12].legend(loc='upper right')
         axs[12].set_ylabel(r'$D_{sei}$')
         axs[12].set_xlabel('Time (hr)')

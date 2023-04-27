@@ -15,7 +15,8 @@
  c_SEI1_0: 4541       # mol/m3     Concentration of EC in bulk electrolyte
  V_SEI1: 9.585e-5     # m3/mol     SEI molar volume (Li2EDC), solid phase
  k_SEI1: 1.0e-11      # m/s        SEI kinetic rate constant
- D_SEI1: 2.0e-16      # m2/s       SEI layer diffusivity
+ D_SEI11: 2.0e-16     # m2/s       SEI 1 diffusivity in solid layer 1
+ D_SEI12: 2.0e-17     # m2/s       SEI 1 diffusivity in solid layer 2
  U_SEI1: 0.8          # V          SEI equilibrium reaction potential
 
  # Second SEI component: dimethyl carbonate
@@ -24,7 +25,8 @@
  c_SEI2_0: 4541       # mol/m3     Concentration of DMC in bulk electrolyte
  V_SEI2: 5.810e-5     # m3/mol     SEI molar volume (LiMC), solid phase
  k_SEI2: 1.0e-11      # m/s        SEI kinetic rate constant
- D_SEI2: 2.0e-17      # m2/s       SEI layer diffusivity
+ D_SEI21: 2.0e-16     # m2/s       SEI 2 diffusivity in solid layer 1
+ D_SEI22: 2.0e-17     # m2/s       SEI 2 diffusivity in solid layer 2
  U_SEI2: 0.3          # V          SEI equilibrium reaction potential
 
  # Expansion

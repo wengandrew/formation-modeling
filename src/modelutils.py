@@ -71,6 +71,50 @@ def Ep(sto):
     return -1.1e-2 * (1 - sto)
 
 
+def UnGr(sto):
+    """
+    UMBL2022FEB Un function from Hamid Mohavedi, April 2023
+    """
+
+    var= [-0.014706865941596, -0.012143997194139, -0.002418437987814,-0.008309680311046,-0.012498890102608, \
+    -0.053808682683538, 0.672164169443950, 0.097531836156448,0.150321382880000,  0.178875736938146, \
+    0.250298777953980, 0.211789560126373, 0.515765253254034, 0.996096565665399, -0.002990596665583, \
+    0.016114544615164, 0.017934277004896, 0.006850209194758, 0.013282726871941, 0.018011720489539, \
+    0.048224536960530, -0.024336868170844]
+
+    p_eq = var[0:8]
+    a_eq = var[8:15]
+    b_eq = var[15:22]
+
+    u_eq2 = p_eq[7] + p_eq[6]*np.exp((sto - a_eq[6])/b_eq[6])
+
+    for i in np.arange(6):
+        u_eq2 += p_eq[i]*np.tanh((sto - a_eq[i])/b_eq[i])
+
+    return u_eq2
+
+
+def UpNMC622(sto):
+    """
+    UMBL2022FEB Up function from Hamid Mohavedi, April 2023
+    """
+
+    a1 = 2.992
+    a2 = -2.098
+    a3 = -0.6943
+    a4 = 4.341
+    a5 = -3.883
+    a6 = 0.611
+    a7 = 0.8258
+    b1 = 0.4484
+    b2 = 0.4757
+
+    u_eq = a1 + a2*sto + a3*sto**2 + a4*sto**3 + \
+           a5*sto**4 + a6*sto**5 + a7*np.exp(b1*sto + b2)
+
+    return u_eq
+
+
 def Up(sto):
     """
     Nickel Managanese Cobalt Oxide (NMC) Open Circuit Potential (OCP) as a

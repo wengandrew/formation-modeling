@@ -43,7 +43,7 @@
  C1n: 76000
 
  # Electrode stoichiometry model
- Cn: 6 # Ah
- Cp: 6 # Ah
+ Cn: 3.14 # Ah
+ Cp: 3.02 # Ah
  theta_n: 0.0
  theta_p: 1.0

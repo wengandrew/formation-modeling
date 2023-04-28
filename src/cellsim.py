@@ -55,6 +55,9 @@ class Simulation:
         self.dt = 1.0
         self.t = np.arange(0, sim_time_s, self.dt)
 
+        # Track where we are in the simulation
+        self.curr_k = 0
+
         # Simulation parameters
         self.vmax = 4.2
         self.vmin = 3.0
@@ -250,6 +253,104 @@ class Simulation:
         self.expansion_irrev[k+1] = p.c0 * self.delta_sei[k+1]
 
 
+    def run_rest(self, rest_time_hrs: float, cycle_number: int):
+        """
+        Run a rest step
+
+        Parameters
+        ----------
+        rest_time_hrs (float): hours to rest
+        cycle_number (int): a cycle number label
+        """
+
+        k = self.curr_k
+
+        kmax = k + int(rest_time_hrs*3600 / self.dt)
+
+        assert kmax < len(self.t) - 1, 'Ran out of time array.'
+
+        while k < kmax:
+            self.step(k, 'cc', icc=0, cyc_num=cycle_number, step_num=3)
+            k += 1
+
+        self.curr_k = k
+
+
+    def run_chg_cccv(self, icc: float, icv: float, cycle_number: int):
+        """
+        Run a charge CCCV step.
+
+        Parameters:
+        icc (float): CC current in amps (+ve is charge)
+        icc (float): CV current cutoff in amps (+ve is charge)
+        cycle_number (int): a cycle number label
+        """
+
+        k = self.curr_k
+
+        mode = 'cc'
+
+        while True:
+
+            if mode == 'cc':
+
+                self.step(k, 'cc', icc=icc, cyc_num=cycle_number, step_num=0)
+
+                if self.vt[k+1] >= self.vmax:
+                    mode = 'cv'
+                    self.vt[k+1] = self.vmax
+
+                k += 1
+
+            if mode == 'cv' and np.abs(icc) > np.abs(icv):
+
+                self.step(k, 'cv', icv=icv, cyc_num=cycle_number, step_num=1)
+
+                # End condition
+                if np.abs(self.i_app[k]) < np.abs(icv):
+                    self.curr_k = k
+                    break
+
+                k += 1
+
+
+    def run_dch_cccv(self, icc: float, icv: float, cycle_number: int):
+        """
+        Run a discharge CCCV step.
+
+        Parameters:
+        icc (float): CC current in amps (+ve is charge)
+        icc (float): CV current cutoff in amps (+ve is charge)
+        cycle_number (int): a cycle number label
+        """
+
+        k = self.curr_k
+
+        mode = 'cc'
+
+        while True:
+
+            if mode == 'cc':
+
+                self.step(k, 'cc', icc=icc, cyc_num=cycle_number, step_num=2)
+
+                if self.vt[k+1] <= self.vmin:
+                    mode = 'cv'
+                    self.vt[k+1] = self.vmin
+
+                k += 1
+
+            if mode == 'cv' and np.abs(icc) >= np.abs(icv):
+
+                self.step(k, 'cv', icv=icv, cyc_num=cycle_number, step_num=4)
+
+                # End condition
+                if np.abs(self.i_app[k]) < np.abs(icv):
+                    self.curr_k = k
+                    break
+
+                k += 1
+
 
     def plot(self, to_save=True):
         """
@@ -270,11 +371,11 @@ class Simulation:
         xx = self.t/3600
 
         # Currents
-        axs[0].axhline(y=0, linestyle='-', label='', color='k', linewidth=0.5)
-        axs[0].plot(xx, self.i_app, color='k', marker='o', ms=1, label='$I_{app}$')
-        axs[0].plot(xx, self.i_int, color='g', ls='--', label='$I_{int}$')
-        axs[0].plot(xx, self.i_r1n, color='r', marker='o', ms=1, label='$I_{R_{1,n}}$')
-        axs[0].plot(xx, self.i_r1p, color='b', ls='--', label='$I_{R_{1,p}}$')
+        axs[0].axhline(y=0, ls='-', label='', c='k', lw=0.5)
+        axs[0].plot(xx, self.i_app, c='k', label='$I_{app}$')
+        axs[0].plot(xx, self.i_int, c='g', ls='--', label='$I_{int}$')
+        axs[0].plot(xx, self.i_r1n, c='r', label='$I_{R_{1,n}}$')
+        axs[0].plot(xx, self.i_r1p, c='b', ls='--', label='$I_{R_{1,p}}$')
         axs[0].set_ylabel('Current (A)')
         axs[0].legend(loc='upper right')
 
@@ -293,16 +394,16 @@ class Simulation:
         # Negative potential
         axs[3].plot(xx, self.ocv_n, ls='--', c='r', label='$U_n$')
         axs[3].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label='$U_n - \eta_n$')
-        axs[3].axhline(y=self.cell.U_SEI1, linestyle='--', c='g', label=rf'$U_{{\mathrm{{SEI,1}}}}$ = {self.cell.U_SEI1} V')
-        axs[3].axhline(y=self.cell.U_SEI2, linestyle='--', c='m', label=rf'$U_{{\mathrm{{SEI,2}}}}$ = {self.cell.U_SEI2} V')
+        axs[3].axhline(y=self.cell.U_SEI1, ls='--', c='g', label=rf'$U_{{\mathrm{{SEI,1}}}}$ = {self.cell.U_SEI1} V')
+        axs[3].axhline(y=self.cell.U_SEI2, ls='--', c='m', label=rf'$U_{{\mathrm{{SEI,2}}}}$ = {self.cell.U_SEI2} V')
         axs[3].legend(loc='upper right')
         axs[3].set_ylabel('V vs $Li/Li^+$')
 
         # Electrode stoichiometries
         axs[4].plot(xx, self.theta_n, c='r')
         axs[4].plot(xx, self.theta_p, c='b')
-        axs[4].axhline(y=1, linestyle='-', label='', c='k', linewidth=0.5)
-        axs[4].axhline(y=0, linestyle='-', label='', c='k', linewidth=0.5)
+        axs[4].axhline(y=1, ls='-', label='', c='k', lw=0.5)
+        axs[4].axhline(y=0, ls='-', label='', c='k', lw=0.5)
         axs[4].legend([r'$\theta_n$', r'$\theta_p$'], loc='upper right')
         axs[4].set_ylabel(r'$\theta$')
         axs[4].set_ylim((-0.1, 1.1))
@@ -360,8 +461,8 @@ class Simulation:
         axs[12].set_yscale('log')
         axs[12].plot(xx, self.D_sei1, c='g', label='$D_{sei,1}$')
         axs[12].plot(xx, self.D_sei2, c='m', label='$D_{sei,2}$')
-        axs[12].axhline(y=self.cell.D_SEI11, linestyle='--', label='$D_{sei,11}$', color='g')
-        axs[12].axhline(y=self.cell.D_SEI22, linestyle='--', label='$D_{sei,22}$', color='m')
+        axs[12].axhline(y=self.cell.D_SEI11, ls='--', label='$D_{sei,11}$', c='g')
+        axs[12].axhline(y=self.cell.D_SEI22, ls='--', label='$D_{sei,22}$', c='m')
         axs[12].legend(loc='upper right')
         axs[12].set_ylabel(r'$D_{sei}$')
         axs[12].set_xlabel('Time (hr)')

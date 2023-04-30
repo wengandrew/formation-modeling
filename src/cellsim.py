@@ -253,16 +253,17 @@ class Simulation:
         self.expansion_irrev[k+1] = p.c0 * self.delta_sei[k+1]
 
 
-    def run_rest(self, rest_time_hrs: float, cycle_number: int):
+    def run_rest(self, cycle_number: int, rest_time_hrs: float):
         """
         Run a rest step
 
         Parameters
         ----------
-        rest_time_hrs (float): hours to rest
         cycle_number (int): a cycle number label
+        rest_time_hrs (float): hours to rest
         """
 
+        print(f'Running Cyc{cycle_number}: Rest for {rest_time_hrs} hours...')
         k = self.curr_k
 
         kmax = k + int(rest_time_hrs*3600 / self.dt)
@@ -276,16 +277,20 @@ class Simulation:
         self.curr_k = k
 
 
-    def run_chg_cccv(self, icc: float, icv: float, cycle_number: int):
+    def run_chg_cccv(self, cycle_number: int,
+                     icc: float, icv: float, vmax: float):
         """
         Run a charge CCCV step.
 
         Parameters:
+        -----------
+        cycle_number (int): a cycle number label
         icc (float): CC current in amps (+ve is charge)
         icc (float): CV current cutoff in amps (+ve is charge)
-        cycle_number (int): a cycle number label
+        vmax (float): charge voltage target
         """
 
+        print(f'Running Cyc{cycle_number}: Charge to {vmax}V...')
         k = self.curr_k
 
         mode = 'cc'
@@ -294,17 +299,19 @@ class Simulation:
 
             if mode == 'cc':
 
-                self.step(k, 'cc', icc=icc, cyc_num=cycle_number, step_num=0)
+                self.step(k, 'cc', icc=icc,
+                          cyc_num=cycle_number, step_num=0)
 
-                if self.vt[k+1] >= self.vmax:
+                if self.vt[k+1] >= vmax:
                     mode = 'cv'
-                    self.vt[k+1] = self.vmax
+                    self.vt[k+1] = vmax
 
                 k += 1
 
             if mode == 'cv' and np.abs(icc) > np.abs(icv):
 
-                self.step(k, 'cv', icv=icv, cyc_num=cycle_number, step_num=1)
+                self.step(k, 'cv', icv=icv,
+                          cyc_num=cycle_number, step_num=1)
 
                 # End condition
                 if np.abs(self.i_app[k]) < np.abs(icv):
@@ -314,15 +321,20 @@ class Simulation:
                 k += 1
 
 
-    def run_dch_cccv(self, icc: float, icv: float, cycle_number: int):
+    def run_dch_cccv(self, cycle_number: int,
+                     icc: float, icv: float, vmin: float):
         """
         Run a discharge CCCV step.
 
         Parameters:
+        -----------
+        cycle_number (int): a cycle number label
         icc (float): CC current in amps (+ve is charge)
         icc (float): CV current cutoff in amps (+ve is charge)
-        cycle_number (int): a cycle number label
+        vmin (float): discharge voltage target
         """
+
+        print(f'Running Cyc{cycle_number}: Discharge to {vmin}V...')
 
         k = self.curr_k
 
@@ -332,17 +344,19 @@ class Simulation:
 
             if mode == 'cc':
 
-                self.step(k, 'cc', icc=icc, cyc_num=cycle_number, step_num=2)
+                self.step(k, 'cc', icc=icc,
+                          cyc_num=cycle_number, step_num=2)
 
-                if self.vt[k+1] <= self.vmin:
+                if self.vt[k+1] <= vmin:
                     mode = 'cv'
-                    self.vt[k+1] = self.vmin
+                    self.vt[k+1] = vmin
 
                 k += 1
 
             if mode == 'cv' and np.abs(icc) >= np.abs(icv):
 
-                self.step(k, 'cv', icv=icv, cyc_num=cycle_number, step_num=4)
+                self.step(k, 'cv', icv=icv,
+                          cyc_num=cycle_number, step_num=4)
 
                 # End condition
                 if np.abs(self.i_app[k]) < np.abs(icv):

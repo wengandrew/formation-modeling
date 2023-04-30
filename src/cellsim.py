@@ -11,7 +11,9 @@ Expansion       : ?
 
 import plotter as plotter
 import modelutils as mu
+import pandas as pd
 import numpy as np
+import yaml
 from matplotlib import pyplot as plt
 
 plotter.initialize(plt)
@@ -22,7 +24,7 @@ R = 8.314          # J/mol/K    Universal gas constant
 
 class Cell:
 
-    def __init__(self, config, name=''):
+    def __init__(self, name=''):
         """
         Initialize a cell object.
 
@@ -34,6 +36,14 @@ class Cell:
 
         self.name = name
 
+    def load_config(self, file_path: str):
+        """
+        Load a configuration from file
+        """
+
+        with open(f"{file_path}", "r") as f:
+            config = yaml.load(f, Loader=yaml.FullLoader)
+
         # Initialize cell parameters based on config file
         for (key, value) in config.items():
             setattr(self, key, value)
@@ -41,14 +51,16 @@ class Cell:
 
 class Simulation:
 
-    def __init__(self, cell: Cell, sim_time_s: int):
+    def __init__(self, cell: Cell, sim_time_s: int, name='DefaultSim'):
         """
         Parameters
         ----------
         cell:       a Cell object
         sim_time_s: simulation time in seconds
+        name (str): A string name for the simulation
         """
 
+        self.name = name
         self.cell = cell
 
         # Numerical details
@@ -57,11 +69,6 @@ class Simulation:
 
         # Track where we are in the simulation
         self.curr_k = 0
-
-        # Simulation parameters
-        self.vmax = 4.2
-        self.vmin = 3.0
-        self.i_cv = 0.5 / 20 # CV hold current cut-off condition
 
         # Initialize output vectors
         self.i_app = np.zeros(self.t.shape)
@@ -120,7 +127,8 @@ class Simulation:
         self.expansion_irrev = mu.initialize(self.t, 0)
 
 
-    def step(self, k: int, mode: str, icc=0, icv=0, cyc_num=np.NaN, step_num=np.NaN):
+    def step(self, k: int, mode: str, icc=0, icv=0,
+             cyc_num=np.NaN, step_num=np.NaN, vcv=0):
         """
         Run a single step.
 
@@ -132,6 +140,7 @@ class Simulation:
         icv:       current cut-off in CV mode
         cyc_num:   cycle number to associate with this step
         step_num:  step number to associate with this step
+        vcv:       voltage for the CV hold
 
         """
 
@@ -178,7 +187,7 @@ class Simulation:
             self.vt[k+1] = self.ocv_p[k+1] + self.eta_p[k] - \
                           (self.ocv_n[k+1] - self.eta_n[k])
         elif mode == 'cv':
-            self.vt[k+1] = self.vmax
+            self.vt[k+1] = vcv
 
         # SEI growth update
         # eta_int = self.i_app[k] * p.R0n
@@ -300,7 +309,7 @@ class Simulation:
             if mode == 'cc':
 
                 self.step(k, 'cc', icc=icc,
-                          cyc_num=cycle_number, step_num=0)
+                          cyc_num=cycle_number, step_num=0, vcv=vmax)
 
                 if self.vt[k+1] >= vmax:
                     mode = 'cv'
@@ -311,7 +320,7 @@ class Simulation:
             if mode == 'cv' and np.abs(icc) > np.abs(icv):
 
                 self.step(k, 'cv', icv=icv,
-                          cyc_num=cycle_number, step_num=1)
+                          cyc_num=cycle_number, step_num=1, vcv=vmax)
 
                 # End condition
                 if np.abs(self.i_app[k]) < np.abs(icv):
@@ -345,7 +354,7 @@ class Simulation:
             if mode == 'cc':
 
                 self.step(k, 'cc', icc=icc,
-                          cyc_num=cycle_number, step_num=2)
+                          cyc_num=cycle_number, step_num=2, vcv=vmin)
 
                 if self.vt[k+1] <= vmin:
                     mode = 'cv'
@@ -356,7 +365,7 @@ class Simulation:
             if mode == 'cv' and np.abs(icc) >= np.abs(icv):
 
                 self.step(k, 'cv', icv=icv,
-                          cyc_num=cycle_number, step_num=4)
+                          cyc_num=cycle_number, step_num=4, vcv=vmin)
 
                 # End condition
                 if np.abs(self.i_app[k]) < np.abs(icv):
@@ -364,6 +373,15 @@ class Simulation:
                     break
 
                 k += 1
+
+    def get_results(self) -> pd.DataFrame:
+        """
+        Return the simulation results in a DataFrame
+        """
+
+        df = pd.DataFrame(self.__dict__)
+
+        return df
 
 
     def plot(self, to_save=True):
@@ -482,6 +500,6 @@ class Simulation:
         axs[12].set_xlabel('Time (hr)')
 
         if to_save:
-            plt.savefig('outputs/figures/fig_formation_simulation.png',
+            plt.savefig(f'outputs/figures/{self.name}_output.png',
                         bbox_inches='tight',
                         dpi=150)

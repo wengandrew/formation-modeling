@@ -1,0 +1,49 @@
+---
+# Anode geometrical properties
+ R_n: 20.0e-6         # m          Anode particle radius
+ L_n: 80.0e-6         # m          Anode thickness
+ A_n: 0.100           # m2         Anode active area
+ epsilon_n: 0.7       # [-]        Anode solid material fraction
+ a_sn: 105000         # 1/m        Anode specific surface area (3*epsilon/R)
+
+ alpha_SEI: 0.5       # [-]        SEI charge transfer coefficient
+ delta_SEI_0: 5.0e-9  # m          Initial SEI thickness
+
+ # First SEI component: ethylene carbonate
+ # Less dense, less passivating (more porous)
+ SEI1_name: Li2EDC
+ c_SEI1_0: 4541       # mol/m3     Concentration of EC in bulk electrolyte
+ V_SEI1: 9.585e-5     # m3/mol     SEI molar volume (Li2EDC), solid phase
+ k_SEI1: 1.0e-15      # m/s        SEI kinetic rate constant
+ D_SEI11: 2.0e-18     # m2/s       SEI 1 diffusivity in solid layer 1
+ D_SEI12: 2.0e-19     # m2/s       SEI 1 diffusivity in solid layer 2
+ U_SEI1: 0.8          # V          SEI equilibrium reaction potential
+
+ # Second SEI component: dimethyl carbonate
+ # More dense, more passivating (less porous)
+ SEI2_name: LiMC
+ c_SEI2_0: 4541       # mol/m3     Concentration of DMC in bulk electrolyte
+ V_SEI2: 5.810e-5     # m3/mol     SEI molar volume (LiMC), solid phase
+ k_SEI2: 0            # m/s        SEI kinetic rate constant
+ D_SEI21: 2.0e-19     # m2/s       SEI 2 diffusivity in solid layer 1
+ D_SEI22: 2.0e-19     # m2/s       SEI 2 diffusivity in solid layer 2
+ U_SEI2: 0.3          # V          SEI equilibrium reaction potential
+
+ # Expansion
+ c0: 15
+ c1: 0.00166667
+ c2: 0.00166667
+
+ # Overpotentials
+ R0p: 0.0205
+ R0n: 0.0205
+ R1p: 0.079
+ R1n: 0.079
+ C1p: 76000
+ C1n: 76000
+
+ # Electrode stoichiometry model
+ Cn: 3.14 # Ah
+ Cp: 3.02 # Ah
+ theta_n: 0.0
+ theta_p: 1.0

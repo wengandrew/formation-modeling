@@ -22,6 +22,12 @@ F = 96485.33212    # C/mol      Faraday's constant
 T = 273.15 + 25    # Kelvin     Temperature
 R = 8.314          # J/mol/K    Universal gas constant
 
+STEP_NUM_CHARGE_CC = 0
+STEP_NUM_CHARGE_CV = 1
+STEP_NUM_DISCHARGE_CC = 2
+STEP_NUM_DISCHARGE_CV = 4
+STEP_NUM_REST = 4
+
 class Cell:
 
     def __init__(self, name=''):
@@ -280,7 +286,10 @@ class Simulation:
         assert kmax < len(self.t) - 1, 'Ran out of time array.'
 
         while k < kmax:
-            self.step(k, 'cc', icc=0, cyc_num=cycle_number, step_num=3)
+            self.step(k, 'cc',
+                      icc=0,
+                      cyc_num=cycle_number,
+                      step_num=STEP_NUM_REST)
             k += 1
 
         self.curr_k = k
@@ -309,7 +318,9 @@ class Simulation:
             if mode == 'cc':
 
                 self.step(k, 'cc', icc=icc,
-                          cyc_num=cycle_number, step_num=0, vcv=vmax)
+                                   cyc_num=cycle_number,
+                                   step_num=STEP_NUM_CHARGE_CC,
+                                   vcv=vmax)
 
                 if self.vt[k+1] >= vmax:
                     mode = 'cv'
@@ -320,7 +331,9 @@ class Simulation:
             if mode == 'cv' and np.abs(icc) > np.abs(icv):
 
                 self.step(k, 'cv', icv=icv,
-                          cyc_num=cycle_number, step_num=1, vcv=vmax)
+                                   cyc_num=cycle_number,
+                                   step_num=STEP_NUM_CHARGE_CV,
+                                   vcv=vmax)
 
                 # End condition
                 if np.abs(self.i_app[k]) < np.abs(icv):
@@ -354,7 +367,9 @@ class Simulation:
             if mode == 'cc':
 
                 self.step(k, 'cc', icc=icc,
-                          cyc_num=cycle_number, step_num=2, vcv=vmin)
+                                   cyc_num=cycle_number,
+                                   step_num=STEP_NUM_DISCHARGE_CC,
+                                   vcv=vmin)
 
                 if self.vt[k+1] <= vmin:
                     mode = 'cv'
@@ -365,7 +380,9 @@ class Simulation:
             if mode == 'cv' and np.abs(icc) >= np.abs(icv):
 
                 self.step(k, 'cv', icv=icv,
-                          cyc_num=cycle_number, step_num=4, vcv=vmin)
+                                   cyc_num=cycle_number,
+                                   step_num=STEP_NUM_DISCHARGE_CV,
+                                   vcv=vmin)
 
                 # End condition
                 if np.abs(self.i_app[k]) < np.abs(icv):

@@ -128,6 +128,14 @@ def Up(sto):
     sto : Stochiometry of material (lithium fraction)
     """
 
+    # Make an adjustment to satisfy pre-formation boundary condition
+    # (When the pos. electrode is completely full, enforce that the potential
+    # is some fixed value such that, when combined with the positive electrode
+    # potential, describes the measured pre-formation full cell potential.
+    # This requires extrapolating the function slightly.
+    beta = 1.00598775
+    sto = beta*sto
+
     # Don't extrapolate too much with these functions
     if sto < -0.1:
         raise ValueError(f'stoichiometry ({sto}) is too small.')
@@ -160,6 +168,14 @@ def Un(sto):
     ---------
     sto : Stoichiometry of material (lithium fraction0)
     """
+
+    # Make an adjustment to satisfy pre-formation boundary condition
+    # (When the neg. electrode is completely empty, enforce that the potential
+    # is some fixed value such that, when combined with the positive electrode
+    # potential, describes the measured pre-formation full cell potential.
+    # This requires extrapolating the function slightly.
+    gamma = -0.01185456
+    sto = (1 - gamma)*sto + gamma
 
     # Don't extrapolate too much with these functions
     if sto < -0.1:

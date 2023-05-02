@@ -133,7 +133,7 @@ def Up(sto):
     # is some fixed value such that, when combined with the positive electrode
     # potential, describes the measured pre-formation full cell potential.
     # This requires extrapolating the function slightly.
-    beta = 1.00598775
+    beta = 1.00206269
     sto = beta*sto
 
     # Don't extrapolate too much with these functions

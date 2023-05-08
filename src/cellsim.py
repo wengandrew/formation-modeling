@@ -42,6 +42,14 @@ class Cell:
 
         self.name = name
 
+        # Initialize the OCP functions
+        self.Un = mu.Un
+        self.Up = mu.Up
+
+        # Initialize the expansion functions
+        self.En = mu.EnSei
+        self.Ep = mu.Ep
+
     def load_config(self, file_path: str):
         """
         Load a configuration from file
@@ -53,6 +61,13 @@ class Cell:
         # Initialize cell parameters based on config file
         for (key, value) in config.items():
             setattr(self, key, value)
+
+    def get_tag(self):
+
+        tag = f'k={self.k_SEI1}, D={self.D_SEI11}, U={self.U_SEI1}, Rn={self.R0n}, Rp={self.R0p}'
+
+        return tag
+
 
 
 class Simulation:
@@ -85,8 +100,8 @@ class Simulation:
         # eSOH states
         self.theta_n = mu.initialize(self.t, cell.theta_n)
         self.theta_p = mu.initialize(self.t, cell.theta_p)
-        self.ocv_n   = mu.initialize(self.t, mu.Un(cell.theta_n))
-        self.ocv_p   = mu.initialize(self.t, mu.Up(cell.theta_p))
+        self.ocv_n   = mu.initialize(self.t, cell.Un(cell.theta_n))
+        self.ocv_p   = mu.initialize(self.t, cell.Up(cell.theta_p))
         self.eta_n   = mu.initialize(self.t, 0)
         self.eta_p   = mu.initialize(self.t, 0)
         self.ocv     = mu.initialize(self.t, self.ocv_p[0] - self.ocv_n[0])
@@ -127,14 +142,16 @@ class Simulation:
         self.delta_sei = mu.initialize(self.t, cell.delta_SEI_0)
         self.delta_sei1 = mu.initialize(self.t, cell.delta_SEI_0/2)
         self.delta_sei2 = mu.initialize(self.t, cell.delta_SEI_0/2)
-        self.delta_n = mu.initialize(self.t, mu.En(cell.theta_n))
-        self.delta_p = mu.initialize(self.t, mu.Ep(cell.theta_p))
+        self.delta_n = mu.initialize(self.t, cell.En(cell.theta_n))
+        self.delta_p = mu.initialize(self.t, cell.Ep(cell.theta_p))
+        self.dndt = mu.initialize(self.t, 0)
         self.expansion_rev = mu.initialize(self.t, 0)
         self.expansion_irrev = mu.initialize(self.t, 0)
 
 
     def step(self, k: int, mode: str, icc=0, icv=0,
-             cyc_num=np.NaN, step_num=np.NaN, vcv=0):
+             cyc_num=np.NaN, step_num=np.NaN,
+             vcv=0, to_debug=False):
         """
         Run a single step.
 
@@ -147,7 +164,7 @@ class Simulation:
         cyc_num:   cycle number to associate with this step
         step_num:  step number to associate with this step
         vcv:       voltage for the CV hold
-
+        to_debug:  if true then print some stuff
         """
 
         p = self.cell
@@ -167,14 +184,17 @@ class Simulation:
 
         dQint = self.i_int[k] * self.dt / 3600 # Amp-hours
         dQapp = self.i_app[k] * self.dt / 3600 # Amp-hours
+
+        # assert dQint > 0, 'How are we decreasing theta_n during lithiation?'
+
         self.theta_n[k + 1] = self.theta_n[k] + dQint / p.Cn
         self.theta_p[k + 1] = self.theta_p[k] - dQapp / p.Cp
 
         # Equilibrium potential updates
-        self.ocv_n[k + 1] = mu.Un(self.theta_n[k + 1])
-        self.ocv_p[k + 1] = mu.Up(self.theta_p[k + 1])
-        self.delta_n[k + 1] = mu.En(self.theta_n[k + 1])
-        self.delta_p[k + 1] = mu.Ep(self.theta_p[k + 1])
+        self.ocv_n[k + 1] = self.cell.Un(self.theta_n[k + 1])
+        self.ocv_p[k + 1] = self.cell.Up(self.theta_p[k + 1])
+        self.delta_n[k + 1] = self.cell.En(self.theta_n[k + 1])
+        self.delta_p[k + 1] = self.cell.Ep(self.theta_p[k + 1])
 
         self.ocv[k + 1] = self.ocv_p[k+1] - self.ocv_n[k+1]
 
@@ -201,19 +221,27 @@ class Simulation:
         self.eta_sei2[k+1] = self.eta_n[k+1] + self.ocv_n[k+1] - p.U_SEI2
 
         # Mixed reaction and diffusion limited SEI current density
-        self.j_sei_rxn1[k+1] = F * p.c_SEI1_0 * p.k_SEI1 * \
-                                np.exp( -p.alpha_SEI * F * self.eta_sei1[k+1] / \
+        self.dndt[k+1] = (self.delta_n[k+1] - self.delta_n[k]) / self.dt
+
+        self.j_sei_rxn1[k+1] = F * p.c_SEI1_0 \
+                                * p.k_SEI1 * (1 + p.gamma_c * np.abs(self.dndt[k+1])) \
+                                * np.exp( -p.alpha_SEI * F * self.eta_sei1[k+1] / \
                                        (R * T) )
 
-        self.j_sei_dif1[k+1] = self.D_sei1[k] * p.c_SEI1_0 * F / \
-                                (self.delta_sei[k]) # should this be k or k+1?
+        self.j_sei_dif1[k+1] = self.D_sei1[k] \
+                                * (1 + p.gamma_c * np.abs(self.dndt[k+1])) \
+                                * p.c_SEI1_0 * F \
+                                / (self.delta_sei[k]) # should this be k or k+1?
 
-        self.j_sei_rxn2[k+1] = F * p.c_SEI2_0 * p.k_SEI2 * \
-                                np.exp( -p.alpha_SEI * F * self.eta_sei2[k+1] / \
+        self.j_sei_rxn2[k+1] = F * p.c_SEI2_0 \
+                                * p.k_SEI2 * (1 + p.gamma_c * np.abs(self.dndt[k+1])) \
+                                * np.exp( -p.alpha_SEI * F * self.eta_sei2[k+1] / \
                                        (R * T) )
 
-        self.j_sei_dif2[k+1] = self.D_sei2[k] * p.c_SEI2_0 * F / \
-                                (self.delta_sei[k]) # should this be k or k+1?
+        self.j_sei_dif2[k+1] = self.D_sei2[k] \
+                                * (1 + p.gamma_c * np.abs(self.dndt[k+1])) \
+                                * p.c_SEI2_0 * F \
+                                / (self.delta_sei[k]) # should this be k or k+1?
 
         self.j_sei1[k+1] = - 1 / (1/self.j_sei_rxn1[k+1] + 1/self.j_sei_dif1[k+1])
         self.j_sei2[k+1] = - 1 / (1/self.j_sei_rxn2[k+1] + 1/self.j_sei_dif2[k+1])
@@ -234,6 +262,18 @@ class Simulation:
             sign = -1
 
         self.i_int[k+1] = self.i_app[k] + sign*self.i_sei[k]
+
+        if to_debug:
+            print(
+                f'k: {k} | '\
+                f'Iint: {self.i_int[k]:.3f} | '\
+                f'Iapp: {self.i_app[k]:.3f} | '\
+                f'Isei: {self.i_sei[k]:.3f} | '\
+                f'Irxn: {self.j_sei_rxn1[k]:.3e} | '\
+                f'Idif: {self.j_sei_dif1[k]:.3e} | '\
+                f'dndt: {self.dndt[k]:.3e} | '\
+                f'dn: {self.delta_n[k]:.6f}'
+                )
 
         # Integrate SEI current to get SEI capacity
         self.q_sei1[k+1] = self.q_sei1[k] + self.i_sei1[k+1] * self.dt / 3600
@@ -258,8 +298,6 @@ class Simulation:
         self.delta_sei2[k+1] = self.delta_sei2[k] + \
                               self.dt * (p.V_SEI2 * \
                                         np.abs(self.j_sei2[k+1]) ) / (2 * F)
-
-
 
         # Expansion update
         # Cathode and anode expansion function update
@@ -393,10 +431,20 @@ class Simulation:
 
     def get_results(self) -> pd.DataFrame:
         """
-        Return the simulation results in a DataFrame
+        Return the simulation results in a DataFrame.
+
+        Append the DataFrame with some derived results
         """
 
         df = pd.DataFrame(self.__dict__)
+
+        # Incremental capacities corresponding to the total current and SEI
+        # currents
+        df['dq'] = np.abs(df['dt'] * df['i_app'] / 3600)
+        df['dqsei'] = np.abs(df['dt'] * df['i_sei'] / 3600)
+        df['dqsei1'] = np.abs(df['dt'] * df['i_sei1'] / 3600)
+        df['dqsei2'] = np.abs(df['dt'] * df['i_sei2'] / 3600)
+
 
         return df
 
@@ -406,12 +454,12 @@ class Simulation:
         Make a standard plot of the outputs
         """
 
-        num_subplots = 13
+        num_subplots = 14
 
         gridspec = dict(hspace=0.05, height_ratios=np.ones(num_subplots))
 
         fig, axs = plt.subplots(nrows=num_subplots, ncols=1,
-                                figsize=(16, num_subplots * 4),
+                                figsize=(10, num_subplots * 4),
                                 gridspec_kw=gridspec,
                                 sharex=True)
 
@@ -483,7 +531,7 @@ class Simulation:
         axs[8].plot(xx, self.j_sei_dif1, c='m', label='$j_{sei,1,dif}$')
         axs[8].plot(xx, np.abs(self.j_sei1), c='k', label='$j_{sei,1}$')
         axs[8].legend(loc='upper right')
-        axs[8].set_ylabel(r'$|j_{\mathrm{sei}}|$ [A/m$^2$]')
+        axs[8].set_ylabel(r'$j_{\mathrm{sei}}$ [A/m$^2$]')
 
         # SEI reaction current densities
         axs[9].set_yscale('log')
@@ -491,7 +539,7 @@ class Simulation:
         axs[9].plot(xx, self.j_sei_dif2, c='m', label='$j_{sei,2,dif}$')
         axs[9].plot(xx, np.abs(self.j_sei2), c='k', label='$j_{sei,2}$')
         axs[9].legend(loc='upper right')
-        axs[9].set_ylabel(r'$|j_{\mathrm{sei}}|$ [A/m$^2$]')
+        axs[9].set_ylabel(r'$j_{\mathrm{sei}}$ [A/m$^2$]')
 
         # Total SEI reaction current
         axs[10].plot(xx, self.i_sei1, c='g', label='$I_{sei,1}$')
@@ -514,7 +562,13 @@ class Simulation:
         axs[12].axhline(y=self.cell.D_SEI22, ls='--', label='$D_{sei,22}$', c='m')
         axs[12].legend(loc='upper right')
         axs[12].set_ylabel(r'$D_{sei}$')
-        axs[12].set_xlabel('Time (hr)')
+
+        axs[13].plot(xx, self.dndt*self.cell.gamma_c, c='k',
+                     label='$\gamma*d\delta_n/dt$')
+        axs[13].legend(loc='upper right')
+        axs[13].set_ylabel(r'$\gamma*d\delta_n/dt$')
+
+        axs[13].set_xlabel('Time (hr)')
 
         if to_save:
             plt.savefig(f'outputs/figures/{self.name}_output.png',

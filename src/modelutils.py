@@ -29,6 +29,37 @@ def initialize(time_vec, initial_val=np.NaN):
     return output_vec
 
 
+
+def EnSei(sto):
+    """
+    Graphite expansion function adapted from
+    Kupper2018 (JES 165(14))
+    """
+
+    # Effective Young's modulus satisfying boundary condition at
+    # stoichiometry = 1
+    max_strain = 0.1318
+    max_stress = 24.172
+
+    E = max_strain / max_stress
+
+    return stressSEI(sto) * E
+
+
+def stressSEI(sto):
+    """
+    SEI stress function from Kupper2018 (JES 165(14))
+
+    Returns tangential stress on the SEI in units of MPa
+    """
+
+    return (-931.0/5) * sto ** 5 \
+             + 329.99 * sto ** 4 \
+             - 67.228 * sto ** 3 \
+             - 120.29 * sto ** 2 \
+               + 67.9 * sto
+
+
 def En(sto):
     """
     Graphite expansion function
@@ -45,13 +76,13 @@ def En(sto):
     if sto < 0.12:
         expansion = 0.2 * sto
     elif sto >= 0.12 and sto < 0.18:
-        expansion = 0.16 * sto + 5e-3
+        expansion = 0.16 * sto + 5e-3 - 0.0002
     elif sto >= 0.18 and sto < 0.24:
         expansion = 0.17 * sto + 3e-3
     elif sto >= 0.24 and sto < 0.50:
-        expansion = 0.05 * sto + 0.03
+        expansion = 0.05 * sto + 0.03 + 1.8e-3
     elif sto >= 0.5:
-        expansion = 0.15 * sto - 0.02
+        expansion = 0.15 * sto - 0.02 + 1.8e-3
 
     return expansion
 
@@ -75,6 +106,14 @@ def UnGr(sto):
     """
     UMBL2022FEB Un function from Hamid Mohavedi, April 2023
     """
+
+    # Make an adjustment to satisfy pre-formation boundary condition
+    # (When the neg. electrode is completely empty, enforce that the potential
+    # is some fixed value such that, when combined with the positive electrode
+    # potential, describes the measured pre-formation full cell potential.
+    # This requires extrapolating the function slightly.
+    gamma = -0.02694418
+    sto = (1 - gamma)*sto + gamma
 
     var= [-0.014706865941596, -0.012143997194139, -0.002418437987814,-0.008309680311046,-0.012498890102608, \
     -0.053808682683538, 0.672164169443950, 0.097531836156448,0.150321382880000,  0.178875736938146, \
@@ -137,10 +176,10 @@ def Up(sto):
     sto = beta*sto
 
     # Don't extrapolate too much with these functions
-    if sto < -0.1:
+    if np.any(sto < -0.1):
         raise ValueError(f'stoichiometry ({sto}) is too small.')
 
-    if sto > +1.1:
+    if np.any(sto > +1.1):
         raise ValueError(f'Stoichiometry ({sto}) is too large.')
 
     u_eq = (
@@ -178,10 +217,10 @@ def Un(sto):
     sto = (1 - gamma)*sto + gamma
 
     # Don't extrapolate too much with these functions
-    if sto < -0.1:
+    if np.any(sto < -0.1):
         raise ValueError(f'stoichiometry ({sto}) is too small.')
 
-    if sto > +1.1:
+    if np.any(sto > +1.1):
         raise ValueError(f'Stoichiometry ({sto}) is too large.')
 
     u_eq = (

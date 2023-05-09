@@ -10,7 +10,7 @@ def initialize(plt):
 
     plt.rc('font', **{'family'     : 'sans-serif',
                   'sans-serif' : ['Helvetica'],
-                  'size': 26
+                  'size': 20
                   })
 
     plt.rc('figure', **{'autolayout' : True,

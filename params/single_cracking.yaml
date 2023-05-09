@@ -5,10 +5,15 @@
 # Anode geometrical properties
  R_n: 20.0e-6         # m          Anode particle radius
  L_n: 80.0e-6         # m          Anode thickness
- A_n: 0.100           # m2         Anode active area
+ A_n: 0.1000          # m2         Anode active area
  epsilon_n: 0.7       # [-]        Anode solid material fraction
  a_sn: 105000         # 1/m        Anode specific surface area (3*epsilon/R)
 
+ # Positive electrode geometrical properties
+ L_p: 80.0e-6         #
+ R_p: 20.0e-6
+
+ # SEI Properties
  alpha_SEI: 0.5       # [-]        SEI charge transfer coefficient
  delta_SEI_0: 5.0e-9  # m          Initial SEI thickness
  gamma_boost: 2.4e+7  # s/m        Boost stress sensitivity
@@ -38,7 +43,7 @@
  U_SEI2: 1.45          # V          SEI equilibrium reaction potential
 
  # Expansion
- c0: 76
+ c0: 69
  c1: 0.00055
  c2: 0.00055
 

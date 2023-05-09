@@ -239,7 +239,9 @@ class Simulation:
         else: # discharging or resting
             self.boost[k+1] = self.boost[k] - self.dt * self.boost[k] / p.tau_decay
 
+        # Enforce thresholds
         self.boost[k+1] = 0 if self.boost[k+1] < 0 else self.boost[k+1]
+        self.boost[k+1] = 100 if self.boost[k+1] > 100 else self.boost[k+1]
 
         self.j_sei_rxn1[k+1] = p.n_SEI1 * F * p.c_SEI1_0 \
                                 * p.k_SEI1 \
@@ -390,7 +392,7 @@ class Simulation:
 
                 k += 1
 
-            if mode == 'cv' and np.abs(icc) > np.abs(icv):
+            if mode == 'cv' and np.abs(icc) >= np.abs(icv):
 
                 self.step(k, 'cv', icv=icv,
                                    cyc_num=cycle_number,
@@ -527,9 +529,9 @@ class Simulation:
         axs[3].legend([r'$\delta_n$', r'$\delta_p$'], loc='upper right')
 
         # SEI expansion factor
-        axs[4].plot(xx, self.delta_sei * 1e9, c='k', label=r'$\delta_{\mathrm{sei}}$')
-        axs[4].plot(xx, self.delta_sei1 * 1e9, c='m', label=r'$\delta_{\mathrm{sei,1}}$')
-        axs[4].plot(xx, self.delta_sei1 * 1e9 + self.delta_sei2 * 1e9, c='g', label=r'$\delta_{\mathrm{sei,1+2}}$')
+        axs[4].plot(xx, self.delta_sei1 * 1e9, c='g', label=r'$\delta_{\mathrm{sei},1}$')
+        axs[4].plot(xx, self.delta_sei2 * 1e9, c='m', label=r'$\delta_{\mathrm{sei,2}}$')
+        axs[4].plot(xx, self.delta_sei1 * 1e9 + self.delta_sei2 * 1e9, c='k', label=r'$\delta_{\mathrm{sei}}$')
         axs[4].legend(loc='upper right')
         axs[4].set_ylabel(r'$\delta_{\mathrm{sei}}$ [$nm$]')
 

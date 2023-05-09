@@ -47,7 +47,7 @@ class Cell:
         self.Up = mu.Up
 
         # Initialize the expansion functions
-        self.En = mu.EnSei
+        self.En = mu.En
         self.Ep = mu.Ep
 
     def load_config(self, file_path: str):
@@ -64,7 +64,11 @@ class Cell:
 
     def get_tag(self):
 
-        tag = f'k={self.k_SEI1}, D={self.D_SEI11}, U={self.U_SEI1}, Rn={self.R0n}, Rp={self.R0p}'
+        tag = f'k={self.k_SEI1}, '\
+              f'D={self.D_SEI11}, '\
+              f'U={self.U_SEI1}, '\
+              f'Rn={self.R0n}, '\
+              f'Rp={self.R0p}'
 
         return tag
 
@@ -154,7 +158,7 @@ class Simulation:
 
     def step(self, k: int, mode: str, icc=0, icv=0,
              cyc_num=np.NaN, step_num=np.NaN,
-             vcv=0, to_debug=True):
+             vcv=0, to_debug=False):
         """
         Run a single step.
 
@@ -281,10 +285,6 @@ class Simulation:
         # Detect if we're resting
         if self.i_app[k] == 0:
             sign = -1
-
-        # SEI current not to exceed applied current during charging
-        # if self.i_app[k] > 0:
-            # self.i_sei[k+1] = np.min([self.i_app[k+1], self.i_sei[k+1]])
 
         self.i_int[k+1] = self.i_app[k] + sign*self.i_sei[k+1]
 
@@ -592,7 +592,6 @@ class Simulation:
         axs[13].plot(xx, self.c_sei2, c='m', label='$c_{SEI,2}$')
         axs[13].set_ylabel('$c$ (mol/m$^3$)')
         axs[13].set_xlabel('Time (hr)')
-
 
         if to_save:
             plt.savefig(f'outputs/figures/{self.name}_output.png',

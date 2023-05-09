@@ -132,3 +132,6 @@ dmypy.json
 data/interim/*
 data/processed/*
 data/raw/*
+
+# Images
+*.png

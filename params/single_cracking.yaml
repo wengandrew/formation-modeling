@@ -11,28 +11,31 @@
 
  alpha_SEI: 0.5       # [-]        SEI charge transfer coefficient
  delta_SEI_0: 5.0e-9  # m          Initial SEI thickness
- gamma_boost: 5.0e+7  # s/m        Boost stress sensitivity
- tau_boost: 3600      # s           Boost decay rate
+ gamma_boost: 2.4e+7  # s/m        Boost stress sensitivity
+ tau_boost: 3600      # s          Boost decay rate
+ tau_decay: 3600
 
  # First SEI component: ethylene carbonate
  # Less dense, less passivating (more porous)
  SEI1_name: Li2EDC
- c_SEI1_0: 4541       # mol/m3     Concentration of EC in bulk electrolyte
- V_SEI1: 9.585e-5     # m3/mol     SEI molar volume (Li2EDC), solid phase
- k_SEI1: 2.0e-17      # m/s        SEI kinetic rate constant
- D_SEI11: 8.0e-19     # m2/s       SEI 1 diffusivity in solid layer 1
- D_SEI12: 4.0e-19     # m2/s       SEI 1 diffusivity in solid layer 2
+ c_SEI1_0: 4541       # mol/m3     Concentration in bulk electrolyte
+ n_SEI1: 2            # -          Number of electrons
+ V_SEI1: 9.585e-5     # m3/mol     SEI molar volume, solid phase
+ k_SEI1: 9.0e-16      # m/s        SEI kinetic rate constant
+ D_SEI11: 1.0e-19     # m2/s       SEI 1 diffusivity in solid layer 1
+ D_SEI12: 9.0e-18     # m2/s       SEI 1 diffusivity in solid layer 2
  U_SEI1: 0.8          # V          SEI equilibrium reaction potential
 
  # Second SEI component: dimethyl carbonate
  # More dense, more passivating (less porous)
- SEI2_name: LiMC
- c_SEI2_0: 4541       # mol/m3     Concentration of DMC in bulk electrolyte
- V_SEI2: 5.810e-5     # m3/mol     SEI molar volume (LiMC), solid phase
- k_SEI2: 2.0e-30      # m/s        SEI kinetic rate constant
- D_SEI21: 8.0e-17     # m2/s       SEI 2 diffusivity in solid layer 1
- D_SEI22: 4.0e-17     # m2/s       SEI 2 diffusivity in solid layer 2
- U_SEI2: 0.30         # V          SEI equilibrium reaction potential
+ SEI2_name: VC
+ c_SEI2_0: 300        # mol/m3     Concentration in bulk electrolyte
+ n_SEI2 : 1.0         # -          Number of electrons
+ V_SEI2: 5.810e-5     # m3/mol     SEI molar volume, solid phase
+ k_SEI2: 1.0e-16      # m/s        SEI kinetic rate constant
+ D_SEI21: 1.0e-19     # m2/s       SEI 2 diffusivity in solid layer 1
+ D_SEI22: 9.0e-18     # m2/s       SEI 2 diffusivity in solid layer 2
+ U_SEI2: 1.8          # V          SEI equilibrium reaction potential
 
  # Expansion
  c0: 34

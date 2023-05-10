@@ -17,10 +17,25 @@ def initialize(plt):
                     'figsize'    : (14, 12)
                     })
 
-    plt.rc('xtick', labelsize='medium', direction='in', top=True)
-    plt.rc('ytick', labelsize='medium', direction='in', right=True)
-    plt.rc('axes',  labelsize='medium', grid=True)
-    plt.rc('axes',  titlesize='medium')
-    plt.rc('legend', fontsize='medium')
+    plt.rc('xtick', labelsize='medium',
+                    direction='in',
+                    top=True)
+
+    plt.rc('xtick.major', width=1.0)
+    plt.rc('xtick.minor', visible=True)
+
+    plt.rc('ytick', labelsize='medium',
+                    direction='in',
+                    right=True)
+    plt.rc('ytick.major', width=1.0)
+    plt.rc('ytick.minor', visible=True)
+
+    plt.rc('axes',  labelsize='medium',
+                    grid=True,
+                    linewidth=1.0)
+
+    plt.rc('legend', fontsize='medium',
+                     frameon=False)
+
     plt.rc('image',  cmap='gray')
 

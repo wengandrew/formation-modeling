@@ -21,7 +21,6 @@
  tau_decay: 42000     # s          Boost decay rate
 
  # First SEI component: ethylene carbonate
- # Less dense, less passivating (more porous)
  SEI1_name: Li2EDC
  c_SEI1_0: 4541       # mol/m3     Concentration in bulk electrolyte
  n_SEI1: 2            # -          Number of electrons
@@ -31,16 +30,15 @@
  D_SEI12: 5.9e-17     # m2/s       SEI 1 diffusivity in solid layer 2
  U_SEI1: 0.8          # V          SEI equilibrium reaction potential
 
- # Second SEI component: dimethyl carbonate
- # More dense, more passivating (less porous)
+ # Second SEI component
  SEI2_name: VC
- c_SEI2_0: 300        # mol/m3     Concentration in bulk electrolyte
+ c_SEI2_0: 304.4      # mol/m3     Concentration in bulk electrolyte
  n_SEI2 : 1.0         # -          Number of electrons
  V_SEI2: 5.810e-5     # m3/mol     SEI molar volume, solid phase
  k_SEI2: 6.0e-14      # m/s        SEI kinetic rate constant
  D_SEI21: 1.0e-19     # m2/s       SEI 2 diffusivity in solid layer 1
  D_SEI22: 5.9e-17     # m2/s       SEI 2 diffusivity in solid layer 2
- U_SEI2: 1.40          # V          SEI equilibrium reaction potential
+ U_SEI2: 1.40         # V          SEI equilibrium reaction potential
 
  # Expansion
  c0: 77
@@ -58,6 +56,6 @@
  # Electrode stoichiometry model
  Cn: 3.14 # Ah
 #  Cp: 3.02 # Ah
- Cp: 2.97 # Ah
+ Cp: 2.95 # Ah
  theta_n: 0.0
  theta_p: 1.0

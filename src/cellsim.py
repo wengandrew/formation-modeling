@@ -50,6 +50,7 @@ class Cell:
         self.En = mu.En
         self.Ep = mu.Ep
 
+
     def load_config(self, file_path: str):
         """
         Load a configuration from file
@@ -61,6 +62,7 @@ class Cell:
         # Initialize cell parameters based on config file
         for (key, value) in config.items():
             setattr(self, key, value)
+
 
     def get_tag(self):
 
@@ -535,6 +537,8 @@ class Simulation:
         axs[i].set_ylabel(r'$\epsilon$ ($\mu$m)')
         axs[i].set_xlabel('Time (s)')
 
+        plt.savefig(f'outputs/figures/fig_timeseries_1.png', bbox_inches='tight', dpi=150)
+
 
     def plot_view_2(self, to_save=False, xlims=None):
         """
@@ -597,15 +601,79 @@ class Simulation:
 
         # Solvent consumption
         i += 1
-        axs[i].plot(xx, self.c_sei1/1e3, c='g', label=r'$c^{\mathrm{bulk}}_{SEI,1}$')
         axs[i].plot(xx, self.c_sei2/1e3, c='m', label=r'$c^{\mathrm{bulk}}_{SEI,2}$')
+        axs[i].plot(np.NaN, np.NaN,      c='g', label=r'$c^{\mathrm{bulk}}_{SEI,1}$')
+        ax2 = axs[i].twinx()
+        ax2.plot(xx, self.c_sei1/1e3, c='g', label=r'$c^{\mathrm{bulk}}_{SEI,1}$')
+        ax2.grid(False)
         axs[i].set_ylabel(r'$c^{\mathrm{bulk}}$ (kmol/m$^3$)')
         axs[i].set_xlabel('Time (hr)')
         axs[i].legend(loc='right')
 
+        plt.savefig(f'outputs/figures/fig_timeseries_2.png', bbox_inches='tight', dpi=150)
+
+
+    def plot_view_3(self, to_save=False, xlims=None):
+        """
+        Make "View 3"
+
+        Focus on understanding SEI growth boosting during cycling
+        """
+
+        num_subplots = 4
+
+        gridspec = dict(hspace=0.05, height_ratios=np.ones(num_subplots))
+
+        fig, axs = plt.subplots(nrows=num_subplots, ncols=1,
+                                figsize=(10, num_subplots * 4),
+                                gridspec_kw=gridspec,
+                                sharex=True)
+
+        [ax.grid(False) for ax in axs]
+
+        xx = self.t/3600
+
+        if xlims is not None:
+            axs[0].set_xlim(xlims)
+
+        i = 0
+        axs[i].plot(xx, self.vt, ls='-', c='k')
+        axs[i].plot(xx, self.ocv, ls='--', c='k')
+        axs[i].set_ylabel('V / V vs $Li/Li^+$ (V)')
+        axs[i].plot(xx, self.ocv_p, ls='--', c='b', label='$U_p$')
+        axs[i].plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label='$U_p + \eta_p$')
+        axs[i].plot(xx, self.ocv_n, ls='--', c='r', label='$U_n$')
+        axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label='$U_n - \eta_n$')
+        # axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='g', label=rf'$U_{{\mathrm{{SEI,1}}}}$ = {self.cell.U_SEI1} V')
+        # axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label=rf'$U_{{\mathrm{{SEI,2}}}}$ = {self.cell.U_SEI2} V')
+
+        i += 1
+        axs[i].plot(xx, self.delta_sei1 * 1e9, c='g', label=r'$\delta_{\mathrm{sei},1}$')
+        axs[i].plot(xx, self.delta_sei2 * 1e9, c='m', label=r'$\delta_{\mathrm{sei,2}}$')
+        axs[i].plot(xx, self.delta_sei1 * 1e9 + self.delta_sei2 * 1e9, c='k', label=r'$\delta_{\mathrm{sei}}$')
+        axs[i].legend(loc='right')
+        axs[i].set_ylabel(r'$\delta_{\mathrm{sei}}$ [$nm$]')
+
+        i += 1
+        axs[i].set_ylabel(r'$\delta$')
+        axs[i].plot(xx, self.delta_n, c='r')
+        axs[i].plot(xx, self.delta_p, c='b')
+        axs[i].legend([r'$\delta_n$', r'$\delta_p$'], loc='best')
+
+        i += 1
+        axs[i].plot(xx, self.dndt*self.cell.gamma_boost, c='k',
+                     ls='--', label=r'$\gamma \frac{d\delta_n}{dt}$')
+        axs[i].plot(xx, self.boost, c='k', label=r'$B$')
+        axs[i].set_ylabel(r'$B$')
+        axs[i].legend(loc='upper right')
+        axs[i].set_xlabel('Time (hrs)')
+
+        plt.savefig(f'outputs/figures/fig_timeseries_3.png', bbox_inches='tight', dpi=150)
+
 
     def plot(self, to_save=True,
-                   xlims=None):
+                   xlims=None,
+                   fig_name=None):
         """
         Make a standard plot of the outputs
         """
@@ -741,7 +809,10 @@ class Simulation:
         axs[i].set_xlabel('Time (hr)')
         axs[i].legend(loc='right')
 
+        if fig_name is None:
+            fig_name = f'{self.name}_output'
+
         if to_save:
-            plt.savefig(f'outputs/figures/{self.name}_output.png',
+            plt.savefig(f'outputs/figures/{fig_name}.png',
                         bbox_inches='tight',
                         dpi=150)

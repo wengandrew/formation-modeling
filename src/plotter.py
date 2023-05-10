@@ -17,8 +17,8 @@ def initialize(plt):
                     'figsize'    : (14, 12)
                     })
 
-    plt.rc('xtick', labelsize='medium')
-    plt.rc('ytick', labelsize='medium')
+    plt.rc('xtick', labelsize='medium', direction='in', top=True)
+    plt.rc('ytick', labelsize='medium', direction='in', right=True)
     plt.rc('axes',  labelsize='medium', grid=True)
     plt.rc('axes',  titlesize='medium')
     plt.rc('legend', fontsize='medium')

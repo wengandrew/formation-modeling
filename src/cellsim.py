@@ -243,24 +243,24 @@ class Simulation:
         self.boost[k+1] = 0 if self.boost[k+1] < 0 else self.boost[k+1]
         self.boost[k+1] = 100 if self.boost[k+1] > 100 else self.boost[k+1]
 
-        self.j_sei_rxn1[k+1] = p.n_SEI1 * F * p.c_SEI1_0 \
+        self.j_sei_rxn1[k+1] = p.n_SEI1 * F * self.c_sei1[k] \
                                 * p.k_SEI1 \
-                                * np.exp( -p.alpha_SEI * p.n_SEI1 * F * self.eta_sei1[k+1] / \
-                                       (R * T) )
+                                * np.exp( -p.alpha_SEI * p.n_SEI1 * \
+                                         F * self.eta_sei1[k+1] / (R * T) )
 
         self.j_sei_dif1[k+1] = self.D_sei1[k] \
                                 * (1 + self.boost[k+1]) \
-                                * p.c_SEI1_0 * p.n_SEI1 * F \
+                                * self.c_sei1[k] * p.n_SEI1 * F \
                                 / (self.delta_sei[k]) # should this be k or k+1?
 
-        self.j_sei_rxn2[k+1] = p.n_SEI2 * F * p.c_SEI2_0 \
+        self.j_sei_rxn2[k+1] = p.n_SEI2 * F * self.c_sei2[k] \
                                 * p.k_SEI2 \
-                                * np.exp( -p.alpha_SEI * p.n_SEI2 * F * self.eta_sei2[k+1] / \
-                                       (R * T) )
+                                * np.exp( -p.alpha_SEI * p.n_SEI2 * \
+                                         F * self.eta_sei2[k+1] / (R * T) )
 
         self.j_sei_dif2[k+1] = self.D_sei2[k] \
                                 * (1 + self.boost[k+1]) \
-                                * p.c_SEI2_0 * p.n_SEI2 * F \
+                                * self.c_sei2[k] * p.n_SEI2 * F \
                                 / (self.delta_sei[k]) # should this be k or k+1?
 
         self.j_sei1[k+1] = - 1 / (1/self.j_sei_rxn1[k+1] + 1/self.j_sei_dif1[k+1])
@@ -476,6 +476,132 @@ class Simulation:
 
 
         return df
+
+
+    def plot_view_1(self, to_save=False, xlims=None):
+        """
+        Make "View 1"
+
+        Focus on voltage, current, and expansion
+        """
+
+        num_subplots = 3
+
+        gridspec = dict(hspace=0.05, height_ratios=np.ones(num_subplots))
+
+        fig, axs = plt.subplots(nrows=num_subplots, ncols=1,
+                                figsize=(10, num_subplots * 4),
+                                gridspec_kw=gridspec,
+                                sharex=True)
+
+        [ax.grid(False) for ax in axs]
+
+        xx = self.t/3600
+
+        if xlims is not None:
+            axs[0].set_xlim(xlims)
+
+        # Voltages and Potentials
+        i = 0
+        axs[i].plot(xx, self.vt, ls='-', c='k')
+        axs[i].plot(xx, self.ocv, ls='--', c='k')
+        axs[i].set_ylabel('V / V vs $Li/Li^+$ (V)')
+        axs[i].plot(xx, self.ocv_p, ls='--', c='b', label='$U_p$')
+        axs[i].plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label='$U_p + \eta_p$')
+        axs[i].plot(xx, self.ocv_n, ls='--', c='r', label='$U_n$')
+        axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label='$U_n - \eta_n$')
+        axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='g', label=rf'$U_{{\mathrm{{SEI,1}}}}$ = {self.cell.U_SEI1} V')
+        axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label=rf'$U_{{\mathrm{{SEI,2}}}}$ = {self.cell.U_SEI2} V')
+
+        # Currents
+        i += 1
+        axs[i].axhline(y=0, ls='-', label='', c='k', lw=0.5)
+        axs[i].plot(xx, self.i_app, c='k', label=r'$I_{app}$')
+        axs[i].plot(xx, self.i_sei2, c='m', ls='-', label=r'$I_{SEI,2}$')
+        axs[i].plot(xx, self.i_sei1, c='g', ls='-', label=r'$I_{SEI,1}$')
+        axs[i].plot(xx, self.i_sei, c='k', lw=2, ls='--', label=r'$I_{SEI,1} + I_{SEI,2}$')
+        axs[i].legend(loc='right')
+        axs[i].set_ylabel(r'$I_{\mathrm{sei}}$ [A]')
+        axs[i].set_ylabel('$I$ (A)')
+        axs[i].set_ylim((0, 0.27))
+
+        # Total cell expansion
+        i += 1
+        ff = self.delta_sei2 / (self.delta_sei2 + self.delta_sei1)
+        axs[i].plot(xx, (self.expansion_rev + self.expansion_irrev)*1e6, c='k', label=r'$\epsilon_{SEI,1} + \epsilon_{SEI,2} + \epsilon_{rev}$')
+        axs[i].plot(xx, self.expansion_irrev*1e6, c='g', ls='-', label=r'$\epsilon_{SEI,1} + \epsilon_{SEI,2}$')
+        axs[i].plot(xx, ff*self.expansion_irrev*1e6, c='m', ls='-', label=r'$\epsilon_{SEI,2}$')
+        axs[i].legend()
+        axs[i].set_ylabel(r'$\epsilon$ ($\mu$m)')
+        axs[i].set_xlabel('Time (s)')
+
+
+    def plot_view_2(self, to_save=False, xlims=None):
+        """
+        Make "View 2"
+
+        Focus on diffusion-limitation, reaction limitation.
+
+        Under diffusion limitation, there are two ways this gets limited:
+        - thicknesss of the SEI
+        - solvent depletion
+        """
+
+        num_subplots = 4
+
+        gridspec = dict(hspace=0.05, height_ratios=np.ones(num_subplots))
+
+        fig, axs = plt.subplots(nrows=num_subplots, ncols=1,
+                                figsize=(10, num_subplots * 4),
+                                gridspec_kw=gridspec,
+                                sharex=True)
+
+        [ax.grid(False) for ax in axs]
+
+        xx = self.t/3600
+
+        if xlims is not None:
+            axs[0].set_xlim(xlims)
+
+        # Currents
+        i = 0
+        axs[i].axhline(y=0, ls='-', label='', c='k', lw=0.5)
+        axs[i].plot(xx, self.i_app, c='k', label=r'$I_{app}$')
+        axs[i].plot(xx, self.i_sei2, c='m', ls='-', label=r'$I_{SEI,2}$')
+        axs[i].plot(xx, self.i_sei1, c='g', ls='-', label=r'$I_{SEI,1}$')
+        axs[i].plot(xx, self.i_sei, c='k', lw=2, ls='--', label=r'$I_{SEI,1} + I_{SEI,2}$')
+        axs[i].legend(loc='right')
+        axs[i].set_ylabel(r'$I_{\mathrm{sei}}$ [A]')
+        axs[i].set_ylabel('$I$ (A)')
+        axs[i].set_ylim((0, 0.27))
+
+        # Current density of SEI 1
+        i += 1
+        axs[i].set_yscale('log')
+        axs[i].plot(xx, self.j_sei_rxn1, c='g', label='$j_{sei,1,rxn}$')
+        axs[i].plot(xx, self.j_sei_dif1, c='m', label='$j_{sei,1,dif}$')
+        axs[i].plot(xx, np.abs(self.j_sei1), c='k', label='$j_{sei,1}$')
+        axs[i].legend(loc='right')
+        axs[i].set_ylim((1e-11, 1e6))
+        axs[i].set_ylabel(r'$j_{\mathrm{sei}}$ [A/m$^2$]')
+
+        # Current density of SEI 2
+        i += 1
+        axs[i].set_yscale('log')
+        axs[i].plot(xx, self.j_sei_rxn2, c='g', label='$j_{sei,2,rxn}$')
+        axs[i].plot(xx, self.j_sei_dif2, c='m', label='$j_{sei,2,dif}$')
+        axs[i].plot(xx, np.abs(self.j_sei2), c='k', label='$j_{sei,2}$')
+        axs[i].legend(loc='right')
+        axs[i].set_ylim((1e-11, 1e6))
+        axs[i].set_ylabel(r'$j_{\mathrm{sei}}$ [A/m$^2$]')
+
+        # Solvent consumption
+        i += 1
+        axs[i].plot(xx, self.c_sei1/1e3, c='g', label=r'$c^{\mathrm{bulk}}_{SEI,1}$')
+        axs[i].plot(xx, self.c_sei2/1e3, c='m', label=r'$c^{\mathrm{bulk}}_{SEI,2}$')
+        axs[i].set_ylabel(r'$c^{\mathrm{bulk}}$ (kmol/m$^3$)')
+        axs[i].set_xlabel('Time (hr)')
+        axs[i].legend(loc='right')
 
 
     def plot(self, to_save=True,

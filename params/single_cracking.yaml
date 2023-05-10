@@ -28,7 +28,7 @@
  V_SEI1: 9.585e-5     # m3/mol     SEI molar volume, solid phase
  k_SEI1: 4.0e-18      # m/s        SEI kinetic rate constant
  D_SEI11: 1.0e-19     # m2/s       SEI 1 diffusivity in solid layer 1
- D_SEI12: 2.5e-17     # m2/s       SEI 1 diffusivity in solid layer 2
+ D_SEI12: 5.9e-17     # m2/s       SEI 1 diffusivity in solid layer 2
  U_SEI1: 0.8          # V          SEI equilibrium reaction potential
 
  # Second SEI component: dimethyl carbonate
@@ -37,15 +37,15 @@
  c_SEI2_0: 300        # mol/m3     Concentration in bulk electrolyte
  n_SEI2 : 1.0         # -          Number of electrons
  V_SEI2: 5.810e-5     # m3/mol     SEI molar volume, solid phase
- k_SEI2: 5.0e-14      # m/s        SEI kinetic rate constant
+ k_SEI2: 6.0e-14      # m/s        SEI kinetic rate constant
  D_SEI21: 1.0e-19     # m2/s       SEI 2 diffusivity in solid layer 1
- D_SEI22: 2.5e-17     # m2/s       SEI 2 diffusivity in solid layer 2
+ D_SEI22: 5.9e-17     # m2/s       SEI 2 diffusivity in solid layer 2
  U_SEI2: 1.40          # V          SEI equilibrium reaction potential
 
  # Expansion
- c0: 66
- c1: 0.00055
- c2: 0.00055
+ c0: 77
+ c1: 0.0005
+ c2: 0.0005
 
  # Overpotentials
  R0p: 0.01

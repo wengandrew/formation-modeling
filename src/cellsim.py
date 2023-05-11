@@ -535,7 +535,7 @@ class Simulation:
         axs[i].plot(xx, ff*self.expansion_irrev*1e6, c='m', ls='-', label=r'$\epsilon_{SEI,2}$')
         axs[i].legend()
         axs[i].set_ylabel(r'$\epsilon$ ($\mu$m)')
-        axs[i].set_xlabel('Time (s)')
+        axs[i].set_xlabel('Time (hrs)')
 
         plt.savefig(f'outputs/figures/fig_timeseries_1.png', bbox_inches='tight', dpi=150)
 

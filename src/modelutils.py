@@ -154,7 +154,7 @@ def UpNMC622(sto):
     return u_eq
 
 
-def Up(sto):
+def Up(sto, adjust=True):
     """
     Nickel Managanese Cobalt Oxide (NMC) Open Circuit Potential (OCP) as a
     function of the stochiometry. The fit is taken from Peyman MPM.
@@ -165,6 +165,7 @@ def Up(sto):
     Parameters
     ----------
     sto : Stochiometry of material (lithium fraction)
+    adjust (boolean): if True then make stoichiometry adjustment
     """
 
     # Make an adjustment to satisfy pre-formation boundary condition
@@ -172,8 +173,9 @@ def Up(sto):
     # is some fixed value such that, when combined with the positive electrode
     # potential, describes the measured pre-formation full cell potential.
     # This requires extrapolating the function slightly.
-    beta = 1.00206269
-    sto = beta*sto
+    if adjust:
+        beta = 1.00206269
+        sto = beta*sto
 
     # Don't extrapolate too much with these functions
     if np.any(sto < -0.1):
@@ -195,7 +197,7 @@ def Up(sto):
     return u_eq
 
 
-def Un(sto):
+def Un(sto, adjust=True):
     """
     Graphite Open Circuit Potential (OCP) as a function of the
     stochiometry. The fit is taken from Peyman MPM [1].
@@ -206,6 +208,7 @@ def Un(sto):
     Parameters
     ---------
     sto : Stoichiometry of material (lithium fraction0)
+    adjust (boolean): if True then make stoichiometry adjustment
     """
 
     # Make an adjustment to satisfy pre-formation boundary condition
@@ -213,8 +216,9 @@ def Un(sto):
     # is some fixed value such that, when combined with the positive electrode
     # potential, describes the measured pre-formation full cell potential.
     # This requires extrapolating the function slightly.
-    gamma = -0.01185456
-    sto = (1 - gamma)*sto + gamma
+    if adjust:
+        gamma = -0.01185456
+        sto = (1 - gamma)*sto + gamma
 
     # Don't extrapolate too much with these functions
     if np.any(sto < -0.1):

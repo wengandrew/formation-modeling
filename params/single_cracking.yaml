@@ -20,8 +20,8 @@
  tau_boost: 600       # s          Boost activation rate
  tau_decay: 42000     # s          Boost decay rate
 
- # First SEI component: ethylene carbonate
- SEI1_name: Li2EDC
+ # First SEI component
+ SEI1_name: EC
  c_SEI1_0: 4541       # mol/m3     Concentration in bulk electrolyte
  n_SEI1: 2            # -          Number of electrons
  V_SEI1: 9.585e-5     # m3/mol     SEI molar volume, solid phase
@@ -46,12 +46,12 @@
  c2: 0.0005
 
  # Overpotentials
- R0p: 0.01
- R0n: 0.01
- R1p: 0.001
- R1n: 0.001
- C1p: 76000
- C1n: 76000
+ R0p: 0.01  # positive charge transfer resistance
+ R0n: 0.01  # negative charge transfer resistance
+ R1p: 0.001 # positive diffusion resistance
+ R1n: 0.001 # negative diffusion resistance
+ C1p: 76000 # positive diffusion capacitance
+ C1n: 76000 # negative diffusion capacitance
 
  # Electrode stoichiometry model
  Cn: 3.14 # Ah

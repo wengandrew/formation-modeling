@@ -637,22 +637,16 @@ class Simulation:
             axs[0].set_xlim(xlims)
 
         i = 0
-        axs[i].plot(xx, self.vt, ls='-', c='k')
-        axs[i].plot(xx, self.ocv, ls='--', c='k')
-        axs[i].set_ylabel('V / V vs $Li/Li^+$ (V)')
         axs[i].plot(xx, self.ocv_p, ls='--', c='b', label='$U_p$')
         axs[i].plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label='$U_p + \eta_p$')
+        axs[i].plot(xx, self.ocv, ls='--', c='k', label='')
+        axs[i].plot(xx, self.vt, ls='-', c='k', label='$V_t$')
         axs[i].plot(xx, self.ocv_n, ls='--', c='r', label='$U_n$')
         axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label='$U_n - \eta_n$')
+        axs[i].set_ylabel('V / V vs $Li/Li^+$ (V)')
+        axs[i].legend(loc='right')
         # axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='g', label=rf'$U_{{\mathrm{{SEI,1}}}}$ = {self.cell.U_SEI1} V')
         # axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label=rf'$U_{{\mathrm{{SEI,2}}}}$ = {self.cell.U_SEI2} V')
-
-        i += 1
-        axs[i].plot(xx, self.delta_sei1 * 1e9, c='g', label=r'$\delta_{\mathrm{sei},1}$')
-        axs[i].plot(xx, self.delta_sei2 * 1e9, c='m', label=r'$\delta_{\mathrm{sei,2}}$')
-        axs[i].plot(xx, self.delta_sei1 * 1e9 + self.delta_sei2 * 1e9, c='k', label=r'$\delta_{\mathrm{sei}}$')
-        axs[i].legend(loc='right')
-        axs[i].set_ylabel(r'$\delta_{\mathrm{sei}}$ [$nm$]')
 
         i += 1
         axs[i].set_ylabel(r'$\delta$')
@@ -661,13 +655,20 @@ class Simulation:
         axs[i].legend([r'$\delta_n$', r'$\delta_p$'], loc='best')
 
         i += 1
+        axs[i].plot(xx, self.boost, c='k', label=r'$B$')
         axs[i].plot(xx, self.dndt*self.cell.gamma_boost, c='k',
                      ls='--', label=r'$\gamma \frac{d\delta_n}{dt}$')
-        axs[i].plot(xx, self.boost, c='k', label=r'$B$')
         axs[i].set_ylabel(r'$B$')
-        axs[i].legend(loc='upper right')
-        axs[i].set_xlabel('Time (hrs)')
+        axs[i].legend(loc='lower right')
 
+        i += 1
+        axs[i].plot(xx, self.delta_sei1 * 1e9 + self.delta_sei2 * 1e9, c='k', label=r'$\delta_{\mathrm{sei}}$')
+        axs[i].plot(xx, self.delta_sei1 * 1e9, c='g', label=r'$\delta_{\mathrm{sei},1}$')
+        axs[i].plot(xx, self.delta_sei2 * 1e9, c='m', label=r'$\delta_{\mathrm{sei,2}}$')
+        axs[i].legend(loc='right')
+        axs[i].set_ylabel(r'$\delta_{\mathrm{sei}}$ [$nm$]')
+
+        axs[i].set_xlabel('Time (hrs)')
         plt.savefig(f'outputs/figures/fig_timeseries_3.png', bbox_inches='tight', dpi=150)
 
 

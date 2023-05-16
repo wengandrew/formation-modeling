@@ -31,9 +31,10 @@ Runs on Python 3.8.8.
 # To-Do
 
 ## Numerical issues
-- [ ] Fix anode expansion function (there's a kink; the equation from Mohtat2020 may have some typos)
-- [ ] Fix $\delta_p$ + $\delta_n$ \neq $\delta_{tot}$ issue
-- [ ] Reparameterize $U_n$ and $U_p$ to align with the measured initial full cell voltage before formation
+- [ ] Fix oscillations at higher C-rates
+- [x] Fix anode expansion function (there's a kink; the equation from Mohtat2020 may have some typos)
+- [x] Fix $\delta_p + \delta_n \neq \delta_{tot}$ issue
+- [x] Reparameterize $U_n$ and $U_p$ to align with the measured initial full cell voltage before formation
 
 ## Understanding
 - [ ] Why does the BV expression for lithium intercalation have a dependency on the electrolyte concentration?

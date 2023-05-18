@@ -265,32 +265,33 @@ class Simulation:
                                 * self.c_sei2[k] * p.n_SEI2 * F \
                                 / (self.delta_sei[k]) # should this be k or k+1?
 
-        self.j_sei1[k+1] = - 1 / (1/self.j_sei_rxn1[k+1] + 1/self.j_sei_dif1[k+1])
-        self.j_sei2[k+1] = - 1 / (1/self.j_sei_rxn2[k+1] + 1/self.j_sei_dif2[k+1])
+        self.j_sei1[k+1] = 1 / (1/self.j_sei_rxn1[k+1] + 1/self.j_sei_dif1[k+1])
+        self.j_sei2[k+1] = 1 / (1/self.j_sei_rxn2[k+1] + 1/self.j_sei_dif2[k+1])
 
         self.j_sei[k+1] = self.j_sei1[k+1] + self.j_sei2[k+1]
 
         ## Current density to current conversion
-        self.i_sei[k+1]  = - self.j_sei[k+1]  * (p.a_sn * p.A_n * p.L_n)
-        self.i_sei1[k+1] = - self.j_sei1[k+1] * (p.a_sn * p.A_n * p.L_n)
-        self.i_sei2[k+1] = - self.j_sei2[k+1] * (p.a_sn * p.A_n * p.L_n)
+        self.i_sei[k+1]  = self.j_sei[k+1]  * (p.a_sn * p.A_n * p.L_n)
+        self.i_sei1[k+1] = self.j_sei1[k+1] * (p.a_sn * p.A_n * p.L_n)
+        self.i_sei2[k+1] = self.j_sei2[k+1] * (p.a_sn * p.A_n * p.L_n)
 
         # Update SEI reacting species concentrations
-        self.c_sei1[k+1] = np.max([0, self.c_sei1[k] + self.dt * \
-                            (p.a_sn * self.j_sei1[k+1] / (p.n_SEI1 * F))])
+        self.c_sei1[k+1] = self.c_sei1[k] - self.dt * \
+                            (p.a_sn * self.j_sei1[k+1] / (p.n_SEI1 * F))
 
-        self.c_sei2[k+1] = np.max([0, self.c_sei2[k] + self.dt * \
-                            (p.a_sn * self.j_sei2[k+1] / (p.n_SEI2 * F))])
+        self.c_sei2[k+1] = self.c_sei2[k] - self.dt * \
+                            (p.a_sn * self.j_sei2[k+1] / (p.n_SEI2 * F))
 
         # Update the intercalation current for the next time step
         # Stoichiometry update; only include intercalation current
-        sign = -np.sign(self.i_app[k])
+        # sign = -np.sign(self.i_app[k])
 
         # Detect if we're resting
-        if self.i_app[k] == 0:
-            sign = -1
+        # if self.i_app[k] == 0:
+            # sign = -1
 
-        self.i_int[k+1] = self.i_app[k] + sign*self.i_sei[k+1]
+        # self.i_int[k+1] = self.i_app[k] + sign*self.i_sei[k+1]
+        self.i_int[k+1] = self.i_app[k]  - self.i_sei[k+1]
 
         if to_debug:
             print(
@@ -508,31 +509,31 @@ class Simulation:
         axs[i].plot(xx, self.vt, ls='-', c='k')
         axs[i].plot(xx, self.ocv, ls='--', c='k')
         axs[i].set_ylabel('V / V vs $Li/Li^+$ (V)')
-        axs[i].plot(xx, self.ocv_p, ls='--', c='b', label='$U_p$')
+        # axs[i].plot(xx, self.ocv_p, ls='--', c='b', label='$U_p$')
         axs[i].plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label='$U_p + \eta_p$')
-        axs[i].plot(xx, self.ocv_n, ls='--', c='r', label='$U_n$')
+        # axs[i].plot(xx, self.ocv_n, ls='--', c='r', label='$U_n$')
         axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label='$U_n - \eta_n$')
-        axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='g', label=rf'$U_{{\mathrm{{SEI,1}}}}$ = {self.cell.U_SEI1} V')
-        axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label=rf'$U_{{\mathrm{{SEI,2}}}}$ = {self.cell.U_SEI2} V')
+        axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='c', label=rf'$U_{{\mathrm{{SEI,A}}}}$ = {self.cell.U_SEI1} V')
+        axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label=rf'$U_{{\mathrm{{SEI,B}}}}$ = {self.cell.U_SEI2} V')
+        axs[i].legend(loc='right', fontsize=14)
 
         # Currents
         i += 1
         axs[i].axhline(y=0, ls='-', label='', c='k', lw=0.5)
-        axs[i].plot(xx, self.i_app, c='k', label=r'$I_{app}$')
-        axs[i].plot(xx, self.i_sei2, c='m', ls='-', label=r'$I_{SEI,2}$')
-        axs[i].plot(xx, self.i_sei1, c='g', ls='-', label=r'$I_{SEI,1}$')
-        axs[i].plot(xx, self.i_sei, c='k', lw=2, ls='--', label=r'$I_{SEI,1} + I_{SEI,2}$')
+        axs[i].plot(xx, self.i_app, c='k', label=r'$I_{\mathrm{app}}$')
+        axs[i].plot(xx, self.i_sei, c='k', lw=2, ls=':', label=r'$I_{\mathrm{SEI,A}} + I_{\mathrm{SEI,B}}$')
+        axs[i].plot(xx, self.i_sei2, c='m', ls='-', label=r'$I_{\mathrm{SEI,B}}$')
+        axs[i].plot(xx, self.i_sei1, c='c', ls='-', label=r'$I_{\mathrm{SEI,A}}$')
         axs[i].legend(loc='right')
-        axs[i].set_ylabel(r'$I_{\mathrm{sei}}$ [A]')
         axs[i].set_ylabel('$I$ (A)')
         axs[i].set_ylim((0, 0.27))
 
         # Total cell expansion
         i += 1
         ff = self.delta_sei2 / (self.delta_sei2 + self.delta_sei1)
-        axs[i].plot(xx, (self.expansion_rev + self.expansion_irrev)*1e6, c='k', label=r'$\epsilon_{SEI,1} + \epsilon_{SEI,2} + \epsilon_{rev}$')
-        axs[i].plot(xx, self.expansion_irrev*1e6, c='g', ls='-', label=r'$\epsilon_{SEI,1} + \epsilon_{SEI,2}$')
-        axs[i].plot(xx, ff*self.expansion_irrev*1e6, c='m', ls='-', label=r'$\epsilon_{SEI,2}$')
+        axs[i].plot(xx, (self.expansion_rev + self.expansion_irrev)*1e6, c='k', label=r'$\epsilon_{\mathrm{SEI,A}} + \epsilon_{\mathrm{SEI,B}} + \epsilon_{\mathrm{rev}}$')
+        axs[i].plot(xx, self.expansion_irrev*1e6, c='c', ls='-', label=r'$\epsilon_{\mathrm{SEI,A}} + \epsilon_{\mathrm{SEI,B}}$')
+        axs[i].plot(xx, ff*self.expansion_irrev*1e6, c='m', ls='-', label=r'$\epsilon_{\mathrm{SEI,B}}$')
         axs[i].legend()
         axs[i].set_ylabel(r'$\epsilon$ ($\mu$m)')
         axs[i].set_xlabel('Time (hrs)')
@@ -569,42 +570,41 @@ class Simulation:
 
         # Currents
         i = 0
-        axs[i].axhline(y=0, ls='-', label='', c='k', lw=0.5)
-        axs[i].plot(xx, self.i_app, c='k', label=r'$I_{app}$')
-        axs[i].plot(xx, self.i_sei2, c='m', ls='-', label=r'$I_{SEI,2}$')
-        axs[i].plot(xx, self.i_sei1, c='g', ls='-', label=r'$I_{SEI,1}$')
-        axs[i].plot(xx, self.i_sei, c='k', lw=2, ls='--', label=r'$I_{SEI,1} + I_{SEI,2}$')
+        # axs[i].axhline(y=0, ls='-', label='', c='k', lw=0.5)
+        axs[i].plot(xx, self.i_app, c='k', lw=2, label=r'$I_{\mathrm{app}}$')
+        axs[i].plot(xx, self.i_sei2, c='m', ls='-', lw=2, label=r'$I_{\mathrm{SEI,B}}$ (VC)')
+        axs[i].plot(xx, self.i_sei1, c='c', ls='-', lw=2, label=r'$I_{\mathrm{SEI,A}}$ (EC)')
+        axs[i].plot(xx, self.i_sei, c='k', lw=2, ls=':', lw=2, label=r'$I_{\mathrm{SEI}}$')
         axs[i].legend(loc='right')
-        axs[i].set_ylabel(r'$I_{\mathrm{sei}}$ [A]')
-        axs[i].set_ylabel('$I$ (A)')
-        axs[i].set_ylim((0, 0.27))
+        axs[i].set_ylabel(r'$I$ (A)')
+        axs[i].set_ylim((-0.01, 0.27))
 
         # Current density of SEI 1
         i += 1
         axs[i].set_yscale('log')
-        axs[i].plot(xx, self.j_sei_rxn1, c='g', label='$j_{sei,1,rxn}$')
-        axs[i].plot(xx, self.j_sei_dif1, c='m', label='$j_{sei,1,dif}$')
-        axs[i].plot(xx, np.abs(self.j_sei1), c='k', label='$j_{sei,1}$')
+        axs[i].plot(xx, self.j_sei1, c='c', ls='-', label=r'$j_{SEI,A}$')
+        axs[i].plot(xx, self.j_sei_rxn1, c='c', ls='--', label=r'$\tilde{j}_{\mathrm{SEI,A,rxn}}$')
+        axs[i].plot(xx, self.j_sei_dif1, c='c', ls='-.', label=r'$\tilde{j}_{\mathrm{SEI,A,dif}}$')
         axs[i].legend(loc='right')
-        axs[i].set_ylim((1e-11, 1e6))
-        axs[i].set_ylabel(r'$j_{\mathrm{sei}}$ [A/m$^2$]')
+        axs[i].set_ylim((1e-13, 1e7))
+        axs[i].set_ylabel(r'$j_{\mathrm{SEI}}$ [A/m$^2$]')
 
         # Current density of SEI 2
         i += 1
         axs[i].set_yscale('log')
-        axs[i].plot(xx, self.j_sei_rxn2, c='g', label='$j_{sei,2,rxn}$')
-        axs[i].plot(xx, self.j_sei_dif2, c='m', label='$j_{sei,2,dif}$')
-        axs[i].plot(xx, np.abs(self.j_sei2), c='k', label='$j_{sei,2}$')
+        axs[i].plot(xx, self.j_sei2, c='m', ls='-', label=r'$j_{\mathrm{SEI,B}}$')
+        axs[i].plot(xx, self.j_sei_rxn2, c='m', ls='--', label=r'$\tilde{j}_{\mathrm{SEI,B,rxn}}$')
+        axs[i].plot(xx, self.j_sei_dif2, c='m', ls='-.', label=r'$\tilde{j}_{\mathrm{SEI,B,dif}}$')
         axs[i].legend(loc='right')
-        axs[i].set_ylim((1e-11, 1e6))
-        axs[i].set_ylabel(r'$j_{\mathrm{sei}}$ [A/m$^2$]')
+        axs[i].set_ylim((1e-13, 1e7))
+        axs[i].set_ylabel(r'$j_{\mathrm{SEI}}$ [A/m$^2$]')
 
         # Solvent consumption
         i += 1
-        axs[i].plot(xx, self.c_sei2/1e3, c='m', label=r'$c^{\mathrm{bulk}}_{SEI,2}$')
-        axs[i].plot(np.NaN, np.NaN,      c='g', label=r'$c^{\mathrm{bulk}}_{SEI,1}$')
+        axs[i].plot(np.NaN, np.NaN,      c='c', label=r'$c^{\mathrm{bulk}}_{\mathrm{SEI,A}}$ (EC)') # dummy
+        axs[i].plot(xx, self.c_sei2/1e3, c='m', label=r'$c^{\mathrm{bulk}}_{\mathrm{SEI,B}}$ (VC)')
         ax2 = axs[i].twinx()
-        ax2.plot(xx, self.c_sei1/1e3, c='g', label=r'$c^{\mathrm{bulk}}_{SEI,1}$')
+        ax2.plot(xx, self.c_sei1/1e3, c='c', label=r'$c^{\mathrm{bulk}}_{\mathrm{SEI,A}}$ (EC)')
         ax2.grid(False)
         axs[i].set_ylabel(r'$c^{\mathrm{bulk}}$ (kmol/m$^3$)')
         axs[i].set_xlabel('Time (hr)')
@@ -638,10 +638,10 @@ class Simulation:
 
         i = 0
         axs[i].plot(xx, self.ocv_p, ls='--', c='b', label='$U_p$')
-        axs[i].plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label='$U_p + \eta_p$')
+        # axs[i].plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label='$U_p + \eta_p$')
         axs[i].plot(xx, self.ocv, ls='--', c='k', label='')
         axs[i].plot(xx, self.vt, ls='-', c='k', label='$V_t$')
-        axs[i].plot(xx, self.ocv_n, ls='--', c='r', label='$U_n$')
+        # axs[i].plot(xx, self.ocv_n, ls='--', c='r', label='$U_n$')
         axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label='$U_n - \eta_n$')
         axs[i].set_ylabel('V / V vs $Li/Li^+$ (V)')
         axs[i].legend(loc='right')
@@ -662,9 +662,9 @@ class Simulation:
         axs[i].legend(loc='lower right')
 
         i += 1
-        axs[i].plot(xx, self.delta_sei1 * 1e9 + self.delta_sei2 * 1e9, c='k', label=r'$\delta_{\mathrm{sei}}$')
-        axs[i].plot(xx, self.delta_sei1 * 1e9, c='g', label=r'$\delta_{\mathrm{sei},1}$')
-        axs[i].plot(xx, self.delta_sei2 * 1e9, c='m', label=r'$\delta_{\mathrm{sei,2}}$')
+        axs[i].plot(xx, self.delta_sei1 * 1e9 + self.delta_sei2 * 1e9, c='k', label=r'$\delta_{\mathrm{SEI}}$')
+        axs[i].plot(xx, self.delta_sei1 * 1e9, c='c', label=r'$\delta_{\mathrm{SEI,A}}$ (EC)')
+        axs[i].plot(xx, self.delta_sei2 * 1e9, c='m', label=r'$\delta_{\mathrm{SEI,B}}$ (VC)')
         axs[i].legend(loc='right')
         axs[i].set_ylabel(r'$\delta_{\mathrm{sei}}$ [$nm$]')
 
@@ -699,7 +699,7 @@ class Simulation:
         i = 0
         axs[i].axhline(y=0, ls='-', label='', c='k', lw=0.5)
         axs[i].plot(xx, self.i_app, c='k', label='$I_{app}$')
-        # axs[0].plot(xx, self.i_int, c='g', ls='--', label='$I_{int}$')
+        axs[i].plot(xx, self.i_int, c='k', ls=':', label='$I_{int}$')
         axs[i].plot(xx, self.i_sei, c='g', ls='--', label='$I_{SEI}$')
         # axs[0].plot(xx, self.i_r1n, c='r', label='$I_{R_{1,n}}$')
         # axs[0].plot(xx, self.i_r1p, c='b', ls='--', label='$I_{R_{1,p}}$')
@@ -715,8 +715,8 @@ class Simulation:
         axs[i].plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label='$U_p + \eta_p$')
         axs[i].plot(xx, self.ocv_n, ls='--', c='r', label='$U_n$')
         axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label='$U_n - \eta_n$')
-        axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='g', label=rf'$U_{{\mathrm{{SEI,1}}}}$ = {self.cell.U_SEI1} V')
-        axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label=rf'$U_{{\mathrm{{SEI,2}}}}$ = {self.cell.U_SEI2} V')
+        axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='c', label=rf'$U_{{\mathrm{{SEI,A}}}}$ = {self.cell.U_SEI1} V')
+        axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label=rf'$U_{{\mathrm{{SEI,B}}}}$ = {self.cell.U_SEI2} V')
 
         # Electrode stoichiometries
         i += 1
@@ -737,7 +737,7 @@ class Simulation:
 
         # SEI expansion factor
         i += 1
-        axs[i].plot(xx, self.delta_sei1 * 1e9, c='g', label=r'$\delta_{\mathrm{sei},1}$')
+        axs[i].plot(xx, self.delta_sei1 * 1e9, c='c', label=r'$\delta_{\mathrm{sei},1}$')
         axs[i].plot(xx, self.delta_sei2 * 1e9, c='m', label=r'$\delta_{\mathrm{sei,2}}$')
         axs[i].plot(xx, self.delta_sei1 * 1e9 + self.delta_sei2 * 1e9, c='k', label=r'$\delta_{\mathrm{sei}}$')
         axs[i].legend(loc='upper right')
@@ -746,7 +746,7 @@ class Simulation:
         # Total cell expansion
         i += 1
         axs[i].set_ylabel(r'$\epsilon$ ($\mu$m)')
-        axs[i].plot(xx, self.expansion_irrev*1e6, c='g', label='$\epsilon_{irrev}$')
+        axs[i].plot(xx, self.expansion_irrev*1e6, c='c', label='$\epsilon_{irrev}$')
         axs[i].plot(xx, (self.expansion_rev + self.expansion_irrev)*1e6,
                     c='k', label='$\epsilon_{irrev} + \epsilon_{rev}$')
         axs[i].legend()

@@ -5,7 +5,7 @@
 # Anode geometrical properties
  R_n: 20.0e-6         # m          Anode particle radius
  L_n: 80.0e-6         # m          Anode thickness
- A_n: 0.1000          # m2         Anode active area
+ A_n: 0.097566        # m2         Anode active area
  epsilon_n: 0.7       # [-]        Anode solid material fraction
  a_sn: 105000         # 1/m        Anode specific surface area (3*epsilon/R)
 

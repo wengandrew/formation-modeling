@@ -17,6 +17,8 @@ def initialize(plt):
                     'figsize'    : (14, 12)
                     })
 
+    plt.rc('lines', linewidth=2)
+
     plt.rc('xtick', labelsize='medium',
                     direction='in',
                     top=True)

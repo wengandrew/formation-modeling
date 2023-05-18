@@ -521,9 +521,9 @@ class Simulation:
         i += 1
         axs[i].axhline(y=0, ls='-', label='', c='k', lw=0.5)
         axs[i].plot(xx, self.i_app, c='k', label=r'$I_{\mathrm{app}}$')
-        axs[i].plot(xx, self.i_sei, c='k', lw=2, ls=':', label=r'$I_{\mathrm{SEI,A}} + I_{\mathrm{SEI,B}}$')
-        axs[i].plot(xx, self.i_sei2, c='m', ls='-', label=r'$I_{\mathrm{SEI,B}}$')
-        axs[i].plot(xx, self.i_sei1, c='c', ls='-', label=r'$I_{\mathrm{SEI,A}}$')
+        axs[i].plot(xx, self.i_sei, c='k', lw=2, ls=':', label=r'$I_{\mathrm{SEI}}$')
+        axs[i].plot(xx, self.i_sei1, c='c', ls='-', label=r'$I_{\mathrm{SEI,A}}$ (EC)')
+        axs[i].plot(xx, self.i_sei2, c='m', ls='-', label=r'$I_{\mathrm{SEI,B}}$ (VC)')
         axs[i].legend(loc='right')
         axs[i].set_ylabel('$I$ (A)')
         axs[i].set_ylim((0, 0.27))
@@ -572,9 +572,9 @@ class Simulation:
         i = 0
         # axs[i].axhline(y=0, ls='-', label='', c='k', lw=0.5)
         axs[i].plot(xx, self.i_app, c='k', lw=2, label=r'$I_{\mathrm{app}}$')
-        axs[i].plot(xx, self.i_sei2, c='m', ls='-', lw=2, label=r'$I_{\mathrm{SEI,B}}$ (VC)')
         axs[i].plot(xx, self.i_sei1, c='c', ls='-', lw=2, label=r'$I_{\mathrm{SEI,A}}$ (EC)')
-        axs[i].plot(xx, self.i_sei, c='k', lw=2, ls=':', lw=2, label=r'$I_{\mathrm{SEI}}$')
+        axs[i].plot(xx, self.i_sei2, c='m', ls='-', lw=2, label=r'$I_{\mathrm{SEI,B}}$ (VC)')
+        axs[i].plot(xx, self.i_sei, c='k', ls=':', lw=2, label=r'$I_{\mathrm{SEI}}$')
         axs[i].legend(loc='right')
         axs[i].set_ylabel(r'$I$ (A)')
         axs[i].set_ylim((-0.01, 0.27))
@@ -585,8 +585,8 @@ class Simulation:
         axs[i].plot(xx, self.j_sei1, c='c', ls='-', label=r'$j_{SEI,A}$')
         axs[i].plot(xx, self.j_sei_rxn1, c='c', ls='--', label=r'$\tilde{j}_{\mathrm{SEI,A,rxn}}$')
         axs[i].plot(xx, self.j_sei_dif1, c='c', ls='-.', label=r'$\tilde{j}_{\mathrm{SEI,A,dif}}$')
-        axs[i].legend(loc='right')
-        axs[i].set_ylim((1e-13, 1e7))
+        axs[i].legend(loc='lower right')
+        axs[i].set_ylim((1e-13, 1e8))
         axs[i].set_ylabel(r'$j_{\mathrm{SEI}}$ [A/m$^2$]')
 
         # Current density of SEI 2
@@ -595,8 +595,8 @@ class Simulation:
         axs[i].plot(xx, self.j_sei2, c='m', ls='-', label=r'$j_{\mathrm{SEI,B}}$')
         axs[i].plot(xx, self.j_sei_rxn2, c='m', ls='--', label=r'$\tilde{j}_{\mathrm{SEI,B,rxn}}$')
         axs[i].plot(xx, self.j_sei_dif2, c='m', ls='-.', label=r'$\tilde{j}_{\mathrm{SEI,B,dif}}$')
-        axs[i].legend(loc='right')
-        axs[i].set_ylim((1e-13, 1e7))
+        axs[i].legend(loc='lower right')
+        axs[i].set_ylim((1e-13, 1e8))
         axs[i].set_ylabel(r'$j_{\mathrm{SEI}}$ [A/m$^2$]')
 
         # Solvent consumption

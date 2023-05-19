@@ -18,7 +18,7 @@
  delta_SEI_0: 5.0e-9  # m          Initial SEI thickness
  gamma_boost: 2.4e+7  # s/m        Boost stress sensitivity
  tau_boost: 600       # s          Boost activation rate
- tau_decay: 6000     # s          Boost decay rate
+ tau_decay: 6000      # s          Boost decay rate
 
  # First SEI component
  SEI1_name: EC
@@ -41,7 +41,7 @@
  U_SEI2: 1.35          # V          SEI equilibrium reaction potential
 
  # Expansion
- c0: 77
+ c0: 127
  c1: 0.00045
  c2: 0.00045
 

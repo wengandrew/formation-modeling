@@ -237,10 +237,7 @@ class Simulation:
         else: # discharging or resting
             self.boost[k+1] = self.boost[k] - self.dt * self.boost[k] / p.tau_decay
 
-        # Enforce thresholds
-        self.boost[k+1] = 0 if self.boost[k+1] < 0 else self.boost[k+1]
-        self.boost[k+1] = 100 if self.boost[k+1] > 100 else self.boost[k+1]
-
+        # SEI limiting current densities
         self.j_sei_rxn1[k+1] = p.n_SEI1 * F * self.c_sei1[k] \
                                 * p.k_SEI1 \
                                 * np.exp( -p.alpha_SEI * p.n_SEI1 * \
@@ -261,6 +258,7 @@ class Simulation:
                                 * self.c_sei2[k] * p.n_SEI2 * F \
                                 / (self.delta_sei[k]) # should this be k or k+1?
 
+        # SEI current density
         self.j_sei1[k+1] = 1 / (1/self.j_sei_rxn1[k+1] + 1/self.j_sei_dif1[k+1])
         self.j_sei2[k+1] = 1 / (1/self.j_sei_rxn2[k+1] + 1/self.j_sei_dif2[k+1])
 
@@ -567,7 +565,7 @@ class Simulation:
         axs[i].plot(xx, self.i_sei2, c='m', ls='-', lw=2, label=r'$I_{\mathrm{SEI,B}}$ (VC)')
         axs[i].plot(xx, self.i_sei, c='k', ls='--', lw=2, label=r'$I_{\mathrm{SEI}}$')
         axs[i].legend(loc='right', fontsize=16)
-        axs[i].set_ylabel(r'$I$ (A)')
+        axs[i].set_ylabel(r'$I$ [A]')
         axs[i].set_ylim((-0.01, 0.27))
 
         # Current density of SEI 1
@@ -590,6 +588,16 @@ class Simulation:
         axs[i].set_ylim((1e-13, 1e8))
         axs[i].set_ylabel(r'$j_{\mathrm{SEI}}$ [A/m$^2$]')
 
+        # Total cell expansion
+        # i += 1
+        # ff = self.delta_sei2 / (self.delta_sei2 + self.delta_sei1)
+        # axs[i].plot(xx, (self.expansion_rev + self.expansion_irrev)*1e6, c='k', label=r'$dL_{\mathrm{SEI,A}} + dL_{\mathrm{SEI,B}} + dL_{\mathrm{rev}}$')
+        # axs[i].plot(xx, self.expansion_irrev*1e6, c='c', ls='-', label=r'$dL_{\mathrm{SEI,A}} + dL_{\mathrm{SEI,B}}$')
+        # axs[i].plot(xx, ff*self.expansion_irrev*1e6, c='m', ls='-', label=r'$dL_{\mathrm{SEI,B}}$')
+        # axs[i].legend(loc='upper right', fontsize=16)
+        # axs[i].set_ylabel(r'$dL$ ($\mu$m)')
+        # axs[i].set_ylim(-2, 70)
+
         # Solvent consumption
         i += 1
         axs[i].plot(np.NaN, np.NaN,      c='c', label=r'$c^{\mathrm{bulk}}_{\mathrm{SEI,A}}$ (EC)') # dummy
@@ -597,7 +605,7 @@ class Simulation:
         ax2 = axs[i].twinx()
         ax2.plot(xx, self.c_sei1/1e3, c='c', label=r'$c^{\mathrm{bulk}}_{\mathrm{SEI,A}}$ (EC)')
         ax2.grid(False)
-        axs[i].set_ylabel(r'$c^{\mathrm{bulk}}$ (kmol/m$^3$)')
+        axs[i].set_ylabel(r'$c^{\mathrm{bulk}}$ [kmol/m$^3$]')
         axs[i].set_xlabel('Time (hr)')
         axs[i].legend(loc='center right', fontsize=16)
 
@@ -635,22 +643,22 @@ class Simulation:
         axs[i].plot(xx, self.vt, ls='-', c='k', label='$V_t$')
         # axs[i].plot(xx, self.ocv_n, ls='--', c='r', label='$U_n$')
         axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label='$U_n - \eta_n$')
-        axs[i].set_ylabel('V / V vs $Li/Li^+$ (V)')
+        axs[i].set_ylabel('V / V vs $Li/Li^+$ [V]')
         axs[i].legend(loc='right')
         # axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='g', label=rf'$U_{{\mathrm{{SEI,1}}}}$ = {self.cell.U_SEI1} V')
         # axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label=rf'$U_{{\mathrm{{SEI,2}}}}$ = {self.cell.U_SEI2} V')
 
         i += 1
-        axs[i].set_ylabel(r'$\delta$')
-        axs[i].plot(xx, self.delta_n, c='r', label=r'$\delta_n$')
-        axs[i].plot(xx, self.delta_p, c='b', label=r'$\delta_p$')
+        axs[i].set_ylabel(r'$\nu$ [-]')
+        axs[i].plot(xx, self.delta_n, c='r', label=r'$\nu_\mathrm{n}$')
+        axs[i].plot(xx, self.delta_p, c='b', label=r'$\nu_\mathrm{p}$')
         axs[i].legend(loc='center right')
 
         i += 1
         axs[i].plot(xx, self.boost, c='k', label=r'$B$')
         axs[i].plot(xx, self.dndt*self.cell.gamma_boost, c='k',
-                     ls='--', label=r'$\gamma \frac{d\delta_n}{dt}$')
-        axs[i].set_ylabel(r'$B$')
+                     ls='--', label=r'$\gamma \frac{d\nu_\mathrm{n}}{dt}$')
+        axs[i].set_ylabel(r'$B$ [-]')
         axs[i].legend(loc='lower right')
 
         i += 1
@@ -658,7 +666,7 @@ class Simulation:
         axs[i].plot(xx, self.delta_sei1 * 1e9, c='c', label=r'$\delta_{\mathrm{SEI,A}}$ (EC)')
         axs[i].plot(xx, self.delta_sei2 * 1e9, c='m', label=r'$\delta_{\mathrm{SEI,B}}$ (VC)')
         axs[i].legend(loc='right')
-        axs[i].set_ylabel(r'$\delta_{\mathrm{sei}}$ [$nm$]')
+        axs[i].set_ylabel(r'$\delta_{\mathrm{SEI}}$ [$nm$]')
 
         axs[i].set_xlabel('Time (hrs)')
         plt.savefig(f'outputs/figures/fig_timeseries_3.png', bbox_inches='tight', dpi=150)

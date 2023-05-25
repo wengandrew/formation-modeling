@@ -30,12 +30,22 @@ Runs on Python 3.8.8.
 
 # To-Do
 
-## Numerical issues
-- [ ] Fix oscillations at higher C-rates
+## Numerical Improvements
+
+- [ ] Fix oscillations at higher C-rates and during the CV hold
+- [ ] Refactor the numerical integration scheme to be standard form (dxdt =
+    f(x, t, ...)
+- [ ] Reparameterize Rn, Ln, Lp based on the full expansion model
 - [x] Fix anode expansion function (there's a kink; the equation from Mohtat2020 may have some typos)
 - [x] Fix $\delta_p + \delta_n \neq \delta_{tot}$ issue
 - [x] Reparameterize $U_n$ and $U_p$ to align with the measured initial full cell voltage before formation
 
-## Understanding
-- [ ] Why does the BV expression for lithium intercalation have a dependency on the electrolyte concentration?
 
+## Experiments
+- [ ] Define simulation output metrics directly in the model itself for
+    convenience and modularization
+    - [ ] CE, Qd, and Qc for cycles 1, 2, 3
+    - [ ] dQ/dV peak positions
+- [ ] Run the initial formation charge at different C-rates
+- [ ] Run the initial formation charge at different CV hold conditions
+- [ ] Run calendar aging experiments at different SOCs following formation

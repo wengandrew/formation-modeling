@@ -494,7 +494,7 @@ class Simulation:
         axs[i].plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label='$U_p + \eta_p$')
         axs[i].plot(xx, self.vt, ls='-', c='k', label='$V_t$')
         axs[i].plot(xx, self.ocv, ls='--', c='k')
-        axs[i].set_ylabel('V / V vs $Li/Li^+$ (V)')
+        axs[i].set_ylabel('V / V vs $Li/Li^+$ [V]')
         # axs[i].plot(xx, self.ocv_p, ls='--', c='b', label='$U_p$')
         # axs[i].plot(xx, self.ocv_n, ls='--', c='r', label='$U_n$')
         axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label='$U_n - \eta_n$')
@@ -512,18 +512,18 @@ class Simulation:
         axs[i].plot(xx, self.i_sei2, c='m', ls='-', label=r'$I_{\mathrm{SEI,B}}$ (VC)')
         axs[i].plot(xx, self.i_sei, c='k', lw=2, ls='--', label=r'$I_{\mathrm{SEI}}$')
         axs[i].legend(loc='center right', fancybox=False, frameon=False, fontsize=16)
-        axs[i].set_ylabel('$I$ (A)')
+        axs[i].set_ylabel('$I$ [A]')
         axs[i].set_ylim((0, 0.27))
 
         # Total cell expansion
         i += 1
         ff = self.delta_sei2 / (self.delta_sei2 + self.delta_sei1)
-        axs[i].plot(xx, (self.expansion_rev + self.expansion_irrev)*1e6, c='k', label=r'$\epsilon_{\mathrm{SEI,A}} + \epsilon_{\mathrm{SEI,B}} + \epsilon_{\mathrm{rev}}$')
-        axs[i].plot(xx, self.expansion_irrev*1e6, c='c', ls='-', label=r'$\epsilon_{\mathrm{SEI,A}} + \epsilon_{\mathrm{SEI,B}}$')
-        axs[i].plot(xx, ff*self.expansion_irrev*1e6, c='m', ls='-', label=r'$\epsilon_{\mathrm{SEI,B}}$')
+        axs[i].plot(xx, (self.expansion_rev + self.expansion_irrev)*1e6, c='k', label=r'$\Delta_{\mathrm{SEI,A}} + \Delta_{\mathrm{SEI,B}} + \Delta_{\mathrm{rev}}$')
+        axs[i].plot(xx, self.expansion_irrev*1e6, c='c', ls='-', label=r'$\Delta_{\mathrm{SEI,A}} + \Delta_{\mathrm{SEI,B}}$')
+        axs[i].plot(xx, ff*self.expansion_irrev*1e6, c='m', ls='-', label=r'$\Delta_{\mathrm{SEI,B}}$')
         axs[i].legend(loc='upper left', fontsize=16)
-        axs[i].set_ylabel(r'$\epsilon$ ($\mu$m)')
-        axs[i].set_xlabel('Time (hrs)')
+        axs[i].set_ylabel(r'$\Delta$ [$\mu$m]')
+        axs[i].set_xlabel('Time [hrs]')
 
         if to_save:
             plt.savefig(f'outputs/figures/fig_timeseries_1.png',

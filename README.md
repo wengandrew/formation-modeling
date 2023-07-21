@@ -1,6 +1,8 @@
 # Formation Modeling
 
-Half-cell OCV-R modeling for battery formation dynamics
+Half-cell OCV-R modeling for battery formation dynamics.
+
+A pre-print of this work is available [here](https://arxiv.org/abs/2305.18722).
 
 Runs on Python 3.8.8.
 

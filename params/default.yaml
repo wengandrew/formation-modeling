@@ -3,14 +3,17 @@
 # SEI consumption rate between cycling and storage
 
 # Anode geometrical properties
- R_n: 20.0e-6         # m          Anode particle radius
- L_n: 80.0e-6         # m          Anode thickness
- A_n: 0.097566        # m2         Anode active area
- epsilon_n: 0.7       # [-]        Anode solid material fraction
- a_sn: 105000         # 1/m        Anode specific surface area (3*epsilon/R)
+ R_n: 10.63e-6        # m          Anode particle radius
+ L_n: 96.428e-6       # m          Anode thickness per layer
+ n_n: 14              # m          Anode number of active layers
+ A_n: 0.097566        # m2         Anode active area including all layers
+                      #            Uses the cathode active area (exclude anode overhang)
+                      #            (69 mm x 101 mm)
+ a_sn: 65333.33       # 1/m        Anode specific surface area (3*epsilon/R)
 
  # Positive electrode geometrical properties
- L_p: 80.0e-6         #
+ L_p: 96.428e-6       # m          Cathode thickness per layer
+ n_p: 14              # m          Cathode number of active layers
  R_p: 20.0e-6
 
  # SEI Properties

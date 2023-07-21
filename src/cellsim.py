@@ -315,9 +315,9 @@ class Simulation:
 
         # Expansion update
         # Cathode and anode expansion function update
-        self.expansion_rev[k+1] = p.c1 * self.delta_p[k+1] + \
-                                  p.c2 * self.delta_n[k+1]
-        self.expansion_irrev[k+1] = p.c0 * self.delta_sei[k+1]
+        self.expansion_rev[k+1] = (p.L_p * p.n_p / 3) * self.delta_p[k+1] + \
+                                  (p.L_n * p.n_n / 3) * self.delta_n[k+1]
+        self.expansion_irrev[k+1] = (p.L_n * p.n_n / p.R_n) * self.delta_sei[k+1] / (1 + p.En(self.theta_n[k+1])/3)
 
 
     def run_rest(self, cycle_number: int, rest_time_hrs: float):
@@ -478,7 +478,7 @@ class Simulation:
         gridspec = dict(hspace=0.05, height_ratios=np.ones(num_subplots))
 
         fig, axs = plt.subplots(nrows=num_subplots, ncols=1,
-                                figsize=(10, num_subplots * 4),
+                                figsize=(12, num_subplots * 4),
                                 gridspec_kw=gridspec,
                                 sharex=True)
 
@@ -571,7 +571,7 @@ class Simulation:
         # Current density of SEI 1
         i += 1
         axs[i].set_yscale('log')
-        axs[i].plot(xx, self.j_sei1, c='c', ls='-', label=r'$j_{SEI,A}$')
+        axs[i].plot(xx, self.j_sei1, c=(0.6, 0.6, 0.6), ls='-', lw=4, label=r'$j_{SEI,A}$')
         axs[i].plot(xx, self.j_sei_rxn1, c='c', ls='--', label=r'$\tilde{j}_{\mathrm{SEI,A,rxn}}$')
         axs[i].plot(xx, self.j_sei_dif1, c='c', ls='-.', label=r'$\tilde{j}_{\mathrm{SEI,A,dif}}$')
         axs[i].legend(loc='lower right', fontsize=16)
@@ -581,7 +581,7 @@ class Simulation:
         # Current density of SEI 2
         i += 1
         axs[i].set_yscale('log')
-        axs[i].plot(xx, self.j_sei2, c='m', ls='-', label=r'$j_{\mathrm{SEI,B}}$')
+        axs[i].plot(xx, self.j_sei2, c=(0.6, 0.6, 0.6), ls='-', lw=4, label=r'$j_{\mathrm{SEI,B}}$')
         axs[i].plot(xx, self.j_sei_rxn2, c='m', ls='--', label=r'$\tilde{j}_{\mathrm{SEI,B,rxn}}$')
         axs[i].plot(xx, self.j_sei_dif2, c='m', ls='-.', label=r'$\tilde{j}_{\mathrm{SEI,B,dif}}$')
         axs[i].legend(loc='lower right', fontsize=16)
@@ -625,7 +625,7 @@ class Simulation:
         gridspec = dict(hspace=0.05, height_ratios=np.ones(num_subplots))
 
         fig, axs = plt.subplots(nrows=num_subplots, ncols=1,
-                                figsize=(10, num_subplots * 4),
+                                figsize=(14, num_subplots * 4),
                                 gridspec_kw=gridspec,
                                 sharex=True)
 

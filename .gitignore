@@ -135,3 +135,5 @@ data/raw/*
 
 # Images
 *.png
+*.tif
+*.tiff

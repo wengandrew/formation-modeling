@@ -3,15 +3,25 @@ Plotting utilities
 """
 
 
-def initialize(plt):
+def initialize(plt, style='default'):
     """
     Initialize the plot configuration
+
+    Style: 'default', 'ieee'
     """
 
-    plt.rc('font', **{'family'     : 'sans-serif',
-                  'sans-serif' : ['Helvetica'],
+    if style == 'default':
+        font = 'Helvetica'
+    elif style == 'ieee':
+        font = 'Times New Roman'
+
+    plt.rc('font', **{'family'     : 'serif',
+                  'serif' : [font],
                   'size': 20
                   })
+
+    # Latex font formatting (dejavusans, dejavuserif, cm, stix, stixsans)
+    plt.rcParams['mathtext.fontset'] = 'cm'
 
     plt.rc('figure', **{'autolayout' : True,
                     'figsize'    : (14, 12)

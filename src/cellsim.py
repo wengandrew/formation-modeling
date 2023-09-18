@@ -315,9 +315,9 @@ class Simulation:
 
         # Expansion update
         # Cathode and anode expansion function update
-        self.expansion_rev[k+1] = (p.L_p * p.n_p / 3) * self.delta_p[k+1] + \
-                                  (p.L_n * p.n_n / 3) * self.delta_n[k+1]
-        self.expansion_irrev[k+1] = (p.L_n * p.n_n / p.R_n) * self.delta_sei[k+1] / (1 + p.En(self.theta_n[k+1])/3)
+        self.expansion_rev[k+1] = p.c1 * self.delta_p[k+1] + \
+                                  p.c2 * self.delta_n[k+1]
+        self.expansion_irrev[k+1] = p.c0 * self.delta_sei[k+1]
 
 
     def run_rest(self, cycle_number: int, rest_time_hrs: float):
@@ -478,7 +478,7 @@ class Simulation:
         gridspec = dict(hspace=0.05, height_ratios=np.ones(num_subplots))
 
         fig, axs = plt.subplots(nrows=num_subplots, ncols=1,
-                                figsize=(12, num_subplots * 4),
+                                figsize=(10, num_subplots * 5),
                                 gridspec_kw=gridspec,
                                 sharex=True)
 
@@ -493,41 +493,67 @@ class Simulation:
         i = 0
         axs[i].plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label='$U_p + \eta_p$')
         axs[i].plot(xx, self.vt, ls='-', c='k', label='$V_t$')
-        axs[i].plot(xx, self.ocv, ls='--', c='k')
-        axs[i].set_ylabel('V / V vs $Li/Li^+$ [V]')
+        # axs[i].plot(xx, self.ocv, ls='--', c='k')
+        axs[i].set_ylabel('Voltage/Potential [V]')
         # axs[i].plot(xx, self.ocv_p, ls='--', c='b', label='$U_p$')
         # axs[i].plot(xx, self.ocv_n, ls='--', c='r', label='$U_n$')
         axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label='$U_n - \eta_n$')
         # axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label=rf'$U_{{\mathrm{{SEI,B}}}}$ = {self.cell.U_SEI2} V')
-        axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label='')
+        axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label='$U_{\mathrm{SEI,B}}$ = 1.35V')
+        axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='c', label='$U_{\mathrm{SEI,A}}$ = 0.80V')
+        axs[i].text(2, 1.4, 'VC', fontsize=26, fontweight='bold', color='m')
+        axs[i].text(2, 0.9, 'EC', fontsize=26, fontweight='bold', color='c')
         # axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='c', label=rf'$U_{{\mathrm{{SEI,A}}}}$ = {self.cell.U_SEI1} V')
-        axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='c', label='')
-        axs[i].legend(loc='upper right', fancybox=False, frameon=True, fontsize=16)
+        lh = axs[i].legend(loc='right', fancybox=False, frameon=True, fontsize=18)
+        lh.get_frame().set_alpha(None)
+
 
         # Currents
         i += 1
         axs[i].axhline(y=0, ls='-', label='', c='k', lw=0.5)
         axs[i].plot(xx, self.i_app, c='k', label=r'$I_{\mathrm{app}}$')
-        axs[i].plot(xx, self.i_sei1, c='c', ls='-', label=r'$I_{\mathrm{SEI,A}}$ (EC)')
-        axs[i].plot(xx, self.i_sei2, c='m', ls='-', label=r'$I_{\mathrm{SEI,B}}$ (VC)')
-        axs[i].plot(xx, self.i_sei, c='k', lw=2, ls='--', label=r'$I_{\mathrm{SEI}}$')
-        axs[i].legend(loc='center right', fancybox=False, frameon=False, fontsize=16)
-        axs[i].set_ylabel('$I$ [A]')
+        axs[i].plot(np.NaN, np.NaN, c='k', lw=2, ls='--', label=r'$I_{\mathrm{SEI}}$')
+        axs[i].plot(xx, self.i_sei2, c='m', ls='-', label=r'$I_{\mathrm{SEI,B}}$')
+        axs[i].plot(xx, self.i_sei1, c='c', ls='-', label=r'$I_{\mathrm{SEI,A}}$')
+        axs[i].plot(xx, self.i_sei, c='k', lw=2, ls='--', label='')
+        axs[i].legend(loc='center right', fancybox=False, frameon=False, fontsize=18)
+        axs[i].text(1, 0.17, 'VC', fontsize=26, fontweight='bold', color='m')
+        axs[i].text(1.8, 0.05, 'EC', fontsize=26, fontweight='bold', color='c')
+        axs[i].set_ylabel('Current [A]')
         axs[i].set_ylim((0, 0.27))
 
         # Total cell expansion
         i += 1
         ff = self.delta_sei2 / (self.delta_sei2 + self.delta_sei1)
-        axs[i].plot(xx, (self.expansion_rev + self.expansion_irrev)*1e6, c='k', label=r'$\Delta_{\mathrm{SEI,A}} + \Delta_{\mathrm{SEI,B}} + \Delta_{\mathrm{rev}}$')
-        axs[i].plot(xx, self.expansion_irrev*1e6, c='c', ls='-', label=r'$\Delta_{\mathrm{SEI,A}} + \Delta_{\mathrm{SEI,B}}$')
+        axs[i].plot(xx, (self.expansion_rev + self.expansion_irrev)*1e6, c='k', label=r'$\Delta_{\mathrm{SEI,B}}$ + $\Delta_{\mathrm{SEI,A}}$ + $\Delta_{\mathrm{rev}}$')
+        axs[i].plot(xx, self.expansion_irrev*1e6, c='c', ls='-', label=r'$\Delta_{\mathrm{SEI,B}}$ + $\Delta_{\mathrm{SEI,A}}$')
         axs[i].plot(xx, ff*self.expansion_irrev*1e6, c='m', ls='-', label=r'$\Delta_{\mathrm{SEI,B}}$')
-        axs[i].legend(loc='upper left', fontsize=16)
-        axs[i].set_ylabel(r'$\Delta$ [$\mu$m]')
+        axs[i].legend(loc='upper left', fontsize=18)
+        axs[i].set_ylabel(r'Thickness [$\mu$m]')
         axs[i].set_xlabel('Time [hrs]')
 
+        axs[i].text(5, -3, 'VC', fontsize=26, fontweight='bold', color='m')
+        axs[i].text(5, 19, 'EC', fontsize=26, fontweight='bold', color='c')
+        axs[i].text(5, 43, 'Reversible', fontsize=26, fontweight='bold', color='k')
+
+        # Markers
+        bbox_dict = dict(boxstyle='circle', pad=0.1, facecolor='none', edgecolor='k')
+        axs[0].text(0.25, 0.30, '1', fontsize=16, bbox=bbox_dict)
+        axs[1].text(1.02, 0.22, '2', fontsize=16, bbox=bbox_dict)
+        axs[1].text(1.42, 0.11, '3', fontsize=16, bbox=bbox_dict)
+        axs[2].text(4.40, 64.0, '4', fontsize=16, bbox=bbox_dict)
+        axs[1].text(4.40, 0.023, '5', fontsize=16, bbox=bbox_dict)
+
+        # Panel Numbers
+        axs[0].text(-0.13, 0.92, 'A', transform=axs[0].transAxes, fontsize=30, fontweight='bold')
+        axs[1].text(-0.13, 0.92, 'B', transform=axs[1].transAxes, fontsize=30, fontweight='bold')
+        axs[2].text(-0.13, 0.92, 'C', transform=axs[2].transAxes, fontsize=30, fontweight='bold')
+
+        fig.align_ylabels()
+
         if to_save:
-            plt.savefig(f'outputs/figures/fig_timeseries_1.png',
-                        bbox_inches='tight', dpi=150)
+            plt.savefig(f'outputs/figures/fig_timeseries_1.tif',
+                        bbox_inches='tight', dpi=200)
 
 
     def plot_view_2(self, to_save=False, xlims=None):
@@ -546,7 +572,7 @@ class Simulation:
         gridspec = dict(hspace=0.05, height_ratios=np.ones(num_subplots))
 
         fig, axs = plt.subplots(nrows=num_subplots, ncols=1,
-                                figsize=(10, num_subplots * 4),
+                                figsize=(10, num_subplots * 5),
                                 gridspec_kw=gridspec,
                                 sharex=True)
 
@@ -561,30 +587,41 @@ class Simulation:
         i = 0
         # axs[i].axhline(y=0, ls='-', label='', c='k', lw=0.5)
         axs[i].plot(xx, self.i_app, c='k', lw=2, label=r'$I_{\mathrm{app}}$')
-        axs[i].plot(xx, self.i_sei1, c='c', ls='-', lw=2, label=r'$I_{\mathrm{SEI,A}}$ (EC)')
-        axs[i].plot(xx, self.i_sei2, c='m', ls='-', lw=2, label=r'$I_{\mathrm{SEI,B}}$ (VC)')
-        axs[i].plot(xx, self.i_sei, c='k', ls='--', lw=2, label=r'$I_{\mathrm{SEI}}$')
-        axs[i].legend(loc='right', fontsize=16)
+        axs[i].plot(np.NaN, np.NaN, c='k', lw=3, ls='--', label=r'$I_{\mathrm{SEI}}$')
+        axs[i].plot(xx, self.i_sei1, c='c', ls='-', lw=3, label=r'$I_{\mathrm{SEI,A}}$')
+        axs[i].plot(xx, self.i_sei2, c='m', ls='-', lw=3, label=r'$I_{\mathrm{SEI,B}}$')
+        axs[i].plot(xx, self.i_sei, c='k', lw=3, ls='--', label=r'')
+        axs[i].text(0.86, 0.20, 'VC', fontsize=26, fontweight='bold', color='m')
+        axs[i].text(1.43, 0.07, 'EC', fontsize=26, fontweight='bold', color='c')
+
+        axs[i].legend(loc='right', fontsize=18)
         axs[i].set_ylabel(r'$I$ [A]')
         axs[i].set_ylim((-0.01, 0.27))
-
-        # Current density of SEI 1
-        i += 1
-        axs[i].set_yscale('log')
-        axs[i].plot(xx, self.j_sei1, c=(0.6, 0.6, 0.6), ls='-', lw=4, label=r'$j_{SEI,A}$')
-        axs[i].plot(xx, self.j_sei_rxn1, c='c', ls='--', label=r'$\tilde{j}_{\mathrm{SEI,A,rxn}}$')
-        axs[i].plot(xx, self.j_sei_dif1, c='c', ls='-.', label=r'$\tilde{j}_{\mathrm{SEI,A,dif}}$')
-        axs[i].legend(loc='lower right', fontsize=16)
-        axs[i].set_ylim((1e-13, 1e8))
-        axs[i].set_ylabel(r'$j_{\mathrm{SEI}}$ [A/m$^2$]')
 
         # Current density of SEI 2
         i += 1
         axs[i].set_yscale('log')
-        axs[i].plot(xx, self.j_sei2, c=(0.6, 0.6, 0.6), ls='-', lw=4, label=r'$j_{\mathrm{SEI,B}}$')
-        axs[i].plot(xx, self.j_sei_rxn2, c='m', ls='--', label=r'$\tilde{j}_{\mathrm{SEI,B,rxn}}$')
-        axs[i].plot(xx, self.j_sei_dif2, c='m', ls='-.', label=r'$\tilde{j}_{\mathrm{SEI,B,dif}}$')
-        axs[i].legend(loc='lower right', fontsize=16)
+        axs[i].plot(xx, self.j_sei2, c='m', linewidth=4, ls='-', label=r'$j_{\mathrm{SEI,B}}$')
+        axs[i].plot(xx, self.j_sei_rxn2, c='k', linewidth=2, ls='--', label=r'$\tilde{j}_{\mathrm{SEI,B,rxn}}$')
+        axs[i].plot(xx, self.j_sei_dif2, c='k', linewidth=2, ls='-.', label=r'$\tilde{j}_{\mathrm{SEI,B,dif}}$')
+        axs[i].legend(loc='lower right', fontsize=18)
+        axs[i].axvline(0.775, color=(0.7, 0.7, 0.7), ls=':')
+        axs[i].set_ylim((1e-13, 1e8))
+        axs[i].text(0.1, 1e-5, 'VC', fontsize=26, fontweight='bold', color='m')
+        axs[i].set_ylabel(r'$j_{\mathrm{SEI}}$ [A/m$^2$]')
+
+
+        # Current density of SEI 1
+        i += 1
+        axs[i].set_yscale('log')
+        axs[i].plot(xx, self.j_sei1, c='c', linewidth=4, ls='-', label=r'$j_{\mathrm{SEI,A}}$')
+        axs[i].plot(xx, self.j_sei_rxn1, c='k', linewidth=2, ls='--', label=r'$\tilde{j}_{\mathrm{SEI,A,rxn}}$')
+        axs[i].plot(xx, self.j_sei_dif1, c='k', linewidth=2, ls='-.', label=r'$\tilde{j}_{\mathrm{SEI,A,dif}}$')
+        axs[i].legend(loc='lower right', fontsize=18)
+        axs[i].text(0.1, 1e-5, 'EC', fontsize=26, fontweight='bold', color='c')
+        axs[i].axvline(1.14, color=(0.7, 0.7, 0.7), ls=':')
+        axs[i].text(0.1, 1e5, 'Reaction-Limited', color=(0.4, 0.4, 0.4), fontsize=20, fontweight='bold')
+        axs[i].text(1.3, 1e5, 'Diffusion-Limited', color=(0.4, 0.4, 0.4), fontsize=20, fontweight='bold')
         axs[i].set_ylim((1e-13, 1e8))
         axs[i].set_ylabel(r'$j_{\mathrm{SEI}}$ [A/m$^2$]')
 
@@ -600,17 +637,41 @@ class Simulation:
 
         # Solvent consumption
         i += 1
-        axs[i].plot(np.NaN, np.NaN,      c='c', label=r'$c^{\mathrm{bulk}}_{\mathrm{SEI,A}}$ (EC)') # dummy
-        axs[i].plot(xx, self.c_sei2/1e3, c='m', label=r'$c^{\mathrm{bulk}}_{\mathrm{SEI,B}}$ (VC)')
+        axs[i].plot(np.NaN, np.NaN,      c='c', lw=3, label=r'$c^{\mathrm{bulk}}_{\mathrm{SEI,A}}$') # dummy
+        axs[i].plot(xx, self.c_sei2/1e3, c='m', lw=3, label=r'$c^{\mathrm{bulk}}_{\mathrm{SEI,B}}$')
         ax2 = axs[i].twinx()
-        ax2.plot(xx, self.c_sei1/1e3, c='c', label=r'$c^{\mathrm{bulk}}_{\mathrm{SEI,A}}$ (EC)')
+        ax2.plot(xx, self.c_sei1/1e3, c='c', lw=3, label=r'$c^{\mathrm{bulk}}_{\mathrm{SEI,A}}$')
         ax2.grid(False)
+        axs[i].arrow(0.85, 0.20, -0.3, 0, head_width=0.01, head_length=0.05, color='m')
+        ax2.arrow(1.5, 4.5, 0.3, 0, head_width=0.03, head_length=0.05, color='c')
         axs[i].set_ylabel(r'$c^{\mathrm{bulk}}$ [kmol/m$^3$]')
-        axs[i].set_xlabel('Time (hr)')
-        axs[i].legend(loc='center right', fontsize=16)
+        axs[i].set_xlabel('Time [hrs]')
+        axs[i].legend(loc='center right', fontsize=18)
+
+        axs[i].text(0.55, 0.21, 'VC', fontsize=26, fontweight='bold', color='m')
+        ax2.text(1.9, 4.47, 'EC', fontsize=26, fontweight='bold', color='c')
+
+        axs[0].text(-0.15, 0.92, 'A', transform=axs[0].transAxes, fontsize=30, fontweight='bold')
+        axs[1].text(-0.15, 0.92, 'B', transform=axs[1].transAxes, fontsize=30, fontweight='bold')
+        axs[2].text(-0.15, 0.92, 'C', transform=axs[2].transAxes, fontsize=30, fontweight='bold')
+        axs[3].text(-0.15, 0.92, 'D', transform=axs[3].transAxes, fontsize=30, fontweight='bold')
+
+        fig.align_ylabels()
+
+        bbox_dict = dict(boxstyle='circle', pad=0.1, facecolor='w', edgecolor='k')
+        axs[2].text(0.4, 1e-12, '1', fontsize=16, bbox=bbox_dict)
+        axs[2].text(0.8, 1e-8, '2', fontsize=16, bbox=bbox_dict)
+        axs[2].text(1.12, 5e-3, '3', fontsize=16, bbox=bbox_dict)
+        axs[1].text(0.4, 1e-12, '1', fontsize=16, bbox=bbox_dict)
+        axs[1].text(0.65, 1e-8, '2', fontsize=16, bbox=bbox_dict)
+        axs[1].text(0.75, 1e-2, '3', fontsize=16, bbox=bbox_dict)
+        axs[1].text(1.20, 5e-2, '4', fontsize=16, bbox=bbox_dict)
+        axs[1].text(0.60, 9e1, '5', fontsize=16, bbox=bbox_dict)
+        axs[3].text(1.15, 0.17, '6', fontsize=16, bbox=bbox_dict)
 
         if to_save:
-            plt.savefig(f'outputs/figures/fig_timeseries_2.png', bbox_inches='tight', dpi=150)
+            plt.savefig(f'outputs/figures/fig_timeseries_2.tif', bbox_inches='tight',
+                        dpi=200)
 
 
     def plot_view_3(self, to_save=False, xlims=None):
@@ -625,7 +686,7 @@ class Simulation:
         gridspec = dict(hspace=0.05, height_ratios=np.ones(num_subplots))
 
         fig, axs = plt.subplots(nrows=num_subplots, ncols=1,
-                                figsize=(14, num_subplots * 4),
+                                figsize=(10, num_subplots * 5),
                                 gridspec_kw=gridspec,
                                 sharex=True)
 
@@ -639,12 +700,12 @@ class Simulation:
         i = 0
         # axs[i].plot(xx, self.ocv_p, ls='--', c='b', label='$U_p$')
         axs[i].plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label='$U_p + \eta_p$')
-        axs[i].plot(xx, self.ocv, ls='--', c='k', label='')
+        # axs[i].plot(xx, self.ocv, ls='--', c='k', label='')
         axs[i].plot(xx, self.vt, ls='-', c='k', label='$V_t$')
         # axs[i].plot(xx, self.ocv_n, ls='--', c='r', label='$U_n$')
         axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label='$U_n - \eta_n$')
-        axs[i].set_ylabel('V / V vs $Li/Li^+$ [V]')
-        axs[i].legend(loc='right')
+        axs[i].set_ylabel('Voltage/Potential [V]')
+        axs[i].legend(loc='right', fontsize=18)
         # axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='g', label=rf'$U_{{\mathrm{{SEI,1}}}}$ = {self.cell.U_SEI1} V')
         # axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label=rf'$U_{{\mathrm{{SEI,2}}}}$ = {self.cell.U_SEI2} V')
 
@@ -652,24 +713,39 @@ class Simulation:
         axs[i].set_ylabel(r'$\nu$ [-]')
         axs[i].plot(xx, self.delta_n, c='r', label=r'$\nu_\mathrm{n}$')
         axs[i].plot(xx, self.delta_p, c='b', label=r'$\nu_\mathrm{p}$')
-        axs[i].legend(loc='center right')
+        axs[i].legend(loc='center right', fontsize=18)
 
         i += 1
         axs[i].plot(xx, self.boost, c='k', label=r'$B$')
         axs[i].plot(xx, self.dndt*self.cell.gamma_boost, c='k',
                      ls='--', label=r'$\gamma \frac{d\nu_\mathrm{n}}{dt}$')
         axs[i].set_ylabel(r'$B$ [-]')
-        axs[i].legend(loc='lower right')
+        axs[i].legend(loc='lower right', fontsize=18)
 
         i += 1
         axs[i].plot(xx, self.delta_sei1 * 1e9 + self.delta_sei2 * 1e9, c='k', label=r'$\delta_{\mathrm{SEI}}$')
         axs[i].plot(xx, self.delta_sei1 * 1e9, c='c', label=r'$\delta_{\mathrm{SEI,A}}$ (EC)')
         axs[i].plot(xx, self.delta_sei2 * 1e9, c='m', label=r'$\delta_{\mathrm{SEI,B}}$ (VC)')
-        axs[i].legend(loc='right')
+        axs[i].legend(loc='right', fontsize=18)
         axs[i].set_ylabel(r'$\delta_{\mathrm{SEI}}$ [$nm$]')
 
-        axs[i].set_xlabel('Time (hrs)')
-        plt.savefig(f'outputs/figures/fig_timeseries_3.png', bbox_inches='tight', dpi=150)
+        axs[i].set_xlabel('Time [hrs]')
+
+        fig.align_ylabels()
+
+        axs[0].text(-0.15, 0.92, 'A', transform=axs[0].transAxes, fontsize=30, fontweight='bold')
+        axs[1].text(-0.15, 0.92, 'B', transform=axs[1].transAxes, fontsize=30, fontweight='bold')
+        axs[2].text(-0.15, 0.92, 'C', transform=axs[2].transAxes, fontsize=30, fontweight='bold')
+        axs[3].text(-0.15, 0.92, 'D', transform=axs[3].transAxes, fontsize=30, fontweight='bold')
+
+        bbox_dict = dict(boxstyle='circle', pad=0.1, facecolor='none', edgecolor='k')
+        axs[2].text(5, 0, '1', fontsize=16, bbox=bbox_dict)
+        axs[1].text(30, 0.09, '2', fontsize=16, bbox=bbox_dict)
+        axs[2].text(30, 35, '3', fontsize=16, bbox=bbox_dict)
+        axs[2].text(55, 10, '4', fontsize=16, bbox=bbox_dict)
+
+        plt.savefig(f'outputs/figures/fig_timeseries_3.tif',
+                    bbox_inches='tight', dpi=200)
 
 
     def plot(self, to_save=True,
@@ -807,8 +883,10 @@ class Simulation:
         axs[i].plot(xx, self.c_sei1/1e3, c='g', label=r'$c^{\mathrm{bulk}}_{SEI,1}$')
         axs[i].plot(xx, self.c_sei2/1e3, c='m', label=r'$c^{\mathrm{bulk}}_{SEI,2}$')
         axs[i].set_ylabel(r'$c^{\mathrm{bulk}}$ (kmol/m$^3$)')
-        axs[i].set_xlabel('Time (hr)')
+        axs[i].set_xlabel('Time [hrs]')
         axs[i].legend(loc='right')
+
+        fig.align_ylabels()
 
         if fig_name is None:
             fig_name = f'{self.name}_output'

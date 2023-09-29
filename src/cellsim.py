@@ -16,7 +16,7 @@ import numpy as np
 import yaml
 from matplotlib import pyplot as plt
 
-plotter.initialize(plt)
+plotter.initialize(plt, style='ieee')
 
 F = 96485.33212    # C/mol      Faraday's constant
 T = 273.15 + 25    # Kelvin     Temperature
@@ -214,7 +214,7 @@ class Simulation:
                           (1 - np.exp(-self.dt/(p.R1n*p.C1n))) * self.i_app[k]
 
         self.eta_p[k+1] = p.R1p * self.i_r1p[k] + p.R0p * self.i_app[k]
-        self.eta_n[k+1] = p.R1n * self.i_r1n[k] + p.R0n * self.i_app[k]
+        self.eta_n[k+1] = p.R1n * self.i_r1n[k] + p.R0n * self.i_int[k]
 
         # Terminal voltage update
         if mode == 'cc':
@@ -446,6 +446,7 @@ class Simulation:
 
                 k += 1
 
+
     def get_results(self) -> pd.DataFrame:
         """
         Return the simulation results in a DataFrame.
@@ -462,6 +463,8 @@ class Simulation:
         df['dqsei1'] = np.abs(df['dt'] * df['i_sei1'] / 3600)
         df['dqsei2'] = np.abs(df['dt'] * df['i_sei2'] / 3600)
 
+        # Get rid of extra NaN rows beyond the simulation time
+        df = df.iloc[0:self.curr_k, :]
 
         return df
 
@@ -478,7 +481,7 @@ class Simulation:
         gridspec = dict(hspace=0.05, height_ratios=np.ones(num_subplots))
 
         fig, axs = plt.subplots(nrows=num_subplots, ncols=1,
-                                figsize=(10, num_subplots * 5),
+                                figsize=(8, num_subplots * 4.5),
                                 gridspec_kw=gridspec,
                                 sharex=True)
 
@@ -491,18 +494,19 @@ class Simulation:
 
         # Voltages and Potentials
         i = 0
-        axs[i].plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label='$U_p + \eta_p$')
+        axs[i].plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label='$U^+ + \eta^+$')
         axs[i].plot(xx, self.vt, ls='-', c='k', label='$V_t$')
         # axs[i].plot(xx, self.ocv, ls='--', c='k')
         axs[i].set_ylabel('Voltage/Potential [V]')
         # axs[i].plot(xx, self.ocv_p, ls='--', c='b', label='$U_p$')
         # axs[i].plot(xx, self.ocv_n, ls='--', c='r', label='$U_n$')
-        axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label='$U_n - \eta_n$')
+        axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label='$U^- - \eta^-$')
         # axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label=rf'$U_{{\mathrm{{SEI,B}}}}$ = {self.cell.U_SEI2} V')
-        axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label='$U_{\mathrm{SEI,B}}$ = 1.35V')
-        axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='c', label='$U_{\mathrm{SEI,A}}$ = 0.80V')
-        axs[i].text(2, 1.4, 'VC', fontsize=26, fontweight='bold', color='m')
-        axs[i].text(2, 0.9, 'EC', fontsize=26, fontweight='bold', color='c')
+        axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label='$U_{\mathrm{sei,1}}$ = 1.35V')
+        axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='c', label='$U_{\mathrm{sei,2}}$ = 0.80V')
+        axs[i].text(1.5, 0.9, 'SEI 2 (EC)', fontsize=20, fontweight='bold', color='c')
+        axs[i].text(1.5, 1.45, 'SEI 1 (VC)', fontsize=20, fontweight='bold', color='m')
+        axs[i].set_ylim((0.0, 4.0))
         # axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='c', label=rf'$U_{{\mathrm{{SEI,A}}}}$ = {self.cell.U_SEI1} V')
         lh = axs[i].legend(loc='right', fancybox=False, frameon=True, fontsize=18)
         lh.get_frame().set_alpha(None)
@@ -512,29 +516,30 @@ class Simulation:
         i += 1
         axs[i].axhline(y=0, ls='-', label='', c='k', lw=0.5)
         axs[i].plot(xx, self.i_app, c='k', label=r'$I_{\mathrm{app}}$')
-        axs[i].plot(np.NaN, np.NaN, c='k', lw=2, ls='--', label=r'$I_{\mathrm{SEI}}$')
-        axs[i].plot(xx, self.i_sei2, c='m', ls='-', label=r'$I_{\mathrm{SEI,B}}$')
-        axs[i].plot(xx, self.i_sei1, c='c', ls='-', label=r'$I_{\mathrm{SEI,A}}$')
+        axs[i].plot(np.NaN, np.NaN, c='k', lw=2, ls='--', label=r'$I_{\mathrm{sei}}$')
+        axs[i].plot(xx, self.i_sei2, c='m', ls='-', label=r'$I_{\mathrm{sei,1}}$')
+        axs[i].plot(xx, self.i_sei1, c='c', ls='-', label=r'$I_{\mathrm{sei,2}}$')
         axs[i].plot(xx, self.i_sei, c='k', lw=2, ls='--', label='')
         axs[i].legend(loc='center right', fancybox=False, frameon=False, fontsize=18)
-        axs[i].text(1, 0.17, 'VC', fontsize=26, fontweight='bold', color='m')
-        axs[i].text(1.8, 0.05, 'EC', fontsize=26, fontweight='bold', color='c')
+        axs[i].text(1, 0.17, 'SEI 1', fontsize=20, fontweight='bold', color='m')
+        axs[i].text(1.85, 0.05, 'SEI 2', fontsize=20, fontweight='bold', color='c')
         axs[i].set_ylabel('Current [A]')
         axs[i].set_ylim((0, 0.27))
 
         # Total cell expansion
         i += 1
         ff = self.delta_sei2 / (self.delta_sei2 + self.delta_sei1)
-        axs[i].plot(xx, (self.expansion_rev + self.expansion_irrev)*1e6, c='k', label=r'$\Delta_{\mathrm{SEI,B}}$ + $\Delta_{\mathrm{SEI,A}}$ + $\Delta_{\mathrm{rev}}$')
-        axs[i].plot(xx, self.expansion_irrev*1e6, c='c', ls='-', label=r'$\Delta_{\mathrm{SEI,B}}$ + $\Delta_{\mathrm{SEI,A}}$')
-        axs[i].plot(xx, ff*self.expansion_irrev*1e6, c='m', ls='-', label=r'$\Delta_{\mathrm{SEI,B}}$')
+        axs[i].plot(xx, (self.expansion_rev + self.expansion_irrev)*1e6, c='k', label=r'$\Delta_{\mathrm{sei,1}}$ + $\Delta_{\mathrm{sei,2}}$ + $\Delta_{\mathrm{rev}}$')
+        axs[i].plot(xx, self.expansion_irrev*1e6, c='c', ls='-', label=r'$\Delta_{\mathrm{sei,1}}$ + $\Delta_{\mathrm{sei,2}}$')
+        axs[i].plot(xx, ff*self.expansion_irrev*1e6, c='m', ls='-', label=r'$\Delta_{\mathrm{sei,1}}$')
         axs[i].legend(loc='upper left', fontsize=18)
         axs[i].set_ylabel(r'Thickness [$\mu$m]')
         axs[i].set_xlabel('Time [hrs]')
+        axs[i].set_ylim((-5, 75))
 
-        axs[i].text(5, -3, 'VC', fontsize=26, fontweight='bold', color='m')
-        axs[i].text(5, 19, 'EC', fontsize=26, fontweight='bold', color='c')
-        axs[i].text(5, 43, 'Reversible', fontsize=26, fontweight='bold', color='k')
+        axs[i].text(4, -0, 'SEI 1', fontsize=20, fontweight='bold', color='m')
+        axs[i].text(4, 19, 'SEI 2', fontsize=20, fontweight='bold', color='c')
+        axs[i].text(4, 43, 'Reversible', fontsize=20, fontweight='bold', color='k')
 
         # Markers
         bbox_dict = dict(boxstyle='circle', pad=0.1, facecolor='none', edgecolor='k')
@@ -545,14 +550,14 @@ class Simulation:
         axs[1].text(4.40, 0.023, '5', fontsize=16, bbox=bbox_dict)
 
         # Panel Numbers
-        axs[0].text(-0.13, 0.92, 'A', transform=axs[0].transAxes, fontsize=30, fontweight='bold')
-        axs[1].text(-0.13, 0.92, 'B', transform=axs[1].transAxes, fontsize=30, fontweight='bold')
-        axs[2].text(-0.13, 0.92, 'C', transform=axs[2].transAxes, fontsize=30, fontweight='bold')
+        axs[0].text(-0.16, 0.92, 'A', transform=axs[0].transAxes, fontsize=30, fontweight='bold')
+        axs[1].text(-0.16, 0.92, 'B', transform=axs[1].transAxes, fontsize=30, fontweight='bold')
+        axs[2].text(-0.16, 0.92, 'C', transform=axs[2].transAxes, fontsize=30, fontweight='bold')
 
         fig.align_ylabels()
 
         if to_save:
-            plt.savefig(f'outputs/figures/fig_timeseries_1.tif',
+            plt.savefig(f'outputs/figures/fig_timeseries_1.png',
                         bbox_inches='tight', dpi=200)
 
 
@@ -587,9 +592,9 @@ class Simulation:
         i = 0
         # axs[i].axhline(y=0, ls='-', label='', c='k', lw=0.5)
         axs[i].plot(xx, self.i_app, c='k', lw=2, label=r'$I_{\mathrm{app}}$')
-        axs[i].plot(np.NaN, np.NaN, c='k', lw=3, ls='--', label=r'$I_{\mathrm{SEI}}$')
-        axs[i].plot(xx, self.i_sei1, c='c', ls='-', lw=3, label=r'$I_{\mathrm{SEI,A}}$')
-        axs[i].plot(xx, self.i_sei2, c='m', ls='-', lw=3, label=r'$I_{\mathrm{SEI,B}}$')
+        axs[i].plot(np.NaN, np.NaN, c='k', lw=3, ls='--', label=r'$I_{\mathrm{sei}}$')
+        axs[i].plot(xx, self.i_sei1, c='c', ls='-', lw=3, label=r'$I_{\mathrm{sei,A}}$')
+        axs[i].plot(xx, self.i_sei2, c='m', ls='-', lw=3, label=r'$I_{\mathrm{sei,B}}$')
         axs[i].plot(xx, self.i_sei, c='k', lw=3, ls='--', label=r'')
         axs[i].text(0.86, 0.20, 'VC', fontsize=26, fontweight='bold', color='m')
         axs[i].text(1.43, 0.07, 'EC', fontsize=26, fontweight='bold', color='c')
@@ -601,29 +606,29 @@ class Simulation:
         # Current density of SEI 2
         i += 1
         axs[i].set_yscale('log')
-        axs[i].plot(xx, self.j_sei2, c='m', linewidth=4, ls='-', label=r'$j_{\mathrm{SEI,B}}$')
-        axs[i].plot(xx, self.j_sei_rxn2, c='k', linewidth=2, ls='--', label=r'$\tilde{j}_{\mathrm{SEI,B,rxn}}$')
-        axs[i].plot(xx, self.j_sei_dif2, c='k', linewidth=2, ls='-.', label=r'$\tilde{j}_{\mathrm{SEI,B,dif}}$')
+        axs[i].plot(xx, self.j_sei2, c='m', linewidth=4, ls='-', label=r'$j_{\mathrm{sei,B}}$')
+        axs[i].plot(xx, self.j_sei_rxn2, c='k', linewidth=2, ls='--', label=r'$\tilde{j}_{\mathrm{sei,B,rxn}}$')
+        axs[i].plot(xx, self.j_sei_dif2, c='k', linewidth=2, ls='-.', label=r'$\tilde{j}_{\mathrm{sei,B,dif}}$')
         axs[i].legend(loc='lower right', fontsize=18)
         axs[i].axvline(0.775, color=(0.7, 0.7, 0.7), ls=':')
         axs[i].set_ylim((1e-13, 1e8))
         axs[i].text(0.1, 1e-5, 'VC', fontsize=26, fontweight='bold', color='m')
-        axs[i].set_ylabel(r'$j_{\mathrm{SEI}}$ [A/m$^2$]')
+        axs[i].set_ylabel(r'$j_{\mathrm{sei}}$ [A/m$^2$]')
 
 
         # Current density of SEI 1
         i += 1
         axs[i].set_yscale('log')
-        axs[i].plot(xx, self.j_sei1, c='c', linewidth=4, ls='-', label=r'$j_{\mathrm{SEI,A}}$')
-        axs[i].plot(xx, self.j_sei_rxn1, c='k', linewidth=2, ls='--', label=r'$\tilde{j}_{\mathrm{SEI,A,rxn}}$')
-        axs[i].plot(xx, self.j_sei_dif1, c='k', linewidth=2, ls='-.', label=r'$\tilde{j}_{\mathrm{SEI,A,dif}}$')
+        axs[i].plot(xx, self.j_sei1, c='c', linewidth=4, ls='-', label=r'$j_{\mathrm{sei,A}}$')
+        axs[i].plot(xx, self.j_sei_rxn1, c='k', linewidth=2, ls='--', label=r'$\tilde{j}_{\mathrm{sei,A,rxn}}$')
+        axs[i].plot(xx, self.j_sei_dif1, c='k', linewidth=2, ls='-.', label=r'$\tilde{j}_{\mathrm{sei,A,dif}}$')
         axs[i].legend(loc='lower right', fontsize=18)
         axs[i].text(0.1, 1e-5, 'EC', fontsize=26, fontweight='bold', color='c')
         axs[i].axvline(1.14, color=(0.7, 0.7, 0.7), ls=':')
         axs[i].text(0.1, 1e5, 'Reaction-Limited', color=(0.4, 0.4, 0.4), fontsize=20, fontweight='bold')
         axs[i].text(1.3, 1e5, 'Diffusion-Limited', color=(0.4, 0.4, 0.4), fontsize=20, fontweight='bold')
         axs[i].set_ylim((1e-13, 1e8))
-        axs[i].set_ylabel(r'$j_{\mathrm{SEI}}$ [A/m$^2$]')
+        axs[i].set_ylabel(r'$j_{\mathrm{sei}}$ [A/m$^2$]')
 
         # Total cell expansion
         # i += 1
@@ -637,14 +642,14 @@ class Simulation:
 
         # Solvent consumption
         i += 1
-        axs[i].plot(np.NaN, np.NaN,      c='c', lw=3, label=r'$c^{\mathrm{bulk}}_{\mathrm{SEI,A}}$') # dummy
-        axs[i].plot(xx, self.c_sei2/1e3, c='m', lw=3, label=r'$c^{\mathrm{bulk}}_{\mathrm{SEI,B}}$')
+        axs[i].plot(np.NaN, np.NaN,      c='c', lw=3, label=r'$c^{\mathrm{0}}_{\mathrm{sei,A}}$') # dummy
+        axs[i].plot(xx, self.c_sei2/1e3, c='m', lw=3, label=r'$c^{\mathrm{0}}_{\mathrm{sei,B}}$')
         ax2 = axs[i].twinx()
-        ax2.plot(xx, self.c_sei1/1e3, c='c', lw=3, label=r'$c^{\mathrm{bulk}}_{\mathrm{SEI,A}}$')
+        ax2.plot(xx, self.c_sei1/1e3, c='c', lw=3, label=r'$c^{\mathrm{bulk}}_{\mathrm{sei,A}}$')
         ax2.grid(False)
         axs[i].arrow(0.85, 0.20, -0.3, 0, head_width=0.01, head_length=0.05, color='m')
         ax2.arrow(1.5, 4.5, 0.3, 0, head_width=0.03, head_length=0.05, color='c')
-        axs[i].set_ylabel(r'$c^{\mathrm{bulk}}$ [kmol/m$^3$]')
+        axs[i].set_ylabel(r'$c^{\mathrm{0}}$ [kmol/m$^3$]')
         axs[i].set_xlabel('Time [hrs]')
         axs[i].legend(loc='center right', fontsize=18)
 
@@ -686,7 +691,7 @@ class Simulation:
         gridspec = dict(hspace=0.05, height_ratios=np.ones(num_subplots))
 
         fig, axs = plt.subplots(nrows=num_subplots, ncols=1,
-                                figsize=(10, num_subplots * 5),
+                                figsize=(8, num_subplots * 4),
                                 gridspec_kw=gridspec,
                                 sharex=True)
 

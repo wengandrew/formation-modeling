@@ -4,7 +4,7 @@ December 2023
 
 Source code for modeling battery formation.
 
-This work is published in the Journal of the Electrochemical Society[here](https://iopscience.iop.org/article/10.1149/1945-7111/aceffe).
+This work is published in the Journal of the Electrochemical Society [here](https://iopscience.iop.org/article/10.1149/1945-7111/aceffe).
 
 The code runs on Python 3.8.8.
 

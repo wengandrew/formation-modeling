@@ -1,10 +1,12 @@
 # Formation Modeling
 
-Half-cell OCV-R modeling for battery formation dynamics.
+December 2023
 
-A pre-print of this work is available [here](https://arxiv.org/abs/2305.18722).
+Source code for modeling battery formation.
 
-Runs on Python 3.8.8.
+This work is published in the Journal of the Electrochemical Society[here](https://iopscience.iop.org/article/10.1149/1945-7111/aceffe).
+
+The code runs on Python 3.8.8.
 
 # Getting Started
 

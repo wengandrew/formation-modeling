@@ -91,7 +91,7 @@ class Simulation:
         self.cell = cell
 
         # Numerical details
-        self.dt = 10.0
+        self.dt = 5.0
         self.t = np.arange(0, sim_time_s, self.dt)
 
         # Track where we are in the simulation

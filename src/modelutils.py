@@ -1,8 +1,11 @@
 """
-Equivalent circuit models for batteries
+Utility functions to aid in battery simulation
+
+Mostly contains lookup functions and helper functions.
 """
 
 import numpy as np
+from scipy import interpolate
 
 def initialize(time_vec, initial_val=np.NaN):
     """
@@ -349,3 +352,175 @@ def update_ocv(z):
 
     return ocv(z)
 
+def decompose_resistance_curve(capacity_vec,
+                              resistance_vec,
+                              frac_cathode_resistance=0.7,
+                              capacity_shift_ah=0,
+                              resistance_growth_rate=0,
+                              adjust_for_resistance_change=False,
+                              swap_cathode_anode=False,
+                              split_proportionally=False):
+    """
+    Take a full cell capacity vs resistance curve and decompose it into half-cell
+    resistances based on some scaling assumptions.
+
+    We will apportion the resistances to qualitatively match the empirical results.
+
+    A more quantitative break-down of resistances will require more careful data
+    analysis of the cathode and anode contributions to the total cell resistance.
+    This will require some more experiments which we will leave as future work.
+
+    The advantage of this model construction is that it lets us easily study model
+    sensitivities (i.e. hypothetical scenarios of different cathode/anode breakdown
+    of the total cell resistance).
+
+    Parameters
+    ---------
+    capacity_vec (np.array)
+      vector of capacity for full cell
+
+    resistance_vec (np.array)
+      vector of resistance for full cell in Ohms
+
+    frac_cathode_rct (0-1)
+      fraction of total measured resistance attributed to cathode charge tranfser
+
+    capacity_shift_ah (float)
+      capacity corresponding to extra lithium lithium lost to SEI during formation
+
+    resistance_growth_rate (float)
+      SEI resistance growth per Ah of Li
+
+    adjust_for_resistance_change (boolean)
+      if True then will make an additional adjustment to the curve to account for
+      intrinsic resistance growth
+
+    swap_cathode_anode (boolean)
+      if True then swap the cathode and anode resistance curves (for sensitivity analysis)
+
+    split_proportionally (boolean)
+      if True then split the resistance proportionally between cathode and anode
+      based on frac_cathode_resistance
+
+
+    Outputs
+    ---------
+    a dictionary containing:
+
+      capacity_expanded
+        an updated capacity vector that matches the dimensions of the shifted resistances
+
+      resistance_full_modeled
+        modeled full cell resistance after shifting (Ohms)
+
+      resistance_cathode
+        modeled cathod charge transfer resistance (Ohms)
+
+      resistance_other
+        modeled 'other' resistance (Ohms)
+
+
+    Invariants
+    ---------
+
+    resistance_other + resistance_cathode_shifted = resistance_full_modeled
+
+    """
+
+    # Definition of "base" resistance
+    capacity_threshold = 1
+    resistance_base = np.min(resistance_vec[capacity_vec < capacity_threshold])
+
+    # Reference resistance (intermediate step for constructing cathode resistance)
+    resistance_ref = (1 - frac_cathode_resistance) * resistance_base * np.ones(np.size(resistance_vec))
+
+    # Construct the cathode charge transfer resistance curve
+    # Assumes:
+    # - Cathode inherits all of the resistances at low capacities up to some reference point
+    # - Cathode resistance flattens out after the capacity threshold
+    resistance_cathode = resistance_vec - resistance_ref
+    resistance_cathode[capacity_vec > capacity_threshold] = \
+       resistance_cathode[capacity_vec <= capacity_threshold][-1]
+
+    # Definition of R_other
+    resistance_other = resistance_vec - resistance_cathode
+
+    # Define shifted cathode charge transfer resistance
+
+    # Shifting the resistance curve!
+
+    # Expand the the capacity vector to include negative values
+    cap_vec_min = 0
+    cap_vec_max = np.max(capacity_vec)
+    cap_vec_diff = np.diff(capacity_vec)[0]
+
+    capacity_vec_expanded = np.arange(cap_vec_min, cap_vec_max + cap_vec_diff, cap_vec_diff)
+
+    fn = interpolate.interp1d(capacity_vec, resistance_cathode, bounds_error=False, fill_value='extrapolate')
+    resistance_cathode_shifted = fn(capacity_vec_expanded + capacity_shift_ah)
+
+    fn2 = interpolate.interp1d(capacity_vec, resistance_other, bounds_error=False, fill_value='extrapolate')
+    resistance_other_expanded = fn2(capacity_vec_expanded)
+
+    if adjust_for_resistance_change:
+        resistance_other += resistance_growth_rate * capacity_shift_ah
+
+    # Calculated the shifted full cell resistance
+    resistance_full_modeled = resistance_other_expanded + resistance_cathode_shifted
+
+    # Assert invariants hold
+#     assert np.all(resistance_cathode_shifted + resistance_other_expanded == resistance_full_modeled)
+
+    output = dict()
+    output['resistance_full_modeled'] = resistance_full_modeled
+
+    output['capacity_expanded'] = capacity_vec_expanded
+    output['resistance_cathode'] = resistance_cathode_shifted
+    output['resistance_other'] = resistance_other_expanded
+
+    # Define some simple operations for sensitivity studies
+
+    # The cathode and anode curves are swapped
+    if swap_cathode_anode:
+        output['resistance_cathode'] = resistance_other_expanded
+        output['resistance_other'] = resistance_cathode_shifted
+
+    # Ignore all of that math we just did and simply split the total measured resistance
+    if split_proportionally:
+        output['resistance_cathode'] = resistance_full_modeled * frac_cathode_resistance
+        output['resistance_other'] = resistance_full_modeled * (1 - frac_cathode_resistance)
+
+    return output
+
+
+def get_resistance_curves():
+    """
+    Return positive and negative electrode resistance curves
+    """
+
+    # Data source: data/processed/hppc_1.csv
+    res_p = np.array([0.08179587, 0.05349805, 0.02520035, 0.01853486, 0.01554122,
+        0.01360811, 0.01241951, 0.01167911, 0.01119615, 0.0111314 ,
+        0.0111314 , 0.0111314 , 0.0111314 , 0.0111314 , 0.0111314 ,
+        0.0111314 , 0.0111314 , 0.0111314 , 0.0111314 , 0.0111314 ,
+        0.0111314 , 0.0111314 , 0.0111314 , 0.0111314 , 0.0111314 ,
+        0.0111314 , 0.0111314 ])
+
+    theta_p = np.linspace(1, 0, len(res_p))
+
+    f_res_p = interpolate.interp1d(theta_p, res_p, kind='quadratic', fill_value='extrapolate')
+
+
+    res_n = np.array([0.0047706 , 0.0047706 , 0.0047706 , 0.0047706 , 0.0047706 ,
+        0.0047706 , 0.0047706 , 0.0047706 , 0.0047706 , 0.0047706 ,
+        0.00464267, 0.00477042, 0.00493099, 0.00531774, 0.00638144,
+        0.00599402, 0.00467134, 0.00435176, 0.00431948, 0.00428838,
+        0.00425448, 0.00432057, 0.00435294, 0.00428712, 0.00444787,
+        0.0044497 , 0.00458338])
+
+    theta_n = np.linspace(0, 1, len(res_n))
+
+    f_res_n = interpolate.interp1d(theta_n, res_n, kind='quadratic', fill_value='extrapolate')
+
+
+    return (f_res_p, f_res_n)

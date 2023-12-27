@@ -506,7 +506,7 @@ def get_resistance_curves():
         0.0111314 , 0.0111314 , 0.0111314 , 0.0111314 , 0.0111314 ,
         0.0111314 , 0.0111314 ])
 
-    theta_p = np.linspace(1, 0, len(res_p))
+    theta_p = np.linspace(0.95, 0, len(res_p))
 
     f_res_p = interpolate.interp1d(theta_p, res_p, kind='quadratic', fill_value='extrapolate')
 

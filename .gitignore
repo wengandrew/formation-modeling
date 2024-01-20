@@ -137,3 +137,7 @@ data/raw/*
 *.png
 *.tif
 *.tiff
+
+# VS Code studd
+
+.vscode/

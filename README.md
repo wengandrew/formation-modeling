@@ -53,3 +53,10 @@ The code runs on Python 3.8.8.
 - [ ] Run the initial formation charge at different C-rates
 - [ ] Run the initial formation charge at different CV hold conditions
 - [ ] Run calendar aging experiments at different SOCs following formation
+
+## For Thesis
+
+- [ ] Replicate baseline vs fast formation voltage profiles
+- [ ] For each formation protocol, predict the QLLI; show that fast formation QLLI is large than baseline formation
+- [ ] Take the output from the formation model and animate this via the voltage graph
+- [ ] Fix the numerical issues during CV holds.

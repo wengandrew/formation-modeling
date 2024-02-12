@@ -16,7 +16,7 @@ import numpy as np
 import yaml
 from matplotlib import pyplot as plt
 
-plotter.initialize(plt, style='ieee')
+plotter.initialize(plt, style='default')
 
 F = 96485.33212    # C/mol      Faraday's constant
 T = 273.15 + 25    # Kelvin     Temperature
@@ -91,7 +91,7 @@ class Simulation:
         self.cell = cell
 
         # Numerical details
-        self.dt = 10.0
+        self.dt = 5.0
         self.t = np.arange(0, sim_time_s, self.dt)
 
         # Track where we are in the simulation
@@ -469,9 +469,11 @@ class Simulation:
         return df
 
 
-    def plot_view_1(self, to_save=False, xlims=None):
+    def plot_view_4(self, to_save=False, xlims=None,
+                    to_annotate=True, ylim_current=None,
+                    ylim_thickness=None):
         """
-        Make "View 1"
+        Make "View 4"
 
         Focus on voltage, current, and expansion
         """
@@ -502,8 +504,114 @@ class Simulation:
         # axs[i].plot(xx, self.ocv_n, ls='--', c='r', label='$U_n$')
         axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label='$U^- - \eta^-$')
         # axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label=rf'$U_{{\mathrm{{SEI,B}}}}$ = {self.cell.U_SEI2} V')
-        axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label='$U_{\mathrm{sei,1}}$ = 1.35V')
-        axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='c', label='$U_{\mathrm{sei,2}}$ = 0.80V')
+        axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label='$U_{\mathrm{VC}}$ = 1.35V')
+        axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='c', label='$U_{\mathrm{EC}}$ = 0.80V')
+        axs[i].text(1.5, 0.9, 'EC', fontsize=20, fontweight='bold', color='c')
+        axs[i].text(1.5, 1.45, 'VC', fontsize=20, fontweight='bold', color='m')
+        axs[i].set_ylim((0.0, 4.0))
+        # axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='c', label=rf'$U_{{\mathrm{{SEI,A}}}}$ = {self.cell.U_SEI1} V')
+        lh = axs[i].legend(loc='right', fancybox=False, frameon=True, fontsize=18)
+        lh.get_frame().set_alpha(None)
+
+
+        # Currents
+        i += 1
+        axs[i].axhline(y=0, ls='-', label='', c='k', lw=0.5)
+        axs[i].plot(xx, self.i_app, c='k', label=r'$I_{\mathrm{app}}$')
+        axs[i].plot(np.NaN, np.NaN, c='k', lw=2, ls='--', label=r'$I_{\mathrm{sei}}$')
+        axs[i].plot(xx, self.i_sei2, c='m', ls='-', label=r'$I_{\mathrm{VC}}$')
+        axs[i].plot(xx, self.i_sei1, c='c', ls='-', label=r'$I_{\mathrm{EC}}$')
+        axs[i].plot(xx, self.i_sei, c='k', lw=2, ls='--', label='')
+        axs[i].legend(loc='center right', fancybox=False, frameon=False, fontsize=18)
+        # axs[i].text(1, 0.17, 'VC', fontsize=20, fontweight='bold', color='m')
+        # axs[i].text(1.85, 0.05, 'EC', fontsize=20, fontweight='bold', color='c')
+        axs[i].set_ylabel('Current [A]')
+        if ylim_current is None:
+            axs[i].set_ylim((0, 0.27))
+        else:
+            axs[i].set_ylim(ylim_current)
+
+
+        # Total cell expansion
+        i += 1
+        # ff = self.delta_sei2 / (self.delta_sei2 + self.delta_sei1)
+        # axs[i].plot(xx, (self.expansion_rev + self.expansion_irrev)*1e6, c='k', label=r'$\Delta_{\mathrm{sei,1}}$ + $\Delta_{\mathrm{sei,2}}$ + $\Delta_{\mathrm{rev}}$')
+        # axs[i].plot(xx, self.expansion_irrev*1e6, c='c', ls='-', label=r'$\Delta_{\mathrm{sei,1}}$ + $\Delta_{\mathrm{sei,2}}$')
+        # axs[i].plot(xx, ff*self.expansion_irrev*1e6, c='m', ls='-', label=r'$\Delta_{\mathrm{sei,1}}$')
+        # axs[i].legend(loc='upper left', fontsize=18)
+        # axs[i].set_ylabel(r'Thickness [$\mu$m]')
+        # if ylim_thickness is None:
+        #     axs[i].set_ylim((-5, 75))
+        # else:
+        #     axs[i].set_ylim(ylim_thickness)
+        axs[i].plot(xx, self.q_sei2, c='m', label='$Q_{\mathrm{VC}}$')
+        axs[i].plot(xx, self.q_sei1, c='c', label='$Q_{\mathrm{EC}}$')
+        axs[i].plot(xx, self.q_sei, c='k', label='$Q_{\mathrm{sei}}$')
+        axs[i].legend(loc='upper right')
+        axs[i].set_ylabel(r'$Q_{\mathrm{sei}}$ [Ah]')
+        axs[i].set_ylim((-0.0, 0.29))
+        axs[i].set_xlabel('Time [hrs]')
+
+        # axs[i].text(4, -0, 'SEI 1', fontsize=20, fontweight='bold', color='m')
+        # axs[i].text(4, 19, 'SEI 2', fontsize=20, fontweight='bold', color='c')
+        # axs[i].text(4, 43, 'Reversible', fontsize=20, fontweight='bold', color='k')
+
+        if to_annotate:
+            # Markers
+            bbox_dict = dict(boxstyle='circle', pad=0.1, facecolor='none', edgecolor='k')
+            axs[0].text(0.25, 0.30, '1', fontsize=16, bbox=bbox_dict)
+            axs[1].text(1.02, 0.22, '2', fontsize=16, bbox=bbox_dict)
+            axs[1].text(1.42, 0.11, '3', fontsize=16, bbox=bbox_dict)
+            axs[2].text(4.40, 64.0, '4', fontsize=16, bbox=bbox_dict)
+            axs[1].text(4.40, 0.023, '5', fontsize=16, bbox=bbox_dict)
+
+            # Panel Numbers
+            axs[0].text(-0.16, 0.92, 'A', transform=axs[0].transAxes, fontsize=30, fontweight='bold')
+            axs[1].text(-0.16, 0.92, 'B', transform=axs[1].transAxes, fontsize=30, fontweight='bold')
+            axs[2].text(-0.16, 0.92, 'C', transform=axs[2].transAxes, fontsize=30, fontweight='bold')
+
+        fig.align_ylabels()
+
+        if to_save:
+            plt.savefig(f'outputs/figures/fig_timeseries_1.png',
+                        bbox_inches='tight', dpi=200)
+
+
+    def plot_view_1(self, to_save=False, xlims=None):
+        """
+        Make "View 1"
+
+        Focus on voltage, current, and expansion
+        """
+
+        num_subplots = 3
+
+        gridspec = dict(hspace=0.05, height_ratios=np.ones(num_subplots))
+
+        fig, axs = plt.subplots(nrows=num_subplots, ncols=1,
+                                figsize=(10, num_subplots * 4),
+                                gridspec_kw=gridspec,
+                                sharex=True)
+
+        [ax.grid(False) for ax in axs]
+
+        xx = self.t/3600
+
+        if xlims is not None:
+            axs[0].set_xlim(xlims)
+
+        # Voltages and Potentials
+        i = 0
+        axs[i].plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label='$U^+ + \eta^+$')
+        axs[i].plot(xx, self.vt, ls='-', c='k', label='$V_t$')
+        # axs[i].plot(xx, self.ocv, ls='--', c='k')
+        axs[i].set_ylabel('Voltage/Potential [V]')
+        # axs[i].plot(xx, self.ocv_p, ls='--', c='b', label='$U_p$')
+        # axs[i].plot(xx, self.ocv_n, ls='--', c='r', label='$U_n$')
+        axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label='$U^- - \eta^-$')
+        # axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label=rf'$U_{{\mathrm{{SEI,B}}}}$ = {self.cell.U_SEI2} V')
+        axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label='$U_{\mathrm{VC}}$ = 1.35V')
+        axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='c', label='$U_{\mathrm{EC}}$ = 0.80V')
         axs[i].text(1.5, 0.9, 'SEI 2 (EC)', fontsize=20, fontweight='bold', color='c')
         axs[i].text(1.5, 1.45, 'SEI 1 (VC)', fontsize=20, fontweight='bold', color='m')
         axs[i].set_ylim((0.0, 4.0))
@@ -517,8 +625,8 @@ class Simulation:
         axs[i].axhline(y=0, ls='-', label='', c='k', lw=0.5)
         axs[i].plot(xx, self.i_app, c='k', label=r'$I_{\mathrm{app}}$')
         axs[i].plot(np.NaN, np.NaN, c='k', lw=2, ls='--', label=r'$I_{\mathrm{sei}}$')
-        axs[i].plot(xx, self.i_sei2, c='m', ls='-', label=r'$I_{\mathrm{sei,1}}$')
-        axs[i].plot(xx, self.i_sei1, c='c', ls='-', label=r'$I_{\mathrm{sei,2}}$')
+        axs[i].plot(xx, self.i_sei2, c='m', ls='-', label=r'$I_{\mathrm{VC}}$')
+        axs[i].plot(xx, self.i_sei1, c='c', ls='-', label=r'$I_{\mathrm{EC}}$')
         axs[i].plot(xx, self.i_sei, c='k', lw=2, ls='--', label='')
         axs[i].legend(loc='center right', fancybox=False, frameon=False, fontsize=18)
         axs[i].text(1, 0.17, 'SEI 1', fontsize=20, fontweight='bold', color='m')
@@ -529,9 +637,9 @@ class Simulation:
         # Total cell expansion
         i += 1
         ff = self.delta_sei2 / (self.delta_sei2 + self.delta_sei1)
-        axs[i].plot(xx, (self.expansion_rev + self.expansion_irrev)*1e6, c='k', label=r'$\Delta_{\mathrm{sei,1}}$ + $\Delta_{\mathrm{sei,2}}$ + $\Delta_{\mathrm{rev}}$')
-        axs[i].plot(xx, self.expansion_irrev*1e6, c='c', ls='-', label=r'$\Delta_{\mathrm{sei,1}}$ + $\Delta_{\mathrm{sei,2}}$')
-        axs[i].plot(xx, ff*self.expansion_irrev*1e6, c='m', ls='-', label=r'$\Delta_{\mathrm{sei,1}}$')
+        axs[i].plot(xx, (self.expansion_rev + self.expansion_irrev)*1e6, c='k', label=r'$\Delta_{\mathrm{VC}}$ + $\Delta_{\mathrm{EC}}$ + $\Delta_{\mathrm{rev}}$')
+        axs[i].plot(xx, self.expansion_irrev*1e6, c='c', ls='-', label=r'$\Delta_{\mathrm{VC}}$ + $\Delta_{\mathrm{EC}}$')
+        axs[i].plot(xx, ff*self.expansion_irrev*1e6, c='m', ls='-', label=r'$\Delta_{\mathrm{VC}}$')
         axs[i].legend(loc='upper left', fontsize=18)
         axs[i].set_ylabel(r'Thickness [$\mu$m]')
         axs[i].set_xlabel('Time [hrs]')

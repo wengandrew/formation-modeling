@@ -1,0 +1,38 @@
+  , device_id, formation_temperature_c, formation_pressure_psi, graphite_type, formation_type, cyc_temperature_c, cyc_condition
+0 , 151802   , RT                     , 5P0PSI                , 1518         , FORMBASE_1    , 45C              , 1C/1C
+1 , 151803   , RT                     , 5P0PSI                , 1518         , FORMBASE_1    , 45C              , 1C/1C
+2 , 151804   , RT                     , 5P0PSI                , 1518         , FORMBASE_1    , 45C              , 1C/1C
+3 , 151805   , RT                     , 5P0PSI                , 1518         , FORMBASE_1    , 45C              , 1C/1C
+4 , 151806   , RT                     , 5P0PSI                , 1518         , FORMBASE_1    , 45C              , 1C/1C
+5 , 152001   , RT                     , 5P0PSI                , 1520         , FORMBASE_1    , 45C              , 1C/1C
+6 , 152002   , RT                     , 5P0PSI                , 1520         , FORMBASE_1    , 45C              , 1C/1C
+7 , 152004   , RT                     , 5P0PSI                , 1520         , FORMBASE_1    , 45C              , 1C/1C
+8 , 152005   , RT                     , 5P0PSI                , 1520         , FORMFAST_2    , 45C              , 1C/1C
+9 , 152006   , RT                     , 5P0PSI                , 1520         , FORMFAST_2    , 45C              , 1C/1C
+10, 152007   , RT                     , 5P0PSI                , 1520         , FORMBASE_1    , 45C              , 1C/1C
+11, 152008   , RT                     , 5P0PSI                , 1520         , FORMBASE_1    , 45C              , 1C/1C
+12, 152009   , RT                     , 5P0PSI                , 1520         , FORMFAST_1    , 45C              , 1C/1C
+13, 152010   , RT                     , 5P0PSI                , 1520         , FORMFAST_1    , 45C              , 1C/1C
+14, 152011   , RT                     , 5P0PSI                , 1520         , FORMFAST_2    , 45C              , 1C/1C
+15, 152012   , RT                     , 5P0PSI                , 1520         , FORMFAST_2    , 45C              , 1C/1C
+16, 152013   , RT                     , 5P0PSI                , 1520         , FORMBASE_1    , 45C              , 1C/1C
+17, 152014   , RT                     , 5P0PSI                , 1520         , FORMBASE_1    , 45C              , 1C/1C
+18, 152015   , RT                     , 5P0PSI                , 1520         , FORMFAST_1    , 45C              , 1C/1C
+19, 152016   , RT                     , 5P0PSI                , 1520         , FORMFAST_1    , 45C              , 1C/1C
+20, 152017   , 55C                    , 5P0PSI                , 1520         , FORMBASE_1    , 45C              , 1C/1C
+21, 152018   , 55C                    , 5P0PSI                , 1520         , FORMBASE_1    , 45C              , 1C/1C
+22, 152019   , 55C                    , 5P0PSI                , 1520         , FORMBASE_1    , 45C              , 1C/1C
+23, 152020   , 55C                    , 5P0PSI                , 1520         , FORMBASE_1    , 45C              , 1C/1C
+24, 152021   , 55C                    , 5P0PSI                , 1520         , FORMBASE_1    , 45C              , 1C/1C
+25, 152022   , 55C                    , 5P0PSI                , 1520         , FORMBASE_1    , 45C              , 1C/1C
+26, 152023   , RT                     , 5P0PSI                , 1520         , FORMFAST_2    , 45C              , 1C/1C
+27, 152026   , RT                     , 5P0PSI                , 1520         , FORMBASE_1    , 45C              , 1C/1C
+28, 152027   , RT                     , 0P0PSI                , 1520         , FORMBASE_1    , 45C              , 1C/1C
+29, 152028   , RT                     , 0P0PSI                , 1520         , FORMBASE_1    , 45C              , 1C/1C
+30, 152029   , RT                     , 0P0PSI                , 1520         , FORMBASE_1    , 45C              , 1C/1C
+31, 152030   , RT                     , 0P0PSI                , 1520         , FORMBASE_1    , 45C              , 1C/1C
+32, 152031   , RT                     , 0P0PSI                , 1520         , FORMBASE_1    , 45C              , 1C/1C
+33, 152032   , RT                     , 0P0PSI                , 1520         , FORMBASE_1    , 45C              , 1C/1C
+34, 152064   , RT                     , 5P0PSI                , 1520         , FORMBASE_1    , 45C              , 1C/1C
+35, 152071   , RT                     , 5P0PSI                , 1520         , FORMFAST_1    , 45C              , 1C/1C
+36, 152098   , RT                     , 5P0PSI                , 1520         , FORMFAST_2    , 45C              , 1C/1C

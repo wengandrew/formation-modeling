@@ -84,12 +84,21 @@ def fetch_raw_data(device_id, filetype):
                 result_list.append(key)
     if filetype == 'cycling':
         for key in key_list:
-            if 'CYC' in key and '_5P0PSI_' in key and 'VMONITOR' not in key:
+            if key == 'UMBL2022FEB_CELL152016_CYC_1C1CR1_P45C_P5P0PSI_20220804_R1':
+                continue
+            if key == 'UMBL2022FEB_CELL151803_CYC_1C1CR1_P45C_5P0PSI_20220804':
+                continue
+            if key == 'UMBL2022FEB_CELL151804_CYC_1C1CR1_P45C_5P0PSI_20230227_R1-01-004':
+                continue
+            if 'CYC' in key and 'VMONITOR' not in key:
                 result_list.append(key)
     if filetype == 'aux':
         for key in key_list:
             if 'AuxDat' in key:
                 result_list.append(key)
+
+    if device_id == 151805:
+        result_list = ['UMBL2022FEB_CELL151805_CYC_1C1CR1_P45C_5P0PSI_20220804_R1']
 
     assert len(result_list) >= 1, f"No keys found for device {device_id}."
 
@@ -108,12 +117,13 @@ def fetch_raw_data(device_id, filetype):
         if df1['h_datapoint_datetime'].min() < df2['h_datapoint_datetime'].min():
             df2['i_cycle_num'] = df2['i_cycle_num'] + df1['i_cycle_num'].max()
             df2['h_test_time'] = df2['h_test_time'] + df1['h_test_time'].max()
-            df = pd.concat([df1, df2], axis=0)
+            # df = pd.concat([df1, df2], axis=0)
+            df = df1
         else:
             df1['i_cycle_num'] = df1['i_cycle_num'] + df2['i_cycle_num'].max()
             df1['h_test_time'] = df1['h_test_time'] + df2['h_test_time'].max()
-            df = pd.concat([df2, df1], axis=0)
-
+            # df = pd.concat([df2, df1], axis=0)
+            df = df2
     return df
 
 
@@ -142,8 +152,10 @@ def process_cycling_data(df):
     # Clean the data
 
     CAPACITY_THRESHOLD = 1.0
-    df_agg['h_discharge_capacity'][df_agg['h_discharge_capacity'] < \
-                                   CAPACITY_THRESHOLD] = np.nan
+    df_agg.loc[df_agg['h_discharge_capacity'] < CAPACITY_THRESHOLD, \
+                'h_discharge_capacity'] = np.nan
+    df_agg.loc[df_agg['h_discharge_capacity'] > 3, \
+                'h_discharge_capacity'] = np.nan
 
     # Split data for cycling vs RPT
     cycle_index_rpt_all = df[(df['h_step_index'] >= 10) |

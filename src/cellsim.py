@@ -68,9 +68,7 @@ class Cell:
 
         tag = f'k={self.k_SEI1}, '\
               f'D={self.D_SEI11}, '\
-              f'U={self.U_SEI1}, '\
-              f'Rn={self.R0n}, '\
-              f'Rp={self.R0p}'
+              f'U={self.U_SEI1}, '
 
         return tag
 
@@ -124,6 +122,8 @@ class Simulation:
         self.j_sei   = mu.initialize(self.t, 0)
         self.i_sei   = mu.initialize(self.t, 0)
         self.q_sei   = mu.initialize(self.t, 0)
+        self.R_sei   = mu.initialize(self.t, cell.a_sn * cell.A_n * cell.L_n \
+                                     * cell.delta_SEI_0 / cell.kappa_SEI)
 
         # Homogenized quantities
         self.D_sei1   = mu.initialize(self.t, 1/(1/cell.D_SEI11 + 1/cell.D_SEI12))
@@ -186,7 +186,7 @@ class Simulation:
             self.i_app[k] = ( self.vt[k] - self.ocv[k] - \
                            p.R1p * np.exp(-self.dt/(p.R1p*p.C1p)) * self.i_r1p[k] - \
                            p.R1n * np.exp(-self.dt/(p.R1n*p.C1n)) * self.i_r1n[k] ) / \
-                        ( ( 1 - np.exp(-self.dt/(p.R1n*p.C1n)) ) * p.R1n + p.R0n + \
+                        ( ( 1 - np.exp(-self.dt/(p.R1n*p.C1n)) ) * p.R1n + self.R_sei[k] + \
                           ( 1 - np.exp(-self.dt/(p.R1p*p.C1p)) ) * p.R1p + p.R0p )
 
 
@@ -214,7 +214,7 @@ class Simulation:
                           (1 - np.exp(-self.dt/(p.R1n*p.C1n))) * self.i_app[k]
 
         self.eta_p[k+1] = p.R1p * self.i_r1p[k] + p.R0p * self.i_app[k]
-        self.eta_n[k+1] = p.R1n * self.i_r1n[k] + p.R0n * self.i_int[k]
+        self.eta_n[k+1] = p.R1n * self.i_r1n[k] + self.R_sei[k] * self.i_int[k]
 
         # Terminal voltage update
         if mode == 'cc':
@@ -318,6 +318,9 @@ class Simulation:
         self.expansion_rev[k+1] = p.c1 * self.delta_p[k+1] + \
                                   p.c2 * self.delta_n[k+1]
         self.expansion_irrev[k+1] = p.c0 * self.delta_sei[k+1]
+
+        # SEI resistance update
+        self.R_sei[k+1] = p.a_sn * p.A_n * p.L_n * self.delta_sei[k+1] / p.kappa_SEI
 
 
     def run_rest(self, cycle_number: int, rest_time_hrs: float):

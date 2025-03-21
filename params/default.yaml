@@ -14,6 +14,7 @@
  R_p: 20.0e-6
 
  # SEI Properties
+ kappa_SEI: 8.2e-7    # S/m        SEI conductivity
  alpha_SEI: 0.5       # [-]        SEI charge transfer coefficient
  delta_SEI_0: 5.0e-9  # m          Initial SEI thickness
  gamma_boost: 2.4e+7  # s/m        Boost stress sensitivity
@@ -47,7 +48,7 @@
 
  # Overpotentials
  R0p: 0.01  # positive charge transfer resistance
- R0n: 0.01  # negative charge transfer resistance
+ #R0n is the neg. charge transfer resistance, or SEI resistance, and is calculated in the model, not a fixed quantity
  R1p: 0.001 # positive diffusion resistance
  R1n: 0.001 # negative diffusion resistance
  C1p: 76000 # positive diffusion capacitance

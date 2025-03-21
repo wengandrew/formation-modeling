@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import pickle
 
+NOM_CAP = 2.5 # Nominal capacity in amp-hours
 
 # Declare constants
 STEP_INDEX_RPT_C20_CHARGE = 26
@@ -83,6 +84,7 @@ def fetch_raw_data(device_id, filetype):
             if 'FORMAGING' in key:
                 result_list.append(key)
     if filetype == 'cycling':
+        # Manually-identified exclusion list based on studying raw data traces
         for key in key_list:
             if key == 'UMBL2022FEB_CELL152016_CYC_1C1CR1_P45C_P5P0PSI_20220804_R1':
                 continue
@@ -168,3 +170,24 @@ def process_cycling_data(df):
     df_rpt = df_agg[df_agg['i_cycle_num'].isin(cycle_index_rpt_cap)]
 
     return df_cyc, df_rpt
+
+
+def update_summary_table(df, id, df_cyc, df_rpt, group):
+    """
+    Update fields in the summary table based on cycling data
+
+    Args:
+    df (DataFrame): Summary table
+    id (int): Device ID
+    df_cyc (DataFrame): Cycling data without RPTs
+    df_rpt (DataFrame): Cycling data with only RPTs
+    group (str): label for group
+    """
+
+    df.loc[df['device_id'] == id, 'group'] = group
+    df.loc[df['device_id'] == id, 'initial_rpt_capacity_ah'] = df_rpt['h_discharge_capacity'].iloc[0]
+    df.loc[df['device_id'] == id, 'initial_cyc_capacity_ah'] = np.nanmean(df_cyc['h_discharge_capacity'].iloc[0:5])
+    df.loc[df['device_id'] == id, 'eol_efc'] = df_cyc['cumulative_capacity'].iloc[-1]/NOM_CAP
+    df.loc[df['device_id'] == id, 'eol_rpt_capacity_ah'] = np.nanmin(df_rpt['h_discharge_capacity'].values)
+
+

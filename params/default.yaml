@@ -14,7 +14,7 @@
  R_p: 20.0e-6
 
  # SEI Properties
- kappa_SEI: 8.2e-7    # S/m        SEI conductivity
+ kappa_SEI: 8.2e-6    # S/m        SEI conductivity
  alpha_SEI: 0.5       # [-]        SEI charge transfer coefficient
  delta_SEI_0: 5.0e-9  # m          Initial SEI thickness
  gamma_boost: 2.4e+7  # s/m        Boost stress sensitivity
@@ -38,8 +38,8 @@
  V_SEI2: 5.810e-5     # m3/mol     SEI molar volume, solid phase
  k_SEI2: 7.0e-19      # m/s        SEI kinetic rate constant
  D_SEI21: 4.2e-20     # m2/s       SEI 2 diffusivity in solid layer 1
- D_SEI22: 6.6e-18    # m2/s       SEI 2 diffusivity in solid layer 2
- U_SEI2: 1.35          # V          SEI equilibrium reaction potential
+ D_SEI22: 6.6e-18     # m2/s       SEI 2 diffusivity in solid layer 2
+ U_SEI2: 1.35         # V          SEI equilibrium reaction potential
 
  # Expansion
  c0: 127

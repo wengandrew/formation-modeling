@@ -1,12 +1,5 @@
 """
 Classes for the formation modeling work
-
-Model components:
-
-Thermodynamics  : eSOH
-Kinetics        : R RC
-SEI growth      : Butler-Volmer (Yang2017)
-Expansion       : ?
 """
 
 import plotter as plotter
@@ -89,7 +82,7 @@ class Simulation:
         self.cell = cell
 
         # Numerical details
-        self.dt = 1.0
+        self.dt = 5.0
         self.t = np.arange(0, sim_time_s, self.dt)
 
         # Track where we are in the simulation
@@ -119,8 +112,10 @@ class Simulation:
         # SEI states
 
         # Homogenized quantities
-        self.D_sei1   = mu.initialize(self.t, 1/(1/cell.D_SEI11 + 1/cell.D_SEI12))
-        self.D_sei2   = mu.initialize(self.t, 1/(1/cell.D_SEI21 + 1/cell.D_SEI22))
+        self.D_sei1   = mu.initialize(self.t,
+                                      1/(1/cell.D_SEI11 + 1/cell.D_SEI12))
+        self.D_sei2   = mu.initialize(self.t,
+                                      1/(1/cell.D_SEI21 + 1/cell.D_SEI22))
 
         # Individual components
         self.j_sei1     = mu.initialize(self.t, 0)
@@ -138,9 +133,11 @@ class Simulation:
         self.eta_sei1   = mu.initialize(self.t, 0)
         self.eta_sei2   = mu.initialize(self.t, 0)
         self.kappa_sei1 = mu.initialize(self.t, self.D_sei1[0] /
-                                        cell.V_SEI1 * (cell.n_SEI1 * F)**2 / (R*T))
+                                        cell.V_SEI1 *
+                                        (cell.n_SEI1 * F)**2 / (R*T))
         self.kappa_sei2 = mu.initialize(self.t, self.D_sei2[0] /
-                                        cell.V_SEI2 * (cell.n_SEI2 * F)**2 / (R*T))
+                                        cell.V_SEI2 *
+                                        (cell.n_SEI2 * F)**2 / (R*T))
 
         # Expansion states
         self.delta_sei1 = mu.initialize(self.t, cell.delta_SEI1_0)
@@ -153,13 +150,17 @@ class Simulation:
         self.boost      = mu.initialize(self.t, 0)
         self.expansion_rev   = mu.initialize(self.t, 0)
         self.expansion_irrev = mu.initialize(self.t, 0)
+        self.expansion  = mu.initialize(self.t, 0)
 
         self.R_sei1     = mu.initialize(self.t,
                                 0.001 * self.delta_sei1[0] /
-                                (self.kappa_sei1[0] * (cell.a_sn * cell.A_n * cell.L_n)))
+                                (self.kappa_sei1[0] *
+                                 (cell.a_sn * cell.A_n * cell.L_n)))
+
         self.R_sei2     = mu.initialize(self.t,
                                 0.001 * self.delta_sei2[0] /
-                                (self.kappa_sei2[0] * (cell.a_sn * cell.A_n * cell.L_n)))
+                                (self.kappa_sei2[0] *
+                                 (cell.a_sn * cell.A_n * cell.L_n)))
 
         # Total quantities
         self.j_sei   = mu.initialize(self.t, 0)
@@ -329,6 +330,8 @@ class Simulation:
         self.expansion_rev[k+1] = p.c1 * self.delta_p[k+1] + \
                                   p.c2 * self.delta_n[k+1]
         self.expansion_irrev[k+1] = p.c0 * self.delta_sei[k+1]
+        self.expansion[k+1] = self.expansion_rev[k+1] + \
+                              self.expansion_irrev[k+1]
 
         # SEI resistance updates
         self.kappa_sei1[k+1] = self.D_sei1[k+1] / \

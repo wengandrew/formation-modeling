@@ -14,15 +14,14 @@
  R_p: 20.0e-6
 
  # SEI Properties
- kappa_SEI: 8.2e-6    # S/m        SEI conductivity
  alpha_SEI: 0.5       # [-]        SEI charge transfer coefficient
- delta_SEI_0: 5.0e-9  # m          Initial SEI thickness
  gamma_boost: 2.4e+7  # s/m        Boost stress sensitivity
  tau_boost: 600       # s          Boost activation rate
  tau_decay: 6000      # s          Boost decay rate
 
  # First SEI component
  SEI1_name: EC
+ delta_SEI1_0: 2.5e-9 # m          Initial SEI thickness
  c_SEI1_0: 4541       # mol/m3     Concentration in bulk electrolyte
  n_SEI1: 2.0          # -          Number of electrons
  V_SEI1: 9.585e-5     # m3/mol     SEI molar volume, solid phase
@@ -33,6 +32,7 @@
 
  # Second SEI component
  SEI2_name: VC
+ delta_SEI2_0: 2.5e-9 # m          Initial SEI thickness
  c_SEI2_0: 304.4      # mol/m3     Concentration in bulk electrolyte
  n_SEI2 : 2.0         # -          Number of electrons
  V_SEI2: 5.810e-5     # m3/mol     SEI molar volume, solid phase
@@ -40,6 +40,7 @@
  D_SEI21: 4.2e-20     # m2/s       SEI 2 diffusivity in solid layer 1
  D_SEI22: 6.6e-18     # m2/s       SEI 2 diffusivity in solid layer 2
  U_SEI2: 1.35         # V          SEI equilibrium reaction potential
+#  U_SEI2: -1000 # Use this to turn off the SEI2 reaction
 
  # Expansion
  c0: 127

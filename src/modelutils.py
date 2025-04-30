@@ -7,7 +7,7 @@ Mostly contains lookup functions and helper functions.
 import numpy as np
 from scipy import interpolate
 
-def initialize(time_vec, initial_val=np.NaN):
+def initialize(time_vec, initial_val=np.nan):
     """
     Initialize a vector to store simulation results.
     Allows a user to specify the initial value.
@@ -26,7 +26,7 @@ def initialize(time_vec, initial_val=np.NaN):
     """
 
     output_vec = np.empty(len(time_vec))
-    output_vec[:] = np.NaN
+    output_vec[:] = np.nan
     output_vec[0] = initial_val
 
     return output_vec

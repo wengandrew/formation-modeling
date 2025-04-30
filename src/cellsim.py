@@ -126,10 +126,10 @@ class Simulation:
         self.i_sei2     = mu.initialize(self.t, 0)
         self.q_sei1     = mu.initialize(self.t, 0)
         self.q_sei2     = mu.initialize(self.t, 0)
-        self.j_sei_rxn1 = mu.initialize(self.t, np.NaN)
-        self.j_sei_rxn2 = mu.initialize(self.t, np.NaN)
-        self.j_sei_dif1 = mu.initialize(self.t, np.NaN)
-        self.j_sei_dif2 = mu.initialize(self.t, np.NaN)
+        self.j_sei_rxn1 = mu.initialize(self.t, np.nan)
+        self.j_sei_rxn2 = mu.initialize(self.t, np.nan)
+        self.j_sei_dif1 = mu.initialize(self.t, np.nan)
+        self.j_sei_dif2 = mu.initialize(self.t, np.nan)
         self.eta_sei1   = mu.initialize(self.t, 0)
         self.eta_sei2   = mu.initialize(self.t, 0)
         self.kappa_sei1 = mu.initialize(self.t, self.D_sei1[0] /
@@ -170,7 +170,7 @@ class Simulation:
 
 
     def step(self, k: int, mode: str, icc=0, icv=0,
-             cyc_num=np.NaN, step_num=np.NaN,
+             cyc_num=np.nan, step_num=np.nan,
              vcv=0, to_debug=False):
         """
         Run a single step.
@@ -491,7 +491,7 @@ class Simulation:
         df['dqsei1'] = np.abs(df['dt'] * df['i_sei1'] / 3600)
         df['dqsei2'] = np.abs(df['dt'] * df['i_sei2'] / 3600)
 
-        # Get rid of extra NaN rows beyond the simulation time
+        # Get rid of extra nan rows beyond the simulation time
         df = df.iloc[0:self.curr_k, :]
 
         return df
@@ -546,7 +546,7 @@ class Simulation:
         i += 1
         axs[i].axhline(y=0, ls='-', label='', c='k', lw=0.5)
         axs[i].plot(xx, self.i_app, c='k', label=r'$I_{\mathrm{app}}$')
-        axs[i].plot(np.NaN, np.NaN, c='k', lw=2, ls='--', label=r'$I_{\mathrm{sei}}$')
+        axs[i].plot(np.nan, np.nan, c='k', lw=2, ls='--', label=r'$I_{\mathrm{sei}}$')
         axs[i].plot(xx, self.i_sei2, c='m', ls='-', label=r'$I_{\mathrm{VC}}$')
         axs[i].plot(xx, self.i_sei1, c='c', ls='-', label=r'$I_{\mathrm{EC}}$')
         axs[i].plot(xx, self.i_sei, c='k', lw=2, ls='--', label='')
@@ -652,7 +652,7 @@ class Simulation:
         i += 1
         axs[i].axhline(y=0, ls='-', label='', c='k', lw=0.5)
         axs[i].plot(xx, self.i_app, c='k', label=r'$I_{\mathrm{app}}$')
-        axs[i].plot(np.NaN, np.NaN, c='k', lw=2, ls='--', label=r'$I_{\mathrm{sei}}$')
+        axs[i].plot(np.nan, np.nan, c='k', lw=2, ls='--', label=r'$I_{\mathrm{sei}}$')
         axs[i].plot(xx, self.i_sei2, c='m', ls='-', label=r'$I_{\mathrm{VC}}$')
         axs[i].plot(xx, self.i_sei1, c='c', ls='-', label=r'$I_{\mathrm{EC}}$')
         axs[i].plot(xx, self.i_sei, c='k', lw=2, ls='--', label='')
@@ -728,7 +728,7 @@ class Simulation:
         i = 0
         # axs[i].axhline(y=0, ls='-', label='', c='k', lw=0.5)
         axs[i].plot(xx, self.i_app, c='k', lw=2, label=r'$I_{\mathrm{app}}$')
-        axs[i].plot(np.NaN, np.NaN, c='k', lw=3, ls='--', label=r'$I_{\mathrm{sei}}$')
+        axs[i].plot(np.nan, np.nan, c='k', lw=3, ls='--', label=r'$I_{\mathrm{sei}}$')
         axs[i].plot(xx, self.i_sei1, c='c', ls='-', lw=3, label=r'$I_{\mathrm{sei,A}}$')
         axs[i].plot(xx, self.i_sei2, c='m', ls='-', lw=3, label=r'$I_{\mathrm{sei,B}}$')
         axs[i].plot(xx, self.i_sei, c='k', lw=3, ls='--', label=r'')
@@ -778,7 +778,7 @@ class Simulation:
 
         # Solvent consumption
         i += 1
-        axs[i].plot(np.NaN, np.NaN,      c='c', lw=3, label=r'$c^{\mathrm{0}}_{\mathrm{sei,A}}$') # dummy
+        axs[i].plot(np.nan, np.nan,      c='c', lw=3, label=r'$c^{\mathrm{0}}_{\mathrm{sei,A}}$') # dummy
         axs[i].plot(xx, self.c_sei2/1e3, c='m', lw=3, label=r'$c^{\mathrm{0}}_{\mathrm{sei,B}}$')
         ax2 = axs[i].twinx()
         ax2.plot(xx, self.c_sei1/1e3, c='c', lw=3, label=r'$c^{\mathrm{bulk}}_{\mathrm{sei,A}}$')

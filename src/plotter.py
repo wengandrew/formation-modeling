@@ -17,7 +17,7 @@ def initialize(plt, style='default'):
 
     plt.rc('font', **{'family'     : 'serif',
                   'serif' : [font],
-                  'size': 20
+                  'size': 14
                   })
 
     # Latex font formatting (dejavusans, dejavuserif, cm, stix, stixsans)

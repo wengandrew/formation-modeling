@@ -54,6 +54,7 @@
  R1n: 0.001 # negative diffusion resistance
  C1p: 76000 # positive diffusion capacitance
  C1n: 76000 # negative diffusion capacitance
+ GAMMA_KAPPA : 3000 # Scaling factor for Dsei in Nernst-Einstein equation
 
  # Electrode stoichiometry model
  Cn: 3.14 # Ah

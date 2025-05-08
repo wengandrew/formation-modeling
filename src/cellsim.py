@@ -153,13 +153,13 @@ class Simulation:
         self.expansion  = mu.initialize(self.t, 0)
 
         self.R_sei1     = mu.initialize(self.t,
-                                0.001 * self.delta_sei1[0] /
-                                (self.kappa_sei1[0] *
+                                self.delta_sei1[0] /
+                                (cell.GAMMA_KAPPA * self.kappa_sei1[0] *
                                  (cell.a_sn * cell.A_n * cell.L_n)))
 
         self.R_sei2     = mu.initialize(self.t,
-                                0.001 * self.delta_sei2[0] /
-                                (self.kappa_sei2[0] *
+                                self.delta_sei2[0] /
+                                (cell.GAMMA_KAPPA * self.kappa_sei2[0] *
                                  (cell.a_sn * cell.A_n * cell.L_n)))
 
         # Total quantities
@@ -339,11 +339,10 @@ class Simulation:
         self.kappa_sei2[k+1] = self.D_sei2[k+1] / \
                     p.V_SEI2 * (p.n_SEI2 * F)**2 / (R*T)
 
-        R_FACTOR = 0.001 # Derating factor to account for model imperfections
-        self.R_sei1[k+1] = R_FACTOR * self.delta_sei1[k+1] / \
-                (self.kappa_sei1[k+1] * (p.a_sn * p.A_n * p.L_n))
-        self.R_sei2[k+1] = R_FACTOR * self.delta_sei2[k+1] / \
-                (self.kappa_sei2[k+1] * (p.a_sn * p.A_n * p.L_n))
+        self.R_sei1[k+1] = self.delta_sei1[k+1] / \
+                (p.GAMMA_KAPPA * self.kappa_sei1[k+1] * (p.a_sn * p.A_n * p.L_n))
+        self.R_sei2[k+1] = self.delta_sei2[k+1] / \
+                (p.GAMMA_KAPPA * self.kappa_sei2[k+1] * (p.a_sn * p.A_n * p.L_n))
 
         self.R_sei[k+1] = self.R_sei1[k+1] + self.R_sei2[k+1]
 

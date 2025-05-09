@@ -50,8 +50,8 @@
  # Overpotentials
  R0p: 0.01  # positive charge transfer resistance
  #R0n is the neg. charge transfer resistance, or SEI resistance, and is calculated in the model, not a fixed quantity
- R1p: 0.001 # positive diffusion resistance
- R1n: 0.001 # negative diffusion resistance
+ R1p: 0.0085 # positive diffusion resistance
+ R1n: 0.0085 # negative diffusion resistance
  C1p: 76000 # positive diffusion capacitance
  C1n: 76000 # negative diffusion capacitance
  GAMMA_KAPPA : 3000 # Scaling factor for Dsei in Nernst-Einstein equation

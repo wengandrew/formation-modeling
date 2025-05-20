@@ -69,7 +69,7 @@ class Cell:
 
 class Simulation:
 
-    def __init__(self, cell: Cell, sim_time_s: int, name='DefaultSim'):
+    def __init__(self, cell: Cell, sim_time_s: int, name='DefaultSim', dt=5.0):
         """
         Parameters
         ----------
@@ -82,7 +82,7 @@ class Simulation:
         self.cell = cell
 
         # Numerical details
-        self.dt = 5.0
+        self.dt = dt
         self.t = np.arange(0, sim_time_s, self.dt)
 
         # Track where we are in the simulation
@@ -294,6 +294,9 @@ class Simulation:
         if to_debug:
             print(
                 f'k: {k} | '\
+                f'Vt: {self.vt[k]:.3f} | '\
+                f'theta_n: {self.theta_n[k]:.3f} | '\
+                f'theta_p: {self.theta_p[k]:.3f} | '\
                 f'Iint: {self.i_int[k]:.3f} | '\
                 f'Iapp: {self.i_app[k]:.3f} | '\
                 f'Isei: {self.i_sei[k]:.3f} | '\

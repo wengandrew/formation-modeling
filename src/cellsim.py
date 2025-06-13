@@ -350,7 +350,8 @@ class Simulation:
         self.R_sei[k+1] = self.R_sei1[k+1] + self.R_sei2[k+1]
 
 
-    def run_rest(self, cycle_number: int, rest_time_hrs: float):
+    def run_rest(self, cycle_number: int, rest_time_hrs: float,
+                 to_print=False):
         """
         Run a rest step
 
@@ -360,7 +361,9 @@ class Simulation:
         rest_time_hrs (float): hours to rest
         """
 
-        print(f'Running Cyc{cycle_number}: Rest for {rest_time_hrs} hours...')
+        if to_print:
+            print(f'Running Cyc{cycle_number}: Rest for {rest_time_hrs:2f} hours...')
+
         k = self.curr_k
 
         kmax = k + int(rest_time_hrs*3600 / self.dt)
@@ -378,7 +381,8 @@ class Simulation:
 
 
     def run_chg_cccv(self, cycle_number: int,
-                     icc: float, icv: float, vmax: float):
+                     icc: float, icv: float, vmax: float,
+                     to_print=False):
         """
         Run a charge CCCV step.
 
@@ -390,7 +394,8 @@ class Simulation:
         vmax (float): charge voltage target
         """
 
-        print(f'Running Cyc{cycle_number}: Charge to {vmax}V...')
+        if to_print:
+            print(f'Running Cyc{cycle_number}: Charge to {vmax}V...')
 
         assert icc >= icv, 'CV hold current cannot be bigger than CC current.'
 
@@ -429,7 +434,8 @@ class Simulation:
 
 
     def run_dch_cccv(self, cycle_number: int,
-                     icc: float, icv: float, vmin: float):
+                     icc: float, icv: float, vmin: float,
+                     to_print=False):
         """
         Run a discharge CCCV step.
 
@@ -441,7 +447,8 @@ class Simulation:
         vmin (float): discharge voltage target
         """
 
-        print(f'Running Cyc{cycle_number}: Discharge to {vmin}V...')
+        if to_print:
+            print(f'Running Cyc{cycle_number}: Discharge to {vmin}V...')
 
         k = self.curr_k
 

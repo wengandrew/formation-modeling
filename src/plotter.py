@@ -2,7 +2,6 @@
 Plotting utilities
 """
 
-
 def initialize(plt, style='default'):
     """
     Initialize the plot configuration
@@ -50,4 +49,3 @@ def initialize(plt, style='default'):
                      frameon=False)
 
     plt.rc('image',  cmap='gray')
-

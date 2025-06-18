@@ -43,6 +43,8 @@ def run_sim(type, diff_ec, diff_vc,
     cell.D_SEI22 = diff_vc
 
     # Update the GAMMA_KAPPA parameter
+    # Usage of this variable is deprecated since it references a Nernst-Einstein 
+    # implementation which we found to be incorrect. It be removed.
     cell.GAMMA_KAPPA = gamma_kappa
 
     if type == 'base':

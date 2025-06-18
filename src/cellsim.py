@@ -132,12 +132,7 @@ class Simulation:
         self.j_sei_dif2 = mu.initialize(self.t, np.nan)
         self.eta_sei1   = mu.initialize(self.t, 0)
         self.eta_sei2   = mu.initialize(self.t, 0)
-        self.kappa_sei1 = mu.initialize(self.t, self.D_sei1[0] /
-                                        cell.V_SEI1 *
-                                        (cell.n_SEI1 * F)**2 / (R*T))
-        self.kappa_sei2 = mu.initialize(self.t, self.D_sei2[0] /
-                                        cell.V_SEI2 *
-                                        (cell.n_SEI2 * F)**2 / (R*T))
+
 
         # Expansion states
         self.delta_sei1 = mu.initialize(self.t, cell.delta_SEI1_0)
@@ -152,21 +147,42 @@ class Simulation:
         self.expansion_irrev = mu.initialize(self.t, 0)
         self.expansion  = mu.initialize(self.t, 0)
 
-        self.R_sei1     = mu.initialize(self.t,
-                                self.delta_sei1[0] /
-                                (cell.GAMMA_KAPPA * self.kappa_sei1[0] *
-                                 (cell.a_sn * cell.A_n * cell.L_n)))
+        # Faulty implementation of SEI conductivity updates based on SEI diffusivity 
+        # via Nernst-Einstein (this is not physically valid)
+        #
+        # self.kappa_sei1 = mu.initialize(self.t, self.D_sei1[0] /
+        #                                 cell.V_SEI1 *
+        #                                 (cell.n_SEI1 * F)**2 / (R*T))
+        # self.kappa_sei2 = mu.initialize(self.t, self.D_sei2[0] /
+        #                                 cell.V_SEI2 *
+        #                                 (cell.n_SEI2 * F)**2 / (R*T))
+        # self.R_sei1     = mu.initialize(self.t,
+        #                         self.delta_sei1[0] /
+        #                         (cell.GAMMA_KAPPA * self.kappa_sei1[0] *
+        #                          (cell.a_sn * cell.A_n * cell.L_n)))
 
-        self.R_sei2     = mu.initialize(self.t,
-                                self.delta_sei2[0] /
-                                (cell.GAMMA_KAPPA * self.kappa_sei2[0] *
-                                 (cell.a_sn * cell.A_n * cell.L_n)))
+        # self.R_sei2     = mu.initialize(self.t,
+        #                         self.delta_sei2[0] /
+        #                         (cell.GAMMA_KAPPA * self.kappa_sei2[0] *
+        #                          (cell.a_sn * cell.A_n * cell.L_n)))
 
         # Total quantities
         self.j_sei   = mu.initialize(self.t, 0)
         self.i_sei   = mu.initialize(self.t, 0)
         self.q_sei   = mu.initialize(self.t, 0)
+
+        self.R_sei1     = mu.initialize(self.t,
+                                self.delta_sei1[0] /
+                                (cell.kappa_SEI1 * cell.a_sn * cell.A_n * cell.L_n))
+
+        self.R_sei2     = mu.initialize(self.t,
+                                self.delta_sei2[0] /
+                                (cell.kappa_SEI2 * cell.a_sn * cell.A_n * cell.L_n))
+
         self.R_sei   = mu.initialize(self.t, self.R_sei1[0] + self.R_sei2[0])
+ 
+        # SEI density
+        self.rho_sei = mu.initialize(self.t, np.nan) # g/cm^3
 
 
     def step(self, k: int, mode: str, icc=0, icv=0,
@@ -337,17 +353,28 @@ class Simulation:
                               self.expansion_irrev[k+1]
 
         # SEI resistance updates
-        self.kappa_sei1[k+1] = self.D_sei1[k+1] / \
-                    p.V_SEI1 * (p.n_SEI1 * F)**2 / (R*T)
-        self.kappa_sei2[k+1] = self.D_sei2[k+1] / \
-                    p.V_SEI2 * (p.n_SEI2 * F)**2 / (R*T)
+        # self.kappa_sei1[k+1] = self.D_sei1[k+1] / \
+        #             p.V_SEI1 * (p.n_SEI1 * F)**2 / (R*T) * p.GAMMA_KAPPA
+        # self.kappa_sei2[k+1] = self.D_sei2[k+1] / \
+        #             p.V_SEI2 * (p.n_SEI2 * F)**2 / (R*T) * p.GAMMA_KAPPA
+
+        # self.R_sei1[k+1] = self.delta_sei1[k+1] / \
+        #         (self.kappa_sei1[k+1] * (p.a_sn * p.A_n * p.L_n))
+        # self.R_sei2[k+1] = self.delta_sei2[k+1] / \
+        #         (self.kappa_sei2[k+1] * (p.a_sn * p.A_n * p.L_n))
+
+        # self.R_sei[k+1] = self.R_sei1[k+1] + self.R_sei2[k+1]
 
         self.R_sei1[k+1] = self.delta_sei1[k+1] / \
-                (p.GAMMA_KAPPA * self.kappa_sei1[k+1] * (p.a_sn * p.A_n * p.L_n))
+                (p.kappa_SEI1 * (p.a_sn * p.A_n * p.L_n))
         self.R_sei2[k+1] = self.delta_sei2[k+1] / \
-                (p.GAMMA_KAPPA * self.kappa_sei2[k+1] * (p.a_sn * p.A_n * p.L_n))
+                (p.kappa_SEI2 * (p.a_sn * p.A_n * p.L_n))
 
         self.R_sei[k+1] = self.R_sei1[k+1] + self.R_sei2[k+1]
+
+        # SEI density update
+        self.rho_sei[k+1] = (self.delta_sei1[k+1] * p.rho_SEI1 + self.delta_sei2[k+1] * p.rho_SEI2) / \
+                            (self.delta_sei1[k+1] + self.delta_sei2[k+1])
 
 
     def run_rest(self, cycle_number: int, rest_time_hrs: float,

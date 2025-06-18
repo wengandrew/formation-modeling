@@ -275,27 +275,30 @@ def calculate_rmse(t_meas, y_meas, t_modl, y_modl,
 
 
 def plot_diffusivity_heatmaps(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label, is_error_plot=True, 
-                              zmin=None, zmax=None, tosave=False, savename='temp.svg'):
+                              zmin=None, zmax=None, tosave=False, savename='temp.svg', to_annotate=False):
 
-#  Create a meshgrid for X and Y axes
+    diff_ec_o = 4.2e-20  # Baseline d_ec from Weng2023
+    diff_vc_o = 6.6e-18  # Baseline d_vc from Weng2023
+
+    #  Create a meshgrid for X and Y axes
     X, Y = np.meshgrid(diff_vc_vec, diff_ec_vec)
 
-# Create subplots for the three formation protocols
+    # Create subplots for the three formation protocols
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(11, 4))
     [ax.set_xlim([min(diff_vc_vec), max(diff_vc_vec)]) for ax in (ax1, ax2, ax3)]
     [ax.set_ylim([min(diff_ec_vec), max(diff_ec_vec)]) for ax in (ax1, ax2, ax3)]
     [ax.set_xscale('log') for ax in (ax1, ax2, ax3)]
     [ax.set_yscale('log') for ax in (ax1, ax2, ax3)]
-    [ax.set_xlabel('$D_{VC}$ (m²/s)') for ax in (ax1, ax2, ax3)]
-    [ax.set_ylabel('$D_{EC}$ (m²/s)') for ax in (ax1, ax2, ax3)]
+    [ax.set_xlabel('$D_{VC}^0$ (m²/s)') for ax in (ax1, ax2, ax3)]
+    [ax.set_ylabel('$D_{EC}^0$ (m²/s)') for ax in (ax1, ax2, ax3)]
     [ax.grid(True, which="both", ls="-", alpha=0.2) for ax in (ax1, ax2, ax3)]
     import matplotlib.cm as cm
     import matplotlib.colors as mcolors
 
-# Get the colormap and create a discrete version with 10 bins
+    # Get the colormap and create a discrete version with 10 bins
     cmap = cm.get_cmap('viridis_r', 20)
 
-# Base Formation
+    # Base Formation
     pcm1 = ax1.pcolormesh(X, Y, mat1, shading='auto', cmap=cmap)
     vmin, vmax = np.nanmin(mat1), np.nanmax(mat1)
     plt.colorbar(pcm1, ax=ax1, label=label, orientation='horizontal', pad=0.2)
@@ -304,14 +307,14 @@ def plot_diffusivity_heatmaps(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label,
     ax1.set_title('Base Formation')
     ax1.grid(False)
 
-# Fast Formation
+    # Fast Formation
     pcm2 = ax2.pcolormesh(X, Y, mat2, shading='auto', cmap=cmap)
     plt.colorbar(pcm2, ax=ax2, label=label, orientation='horizontal', pad=0.2)
     pcm2.set_clim(zmin, zmax)
     ax2.set_title('Fast Formation')
     ax2.grid(False)
 
-# Fast+ Formation
+    # Fast+ Formation
     pcm3 = ax3.pcolormesh(X, Y, mat3, shading='auto', cmap=cmap)
     plt.colorbar(pcm3, ax=ax3, label=label, orientation='horizontal', pad=0.2)
     pcm3.set_clim(zmin, zmax)
@@ -322,33 +325,60 @@ def plot_diffusivity_heatmaps(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label,
         i, j = np.unravel_index(np.nanargmin(mat1), mat1.shape)
         ax1.plot(diff_vc_vec[j], diff_ec_vec[i], 'r*', markersize=15,
              label=f'Min RMSE at\nD_EC={diff_ec_vec[i]:.2e}\nD_VC={diff_vc_vec[j]:.2e}')
-        ax1.annotate(f'({diff_vc_vec[j]:.1e},\n {diff_ec_vec[i]:.1e})',
-                     (diff_vc_vec[j], diff_ec_vec[i]),
-                     textcoords="offset points",
-                     xytext=(10, -10),
-                     ha='left',
-                     color='red',
-                     fontsize=8)
+
+        ax1.annotate(
+            'Tuned',
+            (diff_vc_vec[j], diff_ec_vec[i]),
+            textcoords="offset points",
+            xytext=(10, 10),
+            ha='left',
+            color='k',
+            fontsize=12,
+            fontweight='bold',
+            bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
+        )
+        
+        ax1.plot(diff_vc_o, diff_ec_o, 'g*', markersize=15)
+
+        ax1.annotate('Global', (diff_vc_o, diff_ec_o),
+                 textcoords="offset points",
+                 xytext=(-10, -10),
+                 ha='right',
+                 color='k',
+                 fontsize=12,
+                 fontweight='bold',
+                 bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
+        )
+        
+        # ax1.annotate(f'({diff_vc_vec[j]:.1e},\n {diff_ec_vec[i]:.1e})',
+        #              (diff_vc_vec[j], diff_ec_vec[i]),
+        #              textcoords="offset points",
+        #              xytext=(10, -10),
+        #              ha='left',
+        #              color='red',
+        #              fontsize=8)
         i, j = np.unravel_index(np.nanargmin(mat2), mat2.shape)
         ax2.plot(diff_vc_vec[j], diff_ec_vec[i], 'r*', markersize=15,
              label=f'Min RMSE at\nD_EC={diff_ec_vec[i]:.2e}\nD_VC={diff_vc_vec[j]:.2e}')
-        ax2.annotate(f'({diff_vc_vec[j]:.1e},\n {diff_ec_vec[i]:.1e})',
-                     (diff_vc_vec[j], diff_ec_vec[i]),
-                     textcoords="offset points",
-                     xytext=(10, -10),
-                     ha='left',
-                     color='red',
-                     fontsize=8) 
+        ax2.plot(diff_vc_o, diff_ec_o, 'g*', markersize=15)
+        # ax2.annotate(f'({diff_vc_vec[j]:.1e},\n {diff_ec_vec[i]:.1e})',
+        #              (diff_vc_vec[j], diff_ec_vec[i]),
+        #              textcoords="offset points",
+        #              xytext=(10, -10),
+        #              ha='left',
+        #              color='red',
+        #              fontsize=8) 
         i, j = np.unravel_index(np.nanargmin(mat3), mat3.shape)
         ax3.plot(diff_vc_vec[j], diff_ec_vec[i], 'r*', markersize=15,
              label=f'Min RMSE at\nD_EC={diff_ec_vec[i]:.2e}\nD_VC={diff_vc_vec[j]:.2e}')
-        ax3.annotate(f'({diff_vc_vec[j]:.1e},\n {diff_ec_vec[i]:.1e})',
-                     (diff_vc_vec[j], diff_ec_vec[i]),
-                     textcoords="offset points",
-                     xytext=(10, -10),
-                     ha='left',
-                     color='red',
-                     fontsize=8)
+        ax3.plot(diff_vc_o, diff_ec_o, 'g*', markersize=15)
+        # ax3.annotate(f'({diff_vc_vec[j]:.1e},\n {diff_ec_vec[i]:.1e})',
+                    #  (diff_vc_vec[j], diff_ec_vec[i]),
+                    #  textcoords="offset points",
+                    #  xytext=(10, -10),
+                    #  ha='left',
+                    #  color='red',
+                    #  fontsize=8)
 
     plt.tight_layout()
 

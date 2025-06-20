@@ -277,8 +277,11 @@ def calculate_rmse(t_meas, y_meas, t_modl, y_modl,
 def plot_diffusivity_heatmaps(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label, is_error_plot=True, 
                               zmin=None, zmax=None, tosave=False, savename='temp.svg', to_annotate=False):
 
-    diff_ec_o = 4.2e-20  # Baseline d_ec from Weng2023
-    diff_vc_o = 6.6e-18  # Baseline d_vc from Weng2023
+    diff_ec_ow = 4.2e-20  # Baseline d_ec from Weng2023
+    diff_vc_ow = 6.6e-18  # Baseline d_vc from Weng2023
+
+    diff_ec_o = 3.162e-20  # Baseline d_ec from the latest study
+    diff_vc_o = 4.217e-16  # Baseline d_vc from the latest study
 
     #  Create a meshgrid for X and Y axes
     X, Y = np.meshgrid(diff_vc_vec, diff_ec_vec)
@@ -289,8 +292,8 @@ def plot_diffusivity_heatmaps(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label,
     [ax.set_ylim([min(diff_ec_vec), max(diff_ec_vec)]) for ax in (ax1, ax2, ax3)]
     [ax.set_xscale('log') for ax in (ax1, ax2, ax3)]
     [ax.set_yscale('log') for ax in (ax1, ax2, ax3)]
-    [ax.set_xlabel('$D_{VC}^0$ (m²/s)') for ax in (ax1, ax2, ax3)]
-    [ax.set_ylabel('$D_{EC}^0$ (m²/s)') for ax in (ax1, ax2, ax3)]
+    [ax.set_xlabel('$D_{LVDC}^0$ (m²/s)') for ax in (ax1, ax2, ax3)]
+    [ax.set_ylabel('$D_{LEDC}^0$ (m²/s)') for ax in (ax1, ax2, ax3)]
     [ax.grid(True, which="both", ls="-", alpha=0.2) for ax in (ax1, ax2, ax3)]
     import matplotlib.cm as cm
     import matplotlib.colors as mcolors
@@ -323,40 +326,53 @@ def plot_diffusivity_heatmaps(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label,
 
     if is_error_plot:
         i, j = np.unravel_index(np.nanargmin(mat1), mat1.shape)
-        ax1.plot(diff_vc_vec[j], diff_ec_vec[i], 'r*', markersize=15,
+        ax1.plot(diff_vc_vec[j], diff_ec_vec[i], 'r*', markersize=16,
              label=f'Min RMSE at\nD_EC={diff_ec_vec[i]:.2e}\nD_VC={diff_vc_vec[j]:.2e}')
+
+        
+        ax1.plot(diff_vc_o, diff_ec_o, 'g*', markersize=14)
+        ax1.plot(diff_vc_ow, diff_ec_ow, 'b*', markersize=14)
 
         ax1.annotate(
             'Tuned',
             (diff_vc_vec[j], diff_ec_vec[i]),
             textcoords="offset points",
-            xytext=(10, 10),
+            xytext=(0, -20),
+            ha='center',
+            color='k',
+            fontsize=12,
+            fontweight='bold',
+            bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
+        )
+    
+        ax1.annotate('Global', (diff_vc_o, diff_ec_o),
+            textcoords="offset points",
+            xytext=(10, 10),                 
             ha='left',
             color='k',
             fontsize=12,
             fontweight='bold',
             bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
         )
-        
-        ax1.plot(diff_vc_o, diff_ec_o, 'g*', markersize=15)
 
-        ax1.annotate('Global', (diff_vc_o, diff_ec_o),
-                 textcoords="offset points",
-                 xytext=(-10, -10),
-                 ha='right',
-                 color='k',
-                 fontsize=12,
-                 fontweight='bold',
-                 bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
+        ax1.annotate('Ref', (diff_vc_ow, diff_ec_ow),
+            textcoords="offset points",
+            xytext=(-10, 10),                 
+            ha='right',
+            color='k',
+            fontsize=12,
+            fontweight='bold',
+            bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
         )
         
-        # ax1.annotate(f'({diff_vc_vec[j]:.1e},\n {diff_ec_vec[i]:.1e})',
+        # ax1.annotate(f'({diff_vc_vec[j]:.3e},\n {diff_ec_vec[i]:.3e})',
         #              (diff_vc_vec[j], diff_ec_vec[i]),
         #              textcoords="offset points",
         #              xytext=(10, -10),
         #              ha='left',
         #              color='red',
         #              fontsize=8)
+
         i, j = np.unravel_index(np.nanargmin(mat2), mat2.shape)
         ax2.plot(diff_vc_vec[j], diff_ec_vec[i], 'r*', markersize=15,
              label=f'Min RMSE at\nD_EC={diff_ec_vec[i]:.2e}\nD_VC={diff_vc_vec[j]:.2e}')
@@ -368,6 +384,32 @@ def plot_diffusivity_heatmaps(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label,
         #              ha='left',
         #              color='red',
         #              fontsize=8) 
+        
+        ax2.plot(diff_vc_o, diff_ec_o, 'g*', markersize=14)
+
+        
+        ax2.annotate(
+            'Tuned',
+            (diff_vc_vec[j], diff_ec_vec[i]),
+            textcoords="offset points",
+            xytext=(-10, -10),
+            ha='right',
+            color='k',
+            fontsize=12,
+            fontweight='bold',
+            bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
+        )
+    
+        ax2.annotate('Global', (diff_vc_o, diff_ec_o),
+                 textcoords="offset points",
+                 xytext=(10, 10),
+                 ha='left',
+                 color='k',
+                 fontsize=12,
+                 fontweight='bold',
+                 bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
+        )
+
         i, j = np.unravel_index(np.nanargmin(mat3), mat3.shape)
         ax3.plot(diff_vc_vec[j], diff_ec_vec[i], 'r*', markersize=15,
              label=f'Min RMSE at\nD_EC={diff_ec_vec[i]:.2e}\nD_VC={diff_vc_vec[j]:.2e}')
@@ -379,6 +421,29 @@ def plot_diffusivity_heatmaps(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label,
                     #  ha='left',
                     #  color='red',
                     #  fontsize=8)
+
+        ax3.annotate(
+            'Tuned',
+            (diff_vc_vec[j], diff_ec_vec[i]),
+            textcoords="offset points",
+            xytext=(-10, -10),
+            ha='right',
+            color='k',
+            fontsize=12,
+            fontweight='bold',
+            bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
+        )
+    
+        ax3.annotate('Global', (diff_vc_o, diff_ec_o),
+            textcoords="offset points",
+            xytext=(10, 10),                 
+            ha='left',
+            color='k',
+            fontsize=12,
+            fontweight='bold',
+            bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
+        )
+        
 
     plt.tight_layout()
 

@@ -5,13 +5,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
-def run_sim(type, diff_ec, diff_vc, 
+def run_sim(type, 
+            diff_ec, 
+            diff_vc, 
+            kappa_ec = 1e-4,
+            kappa_vc = 4e-5,
             gamma_kappa=3000, 
             dt=5.0, 
             to_follow_current=False, 
             current_vec=np.nan, 
-            to_simulate_form_aging=False,
-            to_simulate_cycling=False):
+            include_flag=False):
     """
     Run simulation for a given formation type and target EC diffusivity
 
@@ -20,6 +23,12 @@ def run_sim(type, diff_ec, diff_vc,
     type: 'base', 'fast', 'fast+'
     diff_ec: target EC diffusivity, e.g., 4.2e-20 [m2/s]
     diff_vc: target VC diffusivity, e.g., 6.6e-18 [m2/s]
+    include_flag: 1 : up to formation cycling
+                  2 : up to first RPT
+                  3 : up to formation aging
+                  4 : up to second RPT
+                  5 : up to aging cycles
+                  False : do nothing
 
     Returns:
     ----------
@@ -33,6 +42,10 @@ def run_sim(type, diff_ec, diff_vc,
 
     cell = cellsim.Cell()
     cell.load_config('params/default.yaml')
+
+    # Update SEI conductivities
+    cell.kappa_SEI1 = kappa_ec
+    cell.kappa_SEI2 = kappa_vc
 
     # Update EC diffusivity
     cell.D_SEI11 = diff_ec
@@ -142,76 +155,84 @@ def run_sim(type, diff_ec, diff_vc,
             # rest_before_aging_hrs = 81.2
             cn = 5
 
-    if to_simulate_form_aging and to_follow_current is False:
+    if include_flag == 1: 
+        return sim.get_results()
 
-        # RPT
-        sim.run_chg_cccv(cn + 1, +2.5/30, +2.5/30, 4.2) # Approximate HPPC Pulse Charge
-        sim.run_dch_cccv(cn + 1, -2.5/20, +2.5/20, 3.0)
-        sim.run_chg_cccv(cn + 2, +2.5/20, +2.5/20, 4.2)
-        sim.run_rest(cn + 2, rest_time_hrs=12)
-        sim.run_dch_cccv(cn + 2, -2.5/2, -2.5/2, 3.0)
+    # RPT
+    sim.run_chg_cccv(cn + 1, +2.5/30, +2.5/30, 4.2) # Approximate HPPC Pulse Charge
+    sim.run_dch_cccv(cn + 1, -2.5/20, +2.5/20, 3.0)
+    sim.run_chg_cccv(cn + 2, +2.5/20, +2.5/20, 4.2)
+    sim.run_rest(cn + 2, rest_time_hrs=12)
+    sim.run_dch_cccv(cn + 2, -2.5/2, -2.5/2, 3.0)
 
-        # Formation Aging
-        # Synchronize when the formation aging starts
-        rest_before_aging_hrs = 174.7799 - (sim.curr_k * sim.dt) / 3600
-        sim.run_rest(cn + 2, rest_time_hrs=rest_before_aging_hrs)
-        sim.run_chg_cccv(cn + 3, 2.5/2, 0.05, 4.2)
-        sim.run_rest(cn + 3, rest_time_hrs=13*24) # 13 days rest
-        sim.run_dch_cccv(cn + 3, -2.5/2, -2.5/2, 3.0)
-        sim.run_rest(cn + 3, rest_time_hrs=12) # 12 hours rest
+    if include_flag == 2:
+        return sim.get_results()
+    
+    # Formation Aging
+    # Synchronize when the formation aging starts
+    rest_before_aging_hrs = 174.7799 - (sim.curr_k * sim.dt) / 3600
+    sim.run_rest(cn + 2, rest_time_hrs=rest_before_aging_hrs)
+    sim.run_chg_cccv(cn + 3, 2.5/2, 0.05, 4.2)
+    sim.run_rest(cn + 3, rest_time_hrs=13*24) # 13 days rest
+    sim.run_dch_cccv(cn + 3, -2.5/2, -2.5/2, 3.0)
+    sim.run_rest(cn + 3, rest_time_hrs=12) # 12 hours rest
 
-        cn = cn + 4
+    if include_flag == 3:
+        return sim.get_results()
+    cn = cn + 4
 
-    if to_simulate_cycling:
         
-        # RPT
-        sim.run_chg_cccv(cn , +2.5/30, +2.5/30, vmax) # Approximate HPPC Pulse Charge
-        sim.run_dch_cccv(cn, -2.5/20, Icv, vmin)
-        sim.run_chg_cccv(cn+1, +2.5/20, Icv, vmax)
-        sim.run_rest(cn+1, rest_time_hrs=12)
-       
-        # Cycling
-        cycles_to_next_rpt = 100
-        for i in np.arange(cn + 2, cn + 2 + cycles_to_next_rpt + 1):
-            sim.run_chg_cccv(i, 2.5, 0.125, vmax)
-            sim.run_rest(i, rest_time_hrs=1/6)
-            sim.run_dch_cccv(i, -2.5, -2.5, vmin)
-            sim.run_rest(i, rest_time_hrs=1/6)
+    # RPT
+    sim.run_chg_cccv(cn , +2.5/30, +2.5/30, vmax) # Approximate HPPC Pulse Charge
+    sim.run_dch_cccv(cn, -2.5/20, Icv, vmin)
+    sim.run_chg_cccv(cn+1, +2.5/20, Icv, vmax)
+    sim.run_rest(cn+1, rest_time_hrs=12)
 
-        # # RPT
-        # sim.run_chg_cccv(111, +2.5/30, +2.5/30, vmax) # Approximate HPPC Pulse Charge
-        # sim.run_dch_cccv(111, -2.5/20, Icv, vmin)
-        # sim.run_chg_cccv(111, +2.5/20, Icv, vmax)
-        # sim.run_rest(112, rest_time_hrs=12)
-        # sim.run_dch_cccv(112, -2.5/2, -2.5/2, vmin)
+    if include_flag == 4:
+        return sim.get_results()
+    
+    # Cycling
+    cycles_to_next_rpt = 100
+    for i in np.arange(cn + 2, cn + 2 + cycles_to_next_rpt + 1):
+        sim.run_chg_cccv(i, 2.5, 0.125, vmax)
+        sim.run_rest(i, rest_time_hrs=1/6)
+        sim.run_dch_cccv(i, -2.5, -2.5, vmin)
+        sim.run_rest(i, rest_time_hrs=1/6)
 
-        # # Cycling
-        # for i in np.arange(113, 113 + cycles_to_rpt + 1):
-        #     sim.run_chg_cccv(i, 2.5, 0.125, vmax)
-        #     sim.run_rest(i, rest_time_hrs=1/6)
-        #     sim.run_dch_cccv(i, -2.5, -2.5, vmin)
-        #     sim.run_rest(i, rest_time_hrs=1/6)
+    # # RPT
+    # sim.run_chg_cccv(111, +2.5/30, +2.5/30, vmax) # Approximate HPPC Pulse Charge
+    # sim.run_dch_cccv(111, -2.5/20, Icv, vmin)
+    # sim.run_chg_cccv(111, +2.5/20, Icv, vmax)
+    # sim.run_rest(112, rest_time_hrs=12)
+    # sim.run_dch_cccv(112, -2.5/2, -2.5/2, vmin)
 
-        # # RPT
-        # sim.run_chg_cccv(214, +2.5/30, +2.5/30, vmax) # Approximate HPPC Pulse Charge
-        # sim.run_dch_cccv(214, -2.5/20, Icv, vmin)
-        # sim.run_chg_cccv(215, +2.5/20, Icv, vmax)
-        # sim.run_rest(    215, rest_time_hrs=12)
-        # sim.run_dch_cccv(215, -2.5/2, -2.5/2, vmin)
+    # # Cycling
+    # for i in np.arange(113, 113 + cycles_to_rpt + 1):
+    #     sim.run_chg_cccv(i, 2.5, 0.125, vmax)
+    #     sim.run_rest(i, rest_time_hrs=1/6)
+    #     sim.run_dch_cccv(i, -2.5, -2.5, vmin)
+    #     sim.run_rest(i, rest_time_hrs=1/6)
 
-        # # Cycling
-        # for i in np.arange(216, 216 + cycles_to_rpt + 1):
-        #     sim.run_chg_cccv(i, 2.5, 0.125, vmax)
-        #     sim.run_rest(i, rest_time_hrs=1/6)
-        #     sim.run_dch_cccv(i, -2.5, -2.5, vmin)
-        #     sim.run_rest(i, rest_time_hrs=1/6)
+    # # RPT
+    # sim.run_chg_cccv(214, +2.5/30, +2.5/30, vmax) # Approximate HPPC Pulse Charge
+    # sim.run_dch_cccv(214, -2.5/20, Icv, vmin)
+    # sim.run_chg_cccv(215, +2.5/20, Icv, vmax)
+    # sim.run_rest(    215, rest_time_hrs=12)
+    # sim.run_dch_cccv(215, -2.5/2, -2.5/2, vmin)
 
-        # # RPT
-        # sim.run_chg_cccv(317, +2.5/30, +2.5/30, vmax) # Approximate HPPC Pulse Charge
-        # sim.run_dch_cccv(317, -2.5/20, Icv, vmin)
-        # sim.run_chg_cccv(318, +2.5/20, Icv, vmax)
-        # sim.run_rest(    318, rest_time_hrs=12)
-        # sim.run_dch_cccv(318, -2.5/2, -2.5/2, vmin)
+    # # Cycling
+    # for i in np.arange(216, 216 + cycles_to_rpt + 1):
+    #     sim.run_chg_cccv(i, 2.5, 0.125, vmax)
+    #     sim.run_rest(i, rest_time_hrs=1/6)
+    #     sim.run_dch_cccv(i, -2.5, -2.5, vmin)
+    #     sim.run_rest(i, rest_time_hrs=1/6)
+
+    # # RPT
+    # sim.run_chg_cccv(317, +2.5/30, +2.5/30, vmax) # Approximate HPPC Pulse Charge
+    # sim.run_dch_cccv(317, -2.5/20, Icv, vmin)
+    # sim.run_chg_cccv(318, +2.5/20, Icv, vmax)
+    # sim.run_rest(    318, rest_time_hrs=12)
+    # sim.run_dch_cccv(318, -2.5/2, -2.5/2, vmin)
 
 
 
@@ -275,7 +296,8 @@ def calculate_rmse(t_meas, y_meas, t_modl, y_modl,
 
 
 def plot_diffusivity_heatmaps(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label, is_error_plot=True, 
-                              zmin=None, zmax=None, tosave=False, savename='temp.svg', to_annotate=False):
+                              zmin=None, zmax=None, tosave=False, savename='temp.svg', to_annotate=False,
+                              is_log_scale=True):
 
     diff_ec_ow = 4.2e-20  # Baseline d_ec from Weng2023
     diff_vc_ow = 6.6e-18  # Baseline d_vc from Weng2023
@@ -290,8 +312,9 @@ def plot_diffusivity_heatmaps(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label,
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(11, 4))
     [ax.set_xlim([min(diff_vc_vec), max(diff_vc_vec)]) for ax in (ax1, ax2, ax3)]
     [ax.set_ylim([min(diff_ec_vec), max(diff_ec_vec)]) for ax in (ax1, ax2, ax3)]
-    [ax.set_xscale('log') for ax in (ax1, ax2, ax3)]
-    [ax.set_yscale('log') for ax in (ax1, ax2, ax3)]
+    if is_log_scale:
+        [ax.set_xscale('log') for ax in (ax1, ax2, ax3)]
+        [ax.set_yscale('log') for ax in (ax1, ax2, ax3)]
     [ax.set_xlabel('$D_{LVDC}^0$ (m²/s)') for ax in (ax1, ax2, ax3)]
     [ax.set_ylabel('$D_{LEDC}^0$ (m²/s)') for ax in (ax1, ax2, ax3)]
     [ax.grid(True, which="both", ls="-", alpha=0.2) for ax in (ax1, ax2, ax3)]

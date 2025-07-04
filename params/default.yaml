@@ -30,6 +30,7 @@
  D_SEI12: 6.6e-18     # m2/s       SEI 1 diffusivity in solid layer 2
  U_SEI1: 0.8          # V          SEI equilibrium reaction potential
  kappa_SEI1: 1.0e-4   # S/m        SEI 1 conductivity (lit. puts this at 1e-10 to 3e-10 S/cm)
+ rho_SEI1: 1.6        # g/cm3      Density of EC / poly(EC)
 
  # Second SEI component
  SEI2_name: VC # or LVDC

@@ -326,9 +326,10 @@ def plot_heatmaps(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label,
         diff_vc_o = 2.05e-5*1000
         diff_ec_o = 4.771e-4*1000
     else:
-        diff_vc_o = 4.217e-16
-        diff_ec_o = 3.162e-20 
-
+        diff_vc_o = 4.217e-16 # old set
+        diff_ec_o = 3.162e-20 # old set
+        diff_vc_o = 3.162e-17 # new set (after kappa optimization)
+        diff_ec_o = 3.665e-20 # new set (after kappa optimization)
 
     # diff_ec_o = 3.162e-20  # Baseline d_ec from the latest study
     # diff_vc_o = 4.217e-16  # Baseline d_vc from the latest study
@@ -393,8 +394,8 @@ def plot_heatmaps(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label,
                 'Tuned',
                 (diff_vc_vec[j], diff_ec_vec[i]),
                 textcoords="offset points",
-                xytext=(-10, -10),
-                ha='right',
+                xytext=(10, 10),
+                ha='left',
                 color='k',
                 fontsize=12,
                 fontweight='bold',
@@ -404,8 +405,8 @@ def plot_heatmaps(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label,
         ax1.plot(diff_vc_o, diff_ec_o, 'b*', markersize=14)
         ax1.annotate('Ref', (diff_vc_o, diff_ec_o),
             textcoords="offset points",
-            xytext=(10, -10),                 
-            ha='left',
+            xytext=(-10, -10),                 
+            ha='right',
             color='k',
             fontsize=12,
             fontweight='bold',
@@ -440,15 +441,13 @@ def plot_heatmaps(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label,
 
             ax2.plot(diff_vc_vec[j], diff_ec_vec[i], 'r*', markersize=15,
             label=f'Min RMSE at\nD_EC={diff_ec_vec[i]:.2e}\nD_VC={diff_vc_vec[j]:.2e}')
-
-
         
             ax2.annotate(
                 'Tuned',
                 (diff_vc_vec[j], diff_ec_vec[i]),
                 textcoords="offset points",
-                xytext=(-10, -10),
-                ha='right',
+                xytext=(10, -10),
+                ha='left',
                 color='k',
                 fontsize=12,
                 fontweight='bold',
@@ -467,8 +466,8 @@ def plot_heatmaps(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label,
 
         ax2.annotate('Ref', (diff_vc_o, diff_ec_o),
                  textcoords="offset points",
-                 xytext=(10, -10),
-                 ha='left',
+                 xytext=(-10, -10),
+                 ha='right',
                  color='k',
                  fontsize=12,
                  fontweight='bold',
@@ -487,8 +486,8 @@ def plot_heatmaps(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label,
                 'Tuned',
                 (diff_vc_vec[j], diff_ec_vec[i]),
                 textcoords="offset points",
-                xytext=(-10, -10),
-                ha='right',
+                xytext=(10, 10),
+                ha='left',
                 color='k',
                 fontsize=12,
                 fontweight='bold',
@@ -508,8 +507,8 @@ def plot_heatmaps(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label,
 
         ax3.annotate('Ref', (diff_vc_o, diff_ec_o),
             textcoords="offset points",
-            xytext=(10, -10),                 
-            ha='left',
+            xytext=(-10, -10),                 
+            ha='right',
             color='k',
             fontsize=12,
             fontweight='bold',

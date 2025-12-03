@@ -1,16 +1,18 @@
 """ Utilities for running simulations."""
 
-from src import cellsim as cellsim
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 
+from src import cellsim as cellsim
 
 def run_sim(type, 
-            diff_ec, 
-            diff_vc, 
+            diff_ec=3.665e-20,
+            diff_vc=3.162e-17,
+            rho_ec=1.6,
+            rho_vc=1.3,
             kappa_ec=4.771e-4,
             kappa_vc=2.05e-5,
             gamma_kappa=3000, 
@@ -51,6 +53,10 @@ def run_sim(type,
     # Update SEI conductivities
     cell.kappa_SEI1 = kappa_ec
     cell.kappa_SEI2 = kappa_vc
+
+    # Update SEI densities
+    cell.rho_SEI1 = rho_ec
+    cell.rho_SEI2 = rho_vc
 
     # Update EC diffusivity
     cell.D_SEI11 = diff_ec
@@ -304,15 +310,111 @@ def calculate_rmse(t_meas, y_meas, t_modl, y_modl,
     return rmse, t_modl, np.sqrt(squared_error)
 
 
-def plot_heatmaps(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label, 
-                    is_error_plot=True, 
+def plot_heatmaps_rho(ec_vec, vc_vec, 
+                    mat1, mat2, mat3, 
+                    label, 
                     zmin=None, 
                     zmax=None, 
                     tosave=False, 
-                    savename='temp.svg', 
-                    to_annotate=False,
-                    to_show_tuned=True, 
-                    is_kappa=False):
+                    savename='temp.svg'):
+
+    #  Create a meshgrid for X and Y axes
+    X, Y = np.meshgrid(vc_vec, ec_vec)
+
+    # Create subplots for the three formation protocols
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(11, 4))
+    [ax.set_xlim([min(vc_vec), max(vc_vec)]) for ax in (ax1, ax2, ax3)]
+    [ax.set_ylim([min(ec_vec), max(ec_vec)]) for ax in (ax1, ax2, ax3)]
+    [ax.set_xlabel(r'$\rho_{\mathrm{LVDC}}$ (g/cm$^3$)') for ax in (ax1, ax2, ax3)]
+    [ax.set_ylabel(r'$\rho_{\mathrm{LEDC}}$ (g/cm$^3$)') for ax in (ax1, ax2, ax3)]
+    [ax.grid(True, which="both", ls="-", alpha=0.2) for ax in (ax1, ax2, ax3)]
+
+    # Get the colormap and create a discrete version with 10 bins
+    cmap = cm.get_cmap('viridis_r', 20)
+
+    # Base Formation
+    pcm1 = ax1.pcolormesh(X, Y, mat1, shading='auto', cmap=cmap)
+    plt.colorbar(pcm1, ax=ax1, label=label, orientation='horizontal', pad=0.2)
+    pcm1.set_clim(zmin, zmax)
+    i, j = np.unravel_index(np.nanargmin(mat1), mat1.shape)
+    ax1.set_title('Base Formation')
+    ax1.grid(False)
+
+    # Fast Formation
+    pcm2 = ax2.pcolormesh(X, Y, mat2, shading='auto', cmap=cmap)
+    plt.colorbar(pcm2, ax=ax2, label=label, orientation='horizontal', pad=0.2)
+    pcm2.set_clim(zmin, zmax)
+    ax2.set_title('Fast Formation')
+    ax2.grid(False)
+
+    # Fast+ Formation
+    pcm3 = ax3.pcolormesh(X, Y, mat3, shading='auto', cmap=cmap)
+    plt.colorbar(pcm3, ax=ax3, label=label, orientation='horizontal', pad=0.2)
+    pcm3.set_clim(zmin, zmax)
+    ax3.set_title('Fast+ Formation')
+    ax3.grid(False)
+
+
+    i, j = np.unravel_index(np.nanargmin(mat1), mat1.shape)
+
+    ax1.plot(vc_vec[j], ec_vec[i], 'r*', markersize=16, label=f'({vc_vec[j]:.2f}, {ec_vec[i]:.2f})')
+    # ax1.legend(loc='upper right', fontsize=10)
+    ax1.annotate(
+        'Tuned',
+        (vc_vec[j], ec_vec[i]),
+        textcoords="offset points",
+        xytext=(10, 10),
+        ha='left',
+        color='k',
+        fontsize=12,
+        fontweight='bold',
+        bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
+    )
+
+    i, j = np.unravel_index(np.nanargmin(mat2), mat2.shape)
+    
+    ax2.plot(vc_vec[j], ec_vec[i], 'r*', markersize=15)
+
+    ax2.annotate(
+        'Tuned',
+        (vc_vec[j], ec_vec[i]),
+        textcoords="offset points",
+        xytext=(10, -10),
+        ha='left',
+        color='k',
+        fontsize=12,
+        fontweight='bold',
+        bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
+    )
+        
+    i, j = np.unravel_index(np.nanargmin(mat3), mat3.shape)
+
+    ax3.plot(vc_vec[j], ec_vec[i], 'r*', markersize=15)
+    
+    ax3.annotate(
+                'Tuned',
+                (vc_vec[j], ec_vec[i]),
+                textcoords="offset points",
+                xytext=(10, 10),
+                ha='left',
+                color='k',
+                fontsize=12,
+                fontweight='bold',
+                bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
+            )
+
+    plt.tight_layout()
+
+    if tosave:
+        plt.savefig(savename, bbox_inches='tight', format='svg')
+
+
+def plot_heatmaps_diff(diff_ec_vec, diff_vc_vec, 
+                 mat1, mat2, mat3, label, 
+                    zmin=None, 
+                    zmax=None, 
+                    tosave=False, 
+                    savename='temp.svg'):
 
     # Reference diffusivities from Weng2023
     diff_ec_ow = 4.2e-20  # Baseline d_ec from Weng2023
@@ -321,16 +423,10 @@ def plot_heatmaps(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label,
     # Global / reference from optimizing expansion RMSE from baseline formation
     # diff_ec_o = 3.831e-20
     # diff_vc_o = 2.154e-17
-
-    if is_kappa:
-        diff_vc_o = 2.05e-5*1000
-        diff_ec_o = 4.771e-4*1000
-    else:
-        diff_vc_o = 4.217e-16 # old set
-        diff_ec_o = 3.162e-20 # old set
-        diff_vc_o = 3.162e-17 # new set (after kappa optimization)
-        diff_ec_o = 3.665e-20 # new set (after kappa optimization)
-
+    diff_vc_o = 4.217e-16 # old set
+    diff_ec_o = 3.162e-20 # old set
+    diff_vc_o = 3.162e-17 # new set (after kappa optimization)
+    diff_ec_o = 3.665e-20 # new set (after kappa optimization)
     # diff_ec_o = 3.162e-20  # Baseline d_ec from the latest study
     # diff_vc_o = 4.217e-16  # Baseline d_vc from the latest study
 
@@ -341,15 +437,11 @@ def plot_heatmaps(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label,
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(11, 4))
     [ax.set_xlim([min(diff_vc_vec), max(diff_vc_vec)]) for ax in (ax1, ax2, ax3)]
     [ax.set_ylim([min(diff_ec_vec), max(diff_ec_vec)]) for ax in (ax1, ax2, ax3)]
-    if not is_kappa:
-        [ax.set_xscale('log') for ax in (ax1, ax2, ax3)]
-        [ax.set_yscale('log') for ax in (ax1, ax2, ax3)]
-    if is_kappa:
-        [ax.set_xlabel('$\kappa_{\mathrm{LVDC}}$ (mS/m)') for ax in (ax1, ax2, ax3)]
-        [ax.set_ylabel('$\kappa_{\mathrm{LEDC}}$ (mS/m)') for ax in (ax1, ax2, ax3)]
-    else:
-        [ax.set_xlabel('$D_{\mathrm{LVDC}}$ (m²/s)') for ax in (ax1, ax2, ax3)]
-        [ax.set_ylabel('$D_{\mathrm{LEDC}}$ (m²/s)') for ax in (ax1, ax2, ax3)]
+    [ax.set_xscale('log') for ax in (ax1, ax2, ax3)]
+    [ax.set_yscale('log') for ax in (ax1, ax2, ax3)]
+    [ax.set_xlabel('$D_{\mathrm{LVDC}}$ (m²/s)') for ax in (ax1, ax2, ax3)]
+    [ax.set_ylabel('$D_{\mathrm{LEDC}}$ (m²/s)') for ax in (ax1, ax2, ax3)]
+
     [ax.grid(True, which="both", ls="-", alpha=0.2) for ax in (ax1, ax2, ax3)]
 
 
@@ -379,141 +471,55 @@ def plot_heatmaps(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label,
     ax3.set_title('Fast+ Formation')
     ax3.grid(False)
 
-    if is_error_plot:
-        i, j = np.unravel_index(np.nanargmin(mat1), mat1.shape)
+    i, j = np.unravel_index(np.nanargmin(mat1), mat1.shape)
 
-        
-        # ax1.plot(diff_vc_ow, diff_ec_ow, 'b*', markersize=14)
+    ax1.plot(diff_vc_vec[j], diff_ec_vec[i], 'r*', markersize=16,
+    label=f'Min RMSE at\nD_EC={diff_ec_vec[i]:.2e}\nD_VC={diff_vc_vec[j]:.2e}')
 
-        if to_show_tuned:
+    ax1.annotate(
+        'Tuned',
+        (diff_vc_vec[j], diff_ec_vec[i]),
+        textcoords="offset points",
+        xytext=(10, 10),
+        ha='left',
+        color='k',
+        fontsize=12,
+        fontweight='bold',
+        bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
+    )
 
-            ax1.plot(diff_vc_vec[j], diff_ec_vec[i], 'r*', markersize=16,
-             label=f'Min RMSE at\nD_EC={diff_ec_vec[i]:.2e}\nD_VC={diff_vc_vec[j]:.2e}')
-
-            ax1.annotate(
-                'Tuned',
-                (diff_vc_vec[j], diff_ec_vec[i]),
-                textcoords="offset points",
-                xytext=(10, 10),
-                ha='left',
-                color='k',
-                fontsize=12,
-                fontweight='bold',
-                bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
-            )
+    i, j = np.unravel_index(np.nanargmin(mat2), mat2.shape)
     
-        ax1.plot(diff_vc_o, diff_ec_o, 'b*', markersize=14)
-        ax1.annotate('Ref', (diff_vc_o, diff_ec_o),
-            textcoords="offset points",
-            xytext=(-10, -10),                 
-            ha='right',
-            color='k',
-            fontsize=12,
-            fontweight='bold',
-            bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
-        )
+    ax2.plot(diff_vc_vec[j], diff_ec_vec[i], 'r*', markersize=15)
 
-        # ax1.annotate('Ref', (diff_vc_ow, diff_ec_ow),
-        #     textcoords="offset points",
-        #     xytext=(-10, 10),                 
-        #     ha='right',
-        #     color='k',
-        #     fontsize=12,
-        #     fontweight='bold',
-        #     bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
-        # )
-
-        if to_annotate: 
-            ax1.annotate(f'({diff_vc_vec[j]:.3e},\n {diff_ec_vec[i]:.3e})',
-                     (diff_vc_vec[j], diff_ec_vec[i]),
-                     textcoords="offset points",
-                     xytext=(10, -10),
-                     ha='left',
-                     color='red',
-                     fontsize=8)
-
-        i, j = np.unravel_index(np.nanargmin(mat2), mat2.shape)
+    ax2.annotate(
+        'Tuned',
+        (diff_vc_vec[j], diff_ec_vec[i]),
+        textcoords="offset points",
+        xytext=(10, -10),
+        ha='left',
+        color='k',
+        fontsize=12,
+        fontweight='bold',
+        bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
+    )
         
-        ax2.plot(diff_vc_o, diff_ec_o, 'g*', markersize=15)
+    i, j = np.unravel_index(np.nanargmin(mat3), mat3.shape)
 
+    ax3.plot(diff_vc_vec[j], diff_ec_vec[i], 'r*', markersize=15,
+    label=f'Min RMSE at\nD_EC={diff_ec_vec[i]:.2e}\nD_VC={diff_vc_vec[j]:.2e}')
 
-        if to_show_tuned: 
-
-            ax2.plot(diff_vc_vec[j], diff_ec_vec[i], 'r*', markersize=15,
-            label=f'Min RMSE at\nD_EC={diff_ec_vec[i]:.2e}\nD_VC={diff_vc_vec[j]:.2e}')
-        
-            ax2.annotate(
-                'Tuned',
-                (diff_vc_vec[j], diff_ec_vec[i]),
-                textcoords="offset points",
-                xytext=(10, -10),
-                ha='left',
-                color='k',
-                fontsize=12,
-                fontweight='bold',
-                bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
-            )
-            if to_annotate:
-                ax2.annotate(f'({diff_vc_vec[j]:.1e},\n {diff_ec_vec[i]:.1e})',
-                        (diff_vc_vec[j], diff_ec_vec[i]),
-                        textcoords="offset points",
-                        xytext=(10, -10),
-                        ha='left',
-                        color='red',
-                        fontsize=8) 
-    
-        ax2.plot(diff_vc_o, diff_ec_o, 'b*', markersize=14)
-
-        ax2.annotate('Ref', (diff_vc_o, diff_ec_o),
-                 textcoords="offset points",
-                 xytext=(-10, -10),
-                 ha='right',
-                 color='k',
-                 fontsize=12,
-                 fontweight='bold',
-                 bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
-        )
-
-        i, j = np.unravel_index(np.nanargmin(mat3), mat3.shape)
-
-        if to_show_tuned:
-                
-            ax3.plot(diff_vc_vec[j], diff_ec_vec[i], 'r*', markersize=15,
-             label=f'Min RMSE at\nD_EC={diff_ec_vec[i]:.2e}\nD_VC={diff_vc_vec[j]:.2e}')
-       
-       
-            ax3.annotate(
-                'Tuned',
-                (diff_vc_vec[j], diff_ec_vec[i]),
-                textcoords="offset points",
-                xytext=(10, 10),
-                ha='left',
-                color='k',
-                fontsize=12,
-                fontweight='bold',
-                bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
-            )
-
-            if to_annotate:
-                ax3.annotate(f'({diff_vc_vec[j]:.3e},\n {diff_ec_vec[i]:.3e})',
-                        (diff_vc_vec[j], diff_ec_vec[i]),
-                        textcoords="offset points",
-                        xytext=(10, -10),
-                        ha='left',
-                        color='red',
-                        fontsize=8)
-    
-        ax3.plot(diff_vc_o, diff_ec_o, 'b*', markersize=15)
-
-        ax3.annotate('Ref', (diff_vc_o, diff_ec_o),
-            textcoords="offset points",
-            xytext=(-10, -10),                 
-            ha='right',
-            color='k',
-            fontsize=12,
-            fontweight='bold',
-            bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
-        )
+    ax3.annotate(
+        'Tuned',
+        (diff_vc_vec[j], diff_ec_vec[i]),
+        textcoords="offset points",
+        xytext=(10, 10),
+        ha='left',
+        color='k',
+        fontsize=12,
+        fontweight='bold',
+        bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
+    )
 
     plt.tight_layout()
 
@@ -521,15 +527,11 @@ def plot_heatmaps(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label,
         plt.savefig(savename, bbox_inches='tight', format='svg')
 
 
-def plot_diffusivity_heatmaps2(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label, is_error_plot=True, 
-                              zmin=None, zmax=None, tosave=False, savename='temp.svg', to_annotate=False,
-                              is_log_scale=True):
-
-    diff_ec_ow = 4.2e-20  # Baseline d_ec from Weng2023
-    diff_vc_ow = 6.6e-18  # Baseline d_vc from Weng2023
-
-    diff_ec_o = 3.162e-20  # Baseline d_ec from the latest study
-    diff_vc_o = 4.217e-16  # Baseline d_vc from the latest study
+def plot_heatmaps_kappa(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label, 
+                    zmin=None, 
+                    zmax=None, 
+                    tosave=False, 
+                    savename='temp.svg'):
 
     #  Create a meshgrid for X and Y axes
     X, Y = np.meshgrid(diff_vc_vec, diff_ec_vec)
@@ -538,11 +540,9 @@ def plot_diffusivity_heatmaps2(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(11, 4))
     [ax.set_xlim([min(diff_vc_vec), max(diff_vc_vec)]) for ax in (ax1, ax2, ax3)]
     [ax.set_ylim([min(diff_ec_vec), max(diff_ec_vec)]) for ax in (ax1, ax2, ax3)]
-    if is_log_scale:
-        [ax.set_xscale('log') for ax in (ax1, ax2, ax3)]
-        [ax.set_yscale('log') for ax in (ax1, ax2, ax3)]
-    [ax.set_xlabel('$D_{LVDC}^0$ (m²/s)') for ax in (ax1, ax2, ax3)]
-    [ax.set_ylabel('$D_{LEDC}^0$ (m²/s)') for ax in (ax1, ax2, ax3)]
+    [ax.set_xlabel('$\kappa_{\mathrm{LVDC}}$ (mS/m)') for ax in (ax1, ax2, ax3)]
+    [ax.set_ylabel('$\kappa_{\mathrm{LEDC}}$ (mS/m)') for ax in (ax1, ax2, ax3)]
+
     [ax.grid(True, which="both", ls="-", alpha=0.2) for ax in (ax1, ax2, ax3)]
 
 
@@ -551,7 +551,6 @@ def plot_diffusivity_heatmaps2(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label
 
     # Base Formation
     pcm1 = ax1.pcolormesh(X, Y, mat1, shading='auto', cmap=cmap)
-    vmin, vmax = np.nanmin(mat1), np.nanmax(mat1)
     plt.colorbar(pcm1, ax=ax1, label=label, orientation='horizontal', pad=0.2)
     pcm1.set_clim(zmin, zmax)
     i, j = np.unravel_index(np.nanargmin(mat1), mat1.shape)
@@ -572,131 +571,60 @@ def plot_diffusivity_heatmaps2(diff_ec_vec, diff_vc_vec, mat1, mat2, mat3, label
     ax3.set_title('Fast+ Formation')
     ax3.grid(False)
 
-    if is_error_plot:
-        i, j = np.unravel_index(np.nanargmin(mat1), mat1.shape)
-        ax1.plot(diff_vc_vec[j], diff_ec_vec[i], 'r*', markersize=16,
-             label=f'Min RMSE at\nD_EC={diff_ec_vec[i]:.2e}\nD_VC={diff_vc_vec[j]:.2e}')
+    i, j = np.unravel_index(np.nanargmin(mat1), mat1.shape)
+                    
+    ax1.plot(diff_vc_vec[j], diff_ec_vec[i], 'r*', markersize=16)
 
+    ax1.annotate(
+                'Tuned',
+                (diff_vc_vec[j], diff_ec_vec[i]),
+                textcoords="offset points",
+                xytext=(10, 10),
+                ha='left',
+                color='k',
+                fontsize=12,
+                fontweight='bold',
+                bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
+            )
+    
+    i, j = np.unravel_index(np.nanargmin(mat2), mat2.shape) 
+                    
+    ax2.plot(diff_vc_vec[j], diff_ec_vec[i], 'r*', markersize=15)
+
+    ax2.annotate(
+        'Tuned',
+        (diff_vc_vec[j], diff_ec_vec[i]),
+        textcoords="offset points",
+        xytext=(10, -10),
+        ha='left',
+        color='k',
+        fontsize=12,
+        fontweight='bold',
+        bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
+    )
+            
+    i, j = np.unravel_index(np.nanargmin(mat3), mat3.shape)
+
+    ax3.plot(diff_vc_vec[j], diff_ec_vec[i], 'r*', markersize=15)
         
-        ax1.plot(diff_vc_o, diff_ec_o, 'g*', markersize=14)
-        ax1.plot(diff_vc_ow, diff_ec_ow, 'b*', markersize=14)
-
-        ax1.annotate(
+    ax3.annotate(
             'Tuned',
             (diff_vc_vec[j], diff_ec_vec[i]),
             textcoords="offset points",
-            xytext=(0, -20),
-            ha='center',
-            color='k',
-            fontsize=12,
-            fontweight='bold',
-            bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
-        )
-    
-        ax1.annotate('Global', (diff_vc_o, diff_ec_o),
-            textcoords="offset points",
-            xytext=(10, 10),                 
+            xytext=(10, 10),
             ha='left',
             color='k',
             fontsize=12,
             fontweight='bold',
             bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
-        )
-
-        ax1.annotate('Ref', (diff_vc_ow, diff_ec_ow),
-            textcoords="offset points",
-            xytext=(-10, 10),                 
-            ha='right',
-            color='k',
-            fontsize=12,
-            fontweight='bold',
-            bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
-        )
-        
-        # ax1.annotate(f'({diff_vc_vec[j]:.3e},\n {diff_ec_vec[i]:.3e})',
-        #              (diff_vc_vec[j], diff_ec_vec[i]),
-        #              textcoords="offset points",
-        #              xytext=(10, -10),
-        #              ha='left',
-        #              color='red',
-        #              fontsize=8)
-
-        i, j = np.unravel_index(np.nanargmin(mat2), mat2.shape)
-        ax2.plot(diff_vc_vec[j], diff_ec_vec[i], 'r*', markersize=15,
-             label=f'Min RMSE at\nD_EC={diff_ec_vec[i]:.2e}\nD_VC={diff_vc_vec[j]:.2e}')
-        ax2.plot(diff_vc_o, diff_ec_o, 'g*', markersize=15)
-        # ax2.annotate(f'({diff_vc_vec[j]:.1e},\n {diff_ec_vec[i]:.1e})',
-        #              (diff_vc_vec[j], diff_ec_vec[i]),
-        #              textcoords="offset points",
-        #              xytext=(10, -10),
-        #              ha='left',
-        #              color='red',
-        #              fontsize=8) 
-        
-        ax2.plot(diff_vc_o, diff_ec_o, 'g*', markersize=14)
-
-        
-        ax2.annotate(
-            'Tuned',
-            (diff_vc_vec[j], diff_ec_vec[i]),
-            textcoords="offset points",
-            xytext=(-10, -10),
-            ha='right',
-            color='k',
-            fontsize=12,
-            fontweight='bold',
-            bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
-        )
-    
-        ax2.annotate('Global', (diff_vc_o, diff_ec_o),
-                 textcoords="offset points",
-                 xytext=(10, 10),
-                 ha='left',
-                 color='k',
-                 fontsize=12,
-                 fontweight='bold',
-                 bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
-        )
-
-        i, j = np.unravel_index(np.nanargmin(mat3), mat3.shape)
-        ax3.plot(diff_vc_vec[j], diff_ec_vec[i], 'r*', markersize=15,
-             label=f'Min RMSE at\nD_EC={diff_ec_vec[i]:.2e}\nD_VC={diff_vc_vec[j]:.2e}')
-        ax3.plot(diff_vc_o, diff_ec_o, 'g*', markersize=15)
-        # ax3.annotate(f'({diff_vc_vec[j]:.1e},\n {diff_ec_vec[i]:.1e})',
-                    #  (diff_vc_vec[j], diff_ec_vec[i]),
-                    #  textcoords="offset points",
-                    #  xytext=(10, -10),
-                    #  ha='left',
-                    #  color='red',
-                    #  fontsize=8)
-
-        ax3.annotate(
-            'Tuned',
-            (diff_vc_vec[j], diff_ec_vec[i]),
-            textcoords="offset points",
-            xytext=(-10, -10),
-            ha='right',
-            color='k',
-            fontsize=12,
-            fontweight='bold',
-            bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
-        )
-    
-        ax3.annotate('Global', (diff_vc_o, diff_ec_o),
-            textcoords="offset points",
-            xytext=(10, 10),                 
-            ha='left',
-            color='k',
-            fontsize=12,
-            fontweight='bold',
-            bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
-        )
-        
+                )
 
     plt.tight_layout()
 
     if tosave:
         plt.savefig(savename, bbox_inches='tight', format='svg')
+
+
 
 
 def interpolate_raw_data(t, y, dt):

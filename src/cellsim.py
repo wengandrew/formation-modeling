@@ -173,11 +173,13 @@ class Simulation:
 
         self.R_sei1     = mu.initialize(self.t,
                                 self.delta_sei1[0] /
-                                (cell.kappa_SEI1 * cell.a_sn * cell.A_n * cell.L_n))
+                                (cell.kappa_SEI1 * (3 * cell.epsilon_n / ( cell.R_n * (1 + cell.En(cell.theta_n))**(1/3) ) * cell.A_n * cell.L_n))
+                                )
 
         self.R_sei2     = mu.initialize(self.t,
                                 self.delta_sei2[0] /
-                                (cell.kappa_SEI2 * cell.a_sn * cell.A_n * cell.L_n))
+                                (cell.kappa_SEI2 * (3 * cell.epsilon_n / ( cell.R_n * (1 + cell.En(cell.theta_n))**(1/3) ) * cell.A_n * cell.L_n))
+                                )
 
         self.R_sei   = mu.initialize(self.t, self.R_sei1[0] + self.R_sei2[0])
  
@@ -218,6 +220,7 @@ class Simulation:
                           ( 1 - np.exp(-self.dt/(p.R1p*p.C1p)) ) * p.R1p + p.R0p )
 
 
+
         dQint = self.i_int[k] * self.dt / 3600 # Amp-hours
         dQapp = self.i_app[k] * self.dt / 3600 # Amp-hours
 
@@ -225,6 +228,9 @@ class Simulation:
 
         self.theta_n[k + 1] = self.theta_n[k] + dQint / p.Cn
         self.theta_p[k + 1] = self.theta_p[k] - dQapp / p.Cp
+
+        N = 163045167
+        curr_epsilon_n = N * 4/3 * np.pi * p.R_n**3 * (1 + self.cell.En(self.theta_n[k+1])) / (p.A_n * p.L_n)
 
         # Equilibrium potential updates
         self.ocv_n[k + 1] = self.cell.Un(self.theta_n[k + 1])
@@ -252,8 +258,8 @@ class Simulation:
             self.vt[k+1] = vcv
 
         # SEI growth update
-        self.eta_sei1[k+1] = self.eta_n[k+1] + self.ocv_n[k+1] - p.U_SEI1
-        self.eta_sei2[k+1] = self.eta_n[k+1] + self.ocv_n[k+1] - p.U_SEI2
+        self.eta_sei1[k+1] = -self.eta_n[k+1] + self.ocv_n[k+1] - p.U_SEI1
+        self.eta_sei2[k+1] = -self.eta_n[k+1] + self.ocv_n[k+1] - p.U_SEI2
 
         # Mixed reaction and diffusion limited SEI current density
         # Boosted SEI reaction during cycling
@@ -293,17 +299,30 @@ class Simulation:
         self.j_sei[k+1] = self.j_sei1[k+1] + self.j_sei2[k+1]
 
         ## Current density to current conversion
-        self.i_sei[k+1]  = self.j_sei[k+1]  * (p.a_sn * p.A_n * p.L_n)
-        self.i_sei1[k+1] = self.j_sei1[k+1] * (p.a_sn * p.A_n * p.L_n)
-        self.i_sei2[k+1] = self.j_sei2[k+1] * (p.a_sn * p.A_n * p.L_n)
+        # self.i_sei[k+1]  = self.j_sei[k+1]  * ( (3 * p.epsilon_n / (p.R_n * (1 + self.cell.En(self.theta_n[k+1]))**(1/3))) * p.A_n * p.L_n)
+        # self.i_sei1[k+1] = self.j_sei1[k+1] * ( (3 * p.epsilon_n / (p.R_n * (1 + self.cell.En(self.theta_n[k+1]))**(1/3))) * p.A_n * p.L_n)
+        # self.i_sei2[k+1] = self.j_sei2[k+1] * ( (3 * p.epsilon_n / (p.R_n * (1 + self.cell.En(self.theta_n[k+1]))**(1/3))) * p.A_n * p.L_n)
+
+        self.i_sei[k+1]  = self.j_sei[k+1]  * ( (3 * curr_epsilon_n / (p.R_n * (1 + self.cell.En(self.theta_n[k+1]))**(1/3))) * p.A_n * p.L_n)
+        self.i_sei1[k+1] = self.j_sei1[k+1] * ( (3 * curr_epsilon_n / (p.R_n * (1 + self.cell.En(self.theta_n[k+1]))**(1/3))) * p.A_n * p.L_n)
+        self.i_sei2[k+1] = self.j_sei2[k+1] * ( (3 * curr_epsilon_n / (p.R_n * (1 + self.cell.En(self.theta_n[k+1]))**(1/3))) * p.A_n * p.L_n) 
+
+        # self.i_sei[k+1]  = self.j_sei[k+1]  * ( 3 * p.epsilon_n / p.R_n ) * p.A_n * p.L_n 
+        # self.i_sei1[k+1] = self.j_sei1[k+1] * ( 3 * p.epsilon_n / p.R_n ) * p.A_n * p.L_n
+        # self.i_sei2[k+1] = self.j_sei2[k+1] * ( 3 * p.epsilon_n / p.R_n ) * p.A_n * p.L_n
 
         # Update SEI reacting species concentrations
         self.c_sei1[k+1] = self.c_sei1[k] - self.dt * \
-                            (p.a_sn * self.j_sei1[k+1] / (p.n_SEI1 * F))
+                            ((3 * curr_epsilon_n / (p.R_n * (1 + self.cell.En(self.theta_n[k+1]))**(1/3))) * self.j_sei1[k+1] / (p.n_SEI1 * F))
 
         self.c_sei2[k+1] = self.c_sei2[k] - self.dt * \
-                            (p.a_sn * self.j_sei2[k+1] / (p.n_SEI2 * F))
+                            ((3 * curr_epsilon_n / (p.R_n * (1 + self.cell.En(self.theta_n[k+1]))**(1/3))) * self.j_sei2[k+1] / (p.n_SEI2 * F))
 
+        # self.c_sei1[k+1] = self.c_sei1[k] - self.dt * \
+                            # ( 3 * p.epsilon_n / p.R_n ) * self.j_sei1[k+1] / (p.n_SEI1 * F)
+        # self.c_sei2[k+1] = self.c_sei2[k] - self.dt * \
+                            # ( 3 * p.epsilon_n / p.R_n ) * self.j_sei2[k+1] / (p.n_SEI2 * F)
+        
         # Update the intercalation current
         self.i_int[k+1] = self.i_app[k]  - self.i_sei[k+1]
 
@@ -335,11 +354,11 @@ class Simulation:
 
         # Update SEI thickness
         self.delta_sei1[k+1] = self.delta_sei1[k] + \
-                              self.dt * (p.V_SEI1 * \
+                              self.dt * ( (p.MW_SEI1 / (p.rho_SEI1 * 1e6)) * \
                                         np.abs(self.j_sei1[k+1]) ) / (p.n_SEI1 * F)
 
         self.delta_sei2[k+1] = self.delta_sei2[k] + \
-                              self.dt * (p.V_SEI2 * \
+                              self.dt * ( (p.MW_SEI2 / (p.rho_SEI2 * 1e6)) * \
                                         np.abs(self.j_sei2[k+1]) ) / (p.n_SEI2 * F)
 
         self.delta_sei[k+1] = self.delta_sei1[k+1] + self.delta_sei2[k+1]
@@ -366,9 +385,14 @@ class Simulation:
         # self.R_sei[k+1] = self.R_sei1[k+1] + self.R_sei2[k+1]
 
         self.R_sei1[k+1] = self.delta_sei1[k+1] / \
-                (p.kappa_SEI1 * (p.a_sn * p.A_n * p.L_n))
+                (p.kappa_SEI1 * ((3 * curr_epsilon_n / (p.R_n * (1 + self.cell.En(self.theta_n[k+1]))**(1/3))) * p.A_n * p.L_n))
         self.R_sei2[k+1] = self.delta_sei2[k+1] / \
-                (p.kappa_SEI2 * (p.a_sn * p.A_n * p.L_n))
+                (p.kappa_SEI2 * ((3 * curr_epsilon_n / (p.R_n * (1 + self.cell.En(self.theta_n[k+1]))**(1/3))) * p.A_n * p.L_n))
+
+        # self.R_sei1[k+1] = self.delta_sei1[k+1] / \
+                # (p.kappa_SEI1 * (3 * p.epsilon_n / p.R_n ) * p.A_n * p.L_n)
+        # self.R_sei2[k+1] = self.delta_sei2[k+1] / \
+                # (p.kappa_SEI2 * (3 * p.epsilon_n / p.R_n ) * p.A_n * p.L_n)
 
         self.R_sei[k+1] = self.R_sei1[k+1] + self.R_sei2[k+1]
 

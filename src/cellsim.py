@@ -266,10 +266,16 @@ class Simulation:
         self.dndt[k+1] = (self.delta_n[k+1] - self.delta_n[k]) / self.dt
 
         if self.i_app[k] > 0: # charging / lithiating graphite
-            self.boost[k+1] = self.boost[k] + self.dt / p.tau_boost * \
-                                 (self.dndt[k+1] * p.gamma_boost - self.boost[k])
+            if p.tau_boost != 0:
+                self.boost[k+1] = self.boost[k] + self.dt / p.tau_boost * \
+                                     (self.dndt[k+1] * p.gamma_boost - self.boost[k])
+            else:
+                self.boost[k+1] = self.boost[k]
         else: # discharging or resting
-            self.boost[k+1] = self.boost[k] - self.dt * self.boost[k] / p.tau_decay
+            if p.tau_decay != 0:
+                self.boost[k+1] = self.boost[k] - self.dt * self.boost[k] / p.tau_decay
+            else:
+                self.boost[k+1] = self.boost[k]
 
         # SEI limiting current densities
         self.j_sei_rxn1[k+1] = p.n_SEI1 * F * self.c_sei1[k] \

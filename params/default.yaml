@@ -15,7 +15,7 @@
 
  # SEI Properties
  alpha_SEI: 0.5       # [-]        SEI charge transfer coefficient
- gamma_boost: 2.4e+7  # s/m        Boost stress sensitivity
+ gamma_boost: 2.4e+7  # s/m        Boost stress sensitivity (set to 0 to turn off boosting)
  tau_boost: 600       # s          Boost activation rate
  tau_decay: 6000      # s          Boost decay rate
 

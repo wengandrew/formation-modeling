@@ -76,6 +76,9 @@ def En(sto):
     sto : stoichiometry of material (lithium fraction)
     """
 
+    if np.isnan(sto):
+        raise ValueError("En() received NaN stoichiometry value")
+
     if sto < 0.12:
         expansion = 0.2 * sto
     elif sto >= 0.12 and sto < 0.18:

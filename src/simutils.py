@@ -355,14 +355,15 @@ def calculate_rmse(t_meas, y_meas,
 
 
 def plot_heatmaps_rho(ec_vec, vc_vec, 
-                    mat1, mat2, mat3, 
-                    label, 
-                    zmin=None, 
-                    zmax=None, 
-                    tosave=False, 
-                    savename='temp.svg'):
-
-    to_annotate = False
+                   mat1, mat2, mat3, 
+                   label, 
+                   zmin=None, 
+                   zmax=None, 
+                   tosave=False, 
+                   to_annotate=False,
+                   annotation_orientation='vertical',
+                   annotation_coord=None,
+                   savename='temp.svg'):
 
     #  Create a meshgrid for X and Y axes
     X, Y = np.meshgrid(vc_vec, ec_vec)
@@ -401,74 +402,56 @@ def plot_heatmaps_rho(ec_vec, vc_vec,
     ax3.grid(False)
 
 
-    # Add the annotation markers
+    # Add the annotation markers and reference line, similar to plot_heatmaps_diff
     if to_annotate:
 
-        i1, j1 = np.unravel_index(np.nanargmin(mat1), mat1.shape)
+        # Default to previous hard-coded behavior for backward compatibility
+        if annotation_coord is None:
+            annotation_coord = 1.5  # g/cm^3 reference LVDC density
 
-        j1_ref = np.argmin(np.abs(vc_vec - 1.3))
-        i1_ref = np.nanargmin(mat1[:, j1_ref])
+        # Base Formation
+        if annotation_orientation == 'horizontal':
+            # Fix y (ec) at annotation_coord
+            i1_ref = np.argmin(np.abs(ec_vec - annotation_coord))
+            j1_ref = np.nanargmin(mat1[i1_ref, :])
+            ax1.axhline(y=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
+        else:
+            # Default: vertical line in vc
+            j1_ref = np.argmin(np.abs(vc_vec - annotation_coord))
+            i1_ref = np.nanargmin(mat1[:, j1_ref])
+            ax1.axvline(x=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
 
-        ax1.axvline(x=1.3, color='gray', linestyle=':', linewidth=1.5, alpha=0.7)
-        ax1.plot(vc_vec[j1_ref], ec_vec[i1_ref], 'bo', markersize=14) 
-        ax1.plot(vc_vec[j1_ref], ec_vec[i1_ref], 'r*', markersize=16, 
-                label=f'({vc_vec[j1_ref]:.2f}, {ec_vec[i1_ref]:.2f})')
+        ax1.plot(vc_vec[j1_ref], ec_vec[i1_ref], 'r*', markersize=10,
+                 label=f'({vc_vec[j1_ref]:.3g}, {ec_vec[i1_ref]:.3g})')
 
-        
-        # ax1.legend(loc='upper right', fontsize=10)
-        # ax1.annotate(
-        #     'Tuned',
-        #     (vc_vec[j1], ec_vec[i1]),
-        #     textcoords="offset points",
-        #     xytext=(10, 10),
-        #     ha='left',
-        #     color='k',
-        #     fontsize=12,
-        #     fontweight='bold',
-        #     bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
-        # )
+        # Fast Formation
+        if annotation_orientation == 'horizontal':
+            i2_ref = np.argmin(np.abs(ec_vec - annotation_coord))
+            j2_ref = np.nanargmin(mat2[i2_ref, :])
+            ax2.axhline(y=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
+        else:
+            j2_ref = np.argmin(np.abs(vc_vec - annotation_coord))
+            i2_ref = np.nanargmin(mat2[:, j2_ref])
+            ax2.axvline(x=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
 
-        i2, j2 = np.unravel_index(np.nanargmin(mat2), mat2.shape)
-        j2_ref = np.argmin(np.abs(vc_vec - 1.3))
-        i2_ref = np.nanargmin(mat2[:, j2_ref])
-        ax2.axvline(x=1.3, color='gray', linestyle=':', linewidth=1.5, alpha=0.7)
-        ax2.plot(vc_vec[j1_ref], ec_vec[i1_ref], 'bo', markersize=14)
-        ax2.plot(vc_vec[j2_ref], ec_vec[i2_ref], 'r*', markersize=16,
-        label=f'({vc_vec[j2_ref]:.2f}, {ec_vec[i2_ref]:.2f})')
+        ax2.plot(vc_vec[j2_ref], ec_vec[i2_ref], 'r*', markersize=10,
+                 label=f'({vc_vec[j2_ref]:.3g}, {ec_vec[i2_ref]:.3g})')
 
-        # ax2.annotate(
-        #     'Tuned',
-        #     (vc_vec[j2], ec_vec[i2]),
-        #     textcoords="offset points",
-        #     xytext=(10, -10),
-        #     ha='left',
-        #     color='k',
-        #     fontsize=12,
-        #     fontweight='bold',
-        #     bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
-        # )
-            
-        i3, j3 = np.unravel_index(np.nanargmin(mat3), mat3.shape)
-        j3_ref = np.argmin(np.abs(vc_vec - 1.3))
-        i3_ref = np.nanargmin(mat3[:, j3_ref])
-        ax3.axvline(x=1.3, color='gray', linestyle=':', linewidth=1.5, alpha=0.7)
-        ax3.plot(vc_vec[j1_ref], ec_vec[i1_ref], 'bo', markersize=14)
-        ax3.plot(vc_vec[j3_ref], ec_vec[i3_ref], 'r*', markersize=16,
-        label=f'({vc_vec[j3_ref]:.2f}, {ec_vec[i3_ref]:.2f})')
-    
-    # ax3.annotate(
-    #             'Tuned',
-    #             (vc_vec[j3], ec_vec[i3]),
-    #             textcoords="offset points",
-    #             xytext=(10, 10),
-    #             ha='left',
-    #             color='k',
-    #             fontsize=12,
-    #             fontweight='bold',
-    #             bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
-    #         )
+        # Fast+ Formation
+        if annotation_orientation == 'horizontal':
+            i3_ref = np.argmin(np.abs(ec_vec - annotation_coord))
+            j3_ref = np.nanargmin(mat3[i3_ref, :])
+            ax3.axhline(y=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
+        else:
+            j3_ref = np.argmin(np.abs(vc_vec - annotation_coord))
+            i3_ref = np.nanargmin(mat3[:, j3_ref])
+            ax3.axvline(x=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
 
-    # [ax.legend() for ax in (ax1, ax2, ax3)  ]    
+        ax3.plot(vc_vec[j3_ref], ec_vec[i3_ref], 'r*', markersize=10,
+                 label=f'({vc_vec[j3_ref]:.3g}, {ec_vec[i3_ref]:.3g})')
+
+    for ax in (ax1, ax2, ax3):
+        ax.legend(facecolor='lightgray', framealpha=1.0, frameon=True, fontsize=10)
 
     plt.tight_layout()
 
@@ -482,6 +465,8 @@ def plot_heatmaps_diff(diff_ec_vec, diff_vc_vec,
                  zmax=None, 
                  tosave=False, 
                  to_annotate=False,
+                 annotation_orientation='vertical',
+                 annotation_coord=None,
                  savename='temp.svg'):
 
     #  Create a meshgrid for X and Y axes
@@ -525,32 +510,63 @@ def plot_heatmaps_diff(diff_ec_vec, diff_vc_vec,
 
     if to_annotate:
 
-        i1, j1 = np.unravel_index(np.nanargmin(mat1), mat1.shape)
-        j1_ref = np.argmin(np.abs(diff_vc_vec - 1.58e-17))
-        i1_ref = np.nanargmin(mat1[:, j1_ref])
+        # Default to previous hard-coded behavior for backward compatibility
+        if annotation_coord is None:
+            annotation_coord = 1.3e-17
 
-        ax1.axvline(x=1.58e-17, color='gray', linestyle=':', linewidth=1.5, alpha=0.7)    
-        ax1.plot(diff_vc_vec[j1_ref], diff_ec_vec[i1_ref], 'bo', markersize=14)
-        ax1.plot(diff_vc_vec[j1], diff_ec_vec[i1], 'r*', markersize=16,
-        label=f'Min RMSE at\nD_EC={diff_ec_vec[i1]:.3e}\nD_VC={diff_vc_vec[j1]:.3e}')
+        i1, j1 = np.unravel_index(np.nanargmin(mat1), mat1.shape)
+
+        if annotation_orientation == 'horizontal':
+            # Fix y at annotation_coord
+            i1_ref = np.argmin(np.abs(diff_ec_vec - annotation_coord))
+            j1_ref = np.nanargmin(mat1[i1_ref, :])
+            ax1.axhline(y=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
+        else:
+            # Default: vertical line in x
+            j1_ref = np.argmin(np.abs(diff_vc_vec - annotation_coord))
+            i1_ref = np.nanargmin(mat1[:, j1_ref])
+            ax1.axvline(x=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
+
+        ax1.plot(diff_vc_vec[j1_ref], diff_ec_vec[i1_ref], 'r*', markersize=10,
+        label=f'({diff_vc_vec[j1_ref]:.3g}, {diff_ec_vec[i1_ref]:.3g})')
+        # ax1.plot(diff_vc_vec[j1], diff_ec_vec[i1], 'r*', markersize=16,
+        # label=f'Min RMSE at\nD_EC={diff_ec_vec[i1]:.3e}\nD_VC={diff_vc_vec[j1]:.3e}')
 
         i2, j2 = np.unravel_index(np.nanargmin(mat2), mat2.shape)
-        j2_ref = np.argmin(np.abs(diff_vc_vec - 1.58e-17))
-        i2_ref = np.nanargmin(mat2[:, j2_ref])
-        ax2.axvline(x=1.58e-17, color='gray', linestyle=':', linewidth=1.5, alpha=0.7)
-        ax2.plot(diff_vc_vec[j2_ref], diff_ec_vec[i2_ref], 'bo', markersize=14)
-        ax2.plot(diff_vc_vec[j2], diff_ec_vec[i2], 'r*', markersize=16,
-        label=f'Min RMSE at\nD_EC={diff_ec_vec[i2]:.3e}\nD_VC={diff_vc_vec[j2]:.3e}')
+
+        if annotation_orientation == 'horizontal':
+            i2_ref = np.argmin(np.abs(diff_ec_vec - annotation_coord))
+            j2_ref = np.nanargmin(mat2[i2_ref, :])
+            ax2.axhline(y=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
+        else:
+            j2_ref = np.argmin(np.abs(diff_vc_vec - annotation_coord))
+            i2_ref = np.nanargmin(mat2[:, j2_ref])
+            ax2.axvline(x=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
+
+        ax2.plot(diff_vc_vec[j2_ref], diff_ec_vec[i2_ref], 'r*', markersize=10,
+        label=f'({diff_vc_vec[j2_ref]:.3g}, {diff_ec_vec[i2_ref]:.3g})')
+        # ax2.plot(diff_vc_vec[j2], diff_ec_vec[i2], 'r*', markersize=16,
+        # label=f'Min RMSE at\nD_EC={diff_ec_vec[i2]:.3e}\nD_VC={diff_vc_vec[j2]:.3e}')
             
         i3, j3 = np.unravel_index(np.nanargmin(mat3), mat3.shape)
-        j3_ref = np.argmin(np.abs(diff_vc_vec - 1.58e-17))
-        i3_ref = np.nanargmin(mat3[:, j3_ref])
-        ax3.axvline(x=1.58e-17, color='gray', linestyle=':', linewidth=1.5, alpha=0.7)
-        ax3.plot(diff_vc_vec[j3_ref], diff_ec_vec[i3_ref], 'bo', markersize=14)
-        ax3.plot(diff_vc_vec[j3], diff_ec_vec[i3], 'r*', markersize=16,
-        label=f'Min RMSE at\nD_EC={diff_ec_vec[i3]:.3e}\nD_VC={diff_vc_vec[j3]:.3e}')
 
-    [ax.legend() for ax in (ax1, ax2, ax3)]
+        if annotation_orientation == 'horizontal':
+            i3_ref = np.argmin(np.abs(diff_ec_vec - annotation_coord))
+            j3_ref = np.nanargmin(mat3[i3_ref, :])
+            ax3.axhline(y=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
+        else:
+            j3_ref = np.argmin(np.abs(diff_vc_vec - annotation_coord))
+            i3_ref = np.nanargmin(mat3[:, j3_ref])
+            ax3.axvline(x=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
+
+        ax3.plot(diff_vc_vec[j3_ref], diff_ec_vec[i3_ref], 'r*', markersize=10,
+        label=f'({diff_vc_vec[j3_ref]:.3g}, {diff_ec_vec[i3_ref]:.3g})')
+        # ax3.plot(diff_vc_vec[j3], diff_ec_vec[i3], 'r*', markersize=16,
+        # label=f'Min RMSE at\nD_EC={diff_ec_vec[i3]:.3e}\nD_VC={diff_vc_vec[j3]:.3e}')
+
+    for ax in (ax1, ax2, ax3):
+        ax.legend(facecolor='lightgray', framealpha=1.0, frameon=True, fontsize=10)
+
     plt.tight_layout()
 
     if tosave:

@@ -59,11 +59,11 @@ class Cell:
 
     def get_tag(self):
 
-        tag = f'k={self.k_SEI1}, '\
-              f'D={self.D_SEI11}, '\
-              f'U={self.U_SEI1}, '
-
-        return tag
+        return ', '.join([
+            f'k={self.k_SEI1}',
+            f'D={self.D_SEI11}',
+            f'U={self.U_SEI1}',
+        ])
 
 
 
@@ -365,7 +365,7 @@ class Simulation:
         """
 
         if to_print:
-            print(f'Running Cyc{cycle_number}: Rest for {rest_time_hrs:2f} hours...')
+            print(f'Running Cyc{cycle_number}: Rest for {rest_time_hrs:.2f} hours...')
 
         k = self.curr_k
 

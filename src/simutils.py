@@ -313,6 +313,8 @@ def calculate_rmse(t_meas, y_meas,
     Returns:
     ----------
     rmse: root mean square error between model and measured data
+    t_modl: filtered/trimmed model time vector (after y_range / ignore_time_range)
+    pointwise_error: per-point sqrt(squared_error) array
     """
 
     # Create interpolation function for voltage data

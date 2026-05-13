@@ -354,101 +354,86 @@ def calculate_rmse(t_meas, y_meas,
     return rmse, t_modl, np.sqrt(squared_error)
 
 
-def plot_heatmaps_rho(ec_vec, vc_vec, 
-                   mat1, mat2, mat3, 
-                   label, 
-                   zmin=None, 
-                   zmax=None, 
-                   tosave=False, 
-                   to_annotate=False,
-                   annotation_orientation='vertical',
-                   annotation_coord=None,
-                   savename='temp.svg'):
+def _plot_heatmaps_base(x_vec, y_vec, mat1, mat2, mat3, label,
+                        x_label, y_label,
+                        zmin=None, zmax=None,
+                        xscale='linear', yscale='linear'):
+    """
+    Shared scaffold for plot_heatmaps_rho/diff/kappa.
 
-    #  Create a meshgrid for X and Y axes
-    X, Y = np.meshgrid(vc_vec, ec_vec)
+    Returns (fig, ax1, ax2, ax3, X, Y, pcm1, pcm2, pcm3) so callers can
+    add titles, annotations, and axis scales on top.
+    """
+    X, Y = np.meshgrid(x_vec, y_vec)
 
-    # Create subplots for the three formation protocols
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(11, 4))
-    [ax.set_xlim([min(vc_vec), max(vc_vec)]) for ax in (ax1, ax2, ax3)]
-    [ax.set_ylim([min(ec_vec), max(ec_vec)]) for ax in (ax1, ax2, ax3)]
-    [ax.set_xlabel(r'$\rho_{\mathrm{LVDC}}$ (g/cm$^3$)') for ax in (ax1, ax2, ax3)]
-    [ax.set_ylabel(r'$\rho_{\mathrm{LEDC}}$ (g/cm$^3$)') for ax in (ax1, ax2, ax3)]
-    [ax.grid(True, which="both", ls="-", alpha=0.2) for ax in (ax1, ax2, ax3)]
+    axes = (ax1, ax2, ax3)
 
-    # Get the colormap and create a discrete version with 10 bins
+    for ax in axes:
+        ax.set_xlim([min(x_vec), max(x_vec)])
+        ax.set_ylim([min(y_vec), max(y_vec)])
+        ax.set_xscale(xscale)
+        ax.set_yscale(yscale)
+        ax.set_xlabel(x_label)
+        ax.set_ylabel(y_label)
+        ax.grid(True, which='both', ls='-', alpha=0.2)
+
     cmap = cm.get_cmap('viridis_r', 20)
 
-    # Base Formation
-    pcm1 = ax1.pcolormesh(X, Y, mat1, shading='auto', cmap=cmap)
-    plt.colorbar(pcm1, ax=ax1, label=label, orientation='horizontal', pad=0.2)
-    pcm1.set_clim(zmin, zmax)
-    i, j = np.unravel_index(np.nanargmin(mat1), mat1.shape)
-    ax1.set_title('Base Formation')
-    ax1.grid(False)
+    pcms = []
+    for ax, mat, title in zip(axes, [mat1, mat2, mat3],
+                               ['Base Formation', 'Fast Formation', 'Fast+ Formation']):
+        pcm = ax.pcolormesh(X, Y, mat, shading='auto', cmap=cmap)
+        plt.colorbar(pcm, ax=ax, label=label, orientation='horizontal', pad=0.2)
+        pcm.set_clim(zmin, zmax)
+        ax.set_title(title)
+        ax.grid(False)
+        pcms.append(pcm)
 
-    # Fast Formation
-    pcm2 = ax2.pcolormesh(X, Y, mat2, shading='auto', cmap=cmap)
-    plt.colorbar(pcm2, ax=ax2, label=label, orientation='horizontal', pad=0.2)
-    pcm2.set_clim(zmin, zmax)
-    ax2.set_title('Fast Formation')
-    ax2.grid(False)
-
-    # Fast+ Formation
-    pcm3 = ax3.pcolormesh(X, Y, mat3, shading='auto', cmap=cmap)
-    plt.colorbar(pcm3, ax=ax3, label=label, orientation='horizontal', pad=0.2)
-    pcm3.set_clim(zmin, zmax)
-    ax3.set_title('Fast+ Formation')
-    ax3.grid(False)
+    return fig, ax1, ax2, ax3, X, Y, pcms[0], pcms[1], pcms[2]
 
 
-    # Add the annotation markers and reference line, similar to plot_heatmaps_diff
+def _annotate_heatmap_panels(axes, mats, x_vec, y_vec,
+                              annotation_coord, annotation_orientation):
+    """Add reference-line + star marker to each panel of a heatmap trio."""
+    for ax, mat in zip(axes, mats):
+        if annotation_orientation == 'horizontal':
+            i_ref = np.argmin(np.abs(y_vec - annotation_coord))
+            j_ref = np.nanargmin(mat[i_ref, :])
+            ax.axhline(y=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
+        else:
+            j_ref = np.argmin(np.abs(x_vec - annotation_coord))
+            i_ref = np.nanargmin(mat[:, j_ref])
+            ax.axvline(x=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
+        ax.plot(x_vec[j_ref], y_vec[i_ref], 'r*', markersize=10,
+                label=f'({x_vec[j_ref]:.3g}, {y_vec[i_ref]:.3g})')
+
+
+def plot_heatmaps_rho(ec_vec, vc_vec,
+                      mat1, mat2, mat3,
+                      label,
+                      zmin=None,
+                      zmax=None,
+                      tosave=False,
+                      to_annotate=False,
+                      annotation_orientation='vertical',
+                      annotation_coord=None,
+                      savename='temp.svg'):
+
+    fig, ax1, ax2, ax3, *_ = _plot_heatmaps_base(
+        vc_vec, ec_vec, mat1, mat2, mat3, label,
+        x_label=r'$\rho_{\mathrm{LVDC}}$ (g/cm$^3$)',
+        y_label=r'$\rho_{\mathrm{LEDC}}$ (g/cm$^3$)',
+        zmin=zmin, zmax=zmax,
+    )
+
     if to_annotate:
-
-        # Default to previous hard-coded behavior for backward compatibility
         if annotation_coord is None:
-            annotation_coord = 1.5  # g/cm^3 reference LVDC density
-
-        # Base Formation
-        if annotation_orientation == 'horizontal':
-            # Fix y (ec) at annotation_coord
-            i1_ref = np.argmin(np.abs(ec_vec - annotation_coord))
-            j1_ref = np.nanargmin(mat1[i1_ref, :])
-            ax1.axhline(y=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
-        else:
-            # Default: vertical line in vc
-            j1_ref = np.argmin(np.abs(vc_vec - annotation_coord))
-            i1_ref = np.nanargmin(mat1[:, j1_ref])
-            ax1.axvline(x=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
-
-        ax1.plot(vc_vec[j1_ref], ec_vec[i1_ref], 'r*', markersize=10,
-                 label=f'({vc_vec[j1_ref]:.3g}, {ec_vec[i1_ref]:.3g})')
-
-        # Fast Formation
-        if annotation_orientation == 'horizontal':
-            i2_ref = np.argmin(np.abs(ec_vec - annotation_coord))
-            j2_ref = np.nanargmin(mat2[i2_ref, :])
-            ax2.axhline(y=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
-        else:
-            j2_ref = np.argmin(np.abs(vc_vec - annotation_coord))
-            i2_ref = np.nanargmin(mat2[:, j2_ref])
-            ax2.axvline(x=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
-
-        ax2.plot(vc_vec[j2_ref], ec_vec[i2_ref], 'r*', markersize=10,
-                 label=f'({vc_vec[j2_ref]:.3g}, {ec_vec[i2_ref]:.3g})')
-
-        # Fast+ Formation
-        if annotation_orientation == 'horizontal':
-            i3_ref = np.argmin(np.abs(ec_vec - annotation_coord))
-            j3_ref = np.nanargmin(mat3[i3_ref, :])
-            ax3.axhline(y=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
-        else:
-            j3_ref = np.argmin(np.abs(vc_vec - annotation_coord))
-            i3_ref = np.nanargmin(mat3[:, j3_ref])
-            ax3.axvline(x=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
-
-        ax3.plot(vc_vec[j3_ref], ec_vec[i3_ref], 'r*', markersize=10,
-                 label=f'({vc_vec[j3_ref]:.3g}, {ec_vec[i3_ref]:.3g})')
+            annotation_coord = 1.5
+        _annotate_heatmap_panels(
+            (ax1, ax2, ax3), (mat1, mat2, mat3),
+            vc_vec, ec_vec, annotation_coord, annotation_orientation,
+        )
 
     for ax in (ax1, ax2, ax3):
         ax.legend(facecolor='lightgray', framealpha=1.0, frameon=True, fontsize=10)
@@ -459,110 +444,31 @@ def plot_heatmaps_rho(ec_vec, vc_vec,
         plt.savefig(savename, bbox_inches='tight', format='svg')
 
 
-def plot_heatmaps_diff(diff_ec_vec, diff_vc_vec, 
-                 mat1, mat2, mat3, label, 
-                 zmin=None, 
-                 zmax=None, 
-                 tosave=False, 
-                 to_annotate=False,
-                 annotation_orientation='vertical',
-                 annotation_coord=None,
-                 savename='temp.svg'):
+def plot_heatmaps_diff(diff_ec_vec, diff_vc_vec,
+                       mat1, mat2, mat3, label,
+                       zmin=None,
+                       zmax=None,
+                       tosave=False,
+                       to_annotate=False,
+                       annotation_orientation='vertical',
+                       annotation_coord=None,
+                       savename='temp.svg'):
 
-    #  Create a meshgrid for X and Y axes
-    X, Y = np.meshgrid(diff_vc_vec, diff_ec_vec)
-
-    # Create subplots for the three formation protocols
-    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(11, 4))
-    [ax.set_xlim([min(diff_vc_vec), max(diff_vc_vec)]) for ax in (ax1, ax2, ax3)]
-    [ax.set_ylim([min(diff_ec_vec), max(diff_ec_vec)]) for ax in (ax1, ax2, ax3)]
-    [ax.set_xscale('log') for ax in (ax1, ax2, ax3)]
-    [ax.set_yscale('log') for ax in (ax1, ax2, ax3)]
-    [ax.set_xlabel(r'$D_{\mathrm{LVDC}}$ (m²/s)') for ax in (ax1, ax2, ax3)]
-    [ax.set_ylabel(r'$D_{\mathrm{LEDC}}$ (m²/s)') for ax in (ax1, ax2, ax3)]
-    [ax.grid(True, which="both", ls="-", alpha=0.2) for ax in (ax1, ax2, ax3)]
-
-
-    # Get the colormap and create a discrete version with 10 bins
-    cmap = cm.get_cmap('viridis_r', 20)
-
-    # Base Formation
-    pcm1 = ax1.pcolormesh(X, Y, mat1, shading='auto', cmap=cmap)
-    plt.colorbar(pcm1, ax=ax1, label=label, orientation='horizontal', pad=0.2)
-    pcm1.set_clim(zmin, zmax)
-    i, j = np.unravel_index(np.nanargmin(mat1), mat1.shape)
-    ax1.set_title('Base Formation')
-    ax1.grid(False)
-
-    # Fast Formation
-    pcm2 = ax2.pcolormesh(X, Y, mat2, shading='auto', cmap=cmap)
-    plt.colorbar(pcm2, ax=ax2, label=label, orientation='horizontal', pad=0.2)
-    pcm2.set_clim(zmin, zmax)
-    ax2.set_title('Fast Formation')
-    ax2.grid(False)
-
-    # Fast+ Formation
-    pcm3 = ax3.pcolormesh(X, Y, mat3, shading='auto', cmap=cmap)
-    plt.colorbar(pcm3, ax=ax3, label=label, orientation='horizontal', pad=0.2)
-    pcm3.set_clim(zmin, zmax)
-    ax3.set_title('Fast+ Formation')
-    ax3.grid(False)
+    fig, ax1, ax2, ax3, *_ = _plot_heatmaps_base(
+        diff_vc_vec, diff_ec_vec, mat1, mat2, mat3, label,
+        x_label=r'$D_{\mathrm{LVDC}}$ (m²/s)',
+        y_label=r'$D_{\mathrm{LEDC}}$ (m²/s)',
+        zmin=zmin, zmax=zmax,
+        xscale='log', yscale='log',
+    )
 
     if to_annotate:
-
-        # Default to previous hard-coded behavior for backward compatibility
         if annotation_coord is None:
             annotation_coord = 1.3e-17
-
-        i1, j1 = np.unravel_index(np.nanargmin(mat1), mat1.shape)
-
-        if annotation_orientation == 'horizontal':
-            # Fix y at annotation_coord
-            i1_ref = np.argmin(np.abs(diff_ec_vec - annotation_coord))
-            j1_ref = np.nanargmin(mat1[i1_ref, :])
-            ax1.axhline(y=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
-        else:
-            # Default: vertical line in x
-            j1_ref = np.argmin(np.abs(diff_vc_vec - annotation_coord))
-            i1_ref = np.nanargmin(mat1[:, j1_ref])
-            ax1.axvline(x=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
-
-        ax1.plot(diff_vc_vec[j1_ref], diff_ec_vec[i1_ref], 'r*', markersize=10,
-        label=f'({diff_vc_vec[j1_ref]:.3g}, {diff_ec_vec[i1_ref]:.3g})')
-        # ax1.plot(diff_vc_vec[j1], diff_ec_vec[i1], 'r*', markersize=16,
-        # label=f'Min RMSE at\nD_EC={diff_ec_vec[i1]:.3e}\nD_VC={diff_vc_vec[j1]:.3e}')
-
-        i2, j2 = np.unravel_index(np.nanargmin(mat2), mat2.shape)
-
-        if annotation_orientation == 'horizontal':
-            i2_ref = np.argmin(np.abs(diff_ec_vec - annotation_coord))
-            j2_ref = np.nanargmin(mat2[i2_ref, :])
-            ax2.axhline(y=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
-        else:
-            j2_ref = np.argmin(np.abs(diff_vc_vec - annotation_coord))
-            i2_ref = np.nanargmin(mat2[:, j2_ref])
-            ax2.axvline(x=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
-
-        ax2.plot(diff_vc_vec[j2_ref], diff_ec_vec[i2_ref], 'r*', markersize=10,
-        label=f'({diff_vc_vec[j2_ref]:.3g}, {diff_ec_vec[i2_ref]:.3g})')
-        # ax2.plot(diff_vc_vec[j2], diff_ec_vec[i2], 'r*', markersize=16,
-        # label=f'Min RMSE at\nD_EC={diff_ec_vec[i2]:.3e}\nD_VC={diff_vc_vec[j2]:.3e}')
-            
-        i3, j3 = np.unravel_index(np.nanargmin(mat3), mat3.shape)
-
-        if annotation_orientation == 'horizontal':
-            i3_ref = np.argmin(np.abs(diff_ec_vec - annotation_coord))
-            j3_ref = np.nanargmin(mat3[i3_ref, :])
-            ax3.axhline(y=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
-        else:
-            j3_ref = np.argmin(np.abs(diff_vc_vec - annotation_coord))
-            i3_ref = np.nanargmin(mat3[:, j3_ref])
-            ax3.axvline(x=annotation_coord, color='darkgray', linestyle=':', linewidth=1.5, alpha=0.7)
-
-        ax3.plot(diff_vc_vec[j3_ref], diff_ec_vec[i3_ref], 'r*', markersize=10,
-        label=f'({diff_vc_vec[j3_ref]:.3g}, {diff_ec_vec[i3_ref]:.3g})')
-        # ax3.plot(diff_vc_vec[j3], diff_ec_vec[i3], 'r*', markersize=16,
-        # label=f'Min RMSE at\nD_EC={diff_ec_vec[i3]:.3e}\nD_VC={diff_vc_vec[j3]:.3e}')
+        _annotate_heatmap_panels(
+            (ax1, ax2, ax3), (mat1, mat2, mat3),
+            diff_vc_vec, diff_ec_vec, annotation_coord, annotation_orientation,
+        )
 
     for ax in (ax1, ax2, ax3):
         ax.legend(facecolor='lightgray', framealpha=1.0, frameon=True, fontsize=10)
@@ -573,110 +479,30 @@ def plot_heatmaps_diff(diff_ec_vec, diff_vc_vec,
         plt.savefig(savename, bbox_inches='tight', format='svg')
 
 
-def plot_heatmaps_kappa(diff_ec_vec, diff_vc_vec, 
-                        mat1, mat2, mat3, label, 
-                        zmin=None, 
-                        zmax=None, 
-                        tosave=False, 
+def plot_heatmaps_kappa(diff_ec_vec, diff_vc_vec,
+                        mat1, mat2, mat3, label,
+                        zmin=None,
+                        zmax=None,
+                        tosave=False,
                         savename='temp.svg'):
 
-    #  Create a meshgrid for X and Y axes
-    X, Y = np.meshgrid(diff_vc_vec, diff_ec_vec)
+    fig, ax1, ax2, ax3, *_ = _plot_heatmaps_base(
+        diff_vc_vec, diff_ec_vec, mat1, mat2, mat3, label,
+        x_label=r'$\kappa_{\mathrm{LVDC}}$ (mS/m)',
+        y_label=r'$\kappa_{\mathrm{LEDC}}$ (mS/m)',
+        zmin=zmin, zmax=zmax,
+    )
 
-    # Create subplots for the three formation protocols
-    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(11, 4))
-    [ax.set_xlim([min(diff_vc_vec), max(diff_vc_vec)]) for ax in (ax1, ax2, ax3)]
-    [ax.set_ylim([min(diff_ec_vec), max(diff_ec_vec)]) for ax in (ax1, ax2, ax3)]
-    [ax.set_xlabel(r'$\kappa_{\mathrm{LVDC}}$ (mS/m)') for ax in (ax1, ax2, ax3)]
-    [ax.set_ylabel(r'$\kappa_{\mathrm{LEDC}}$ (mS/m)') for ax in (ax1, ax2, ax3)]
-
-    [ax.grid(True, which="both", ls="-", alpha=0.2) for ax in (ax1, ax2, ax3)]
-
-
-    # Get the colormap and create a discrete version with 10 bins
-    cmap = cm.get_cmap('viridis_r', 20)
-
-    # Base Formation
-    pcm1 = ax1.pcolormesh(X, Y, mat1, shading='auto', cmap=cmap)
-    plt.colorbar(pcm1, ax=ax1, label=label, orientation='horizontal', pad=0.2)
-    pcm1.set_clim(zmin, zmax)
-    i, j = np.unravel_index(np.nanargmin(mat1), mat1.shape)
-    ax1.set_title('Base Formation')
-
-    # Fast Formation
-    pcm2 = ax2.pcolormesh(X, Y, mat2, shading='auto', cmap=cmap)
-    plt.colorbar(pcm2, ax=ax2, label=label, orientation='horizontal', pad=0.2)
-    pcm2.set_clim(zmin, zmax)
-    ax2.set_title('Fast Formation')
-
-    # Fast+ Formation
-    pcm3 = ax3.pcolormesh(X, Y, mat3, shading='auto', cmap=cmap)
-    plt.colorbar(pcm3, ax=ax3, label=label, orientation='horizontal', pad=0.2)
-    pcm3.set_clim(zmin, zmax)
-    ax3.set_title('Fast+ Formation')
-
-    i1, j1 = np.unravel_index(np.nanargmin(mat1), mat1.shape)
-    j1_ref = np.argmin(np.abs(diff_vc_vec - 0.05))
-    i1_ref = np.nanargmin(mat1[:, j1_ref])
-
-    ax1.axvline(x=0.05, color='gray', linestyle=':', linewidth=1.5, alpha=0.7)
-    ax1.plot(diff_vc_vec[j1_ref], diff_ec_vec[i1_ref], 'bo', markersize=14)
-    ax1.plot(diff_vc_vec[j1_ref], diff_ec_vec[i1_ref], 'r*', markersize=16,
-             label=f'({diff_vc_vec[j1_ref]:.2g}, {diff_ec_vec[i1_ref]:.2g})')
-
-    # ax1.annotate(
-    #             'Tuned',
-    #             (diff_vc_vec[j1], diff_ec_vec[i1]),
-    #             textcoords="offset points",
-    #             xytext=(10, 10),
-    #             ha='left',
-    #             color='k',
-    #             fontsize=12,
-    #             fontweight='bold',
-    #             bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
-    #         )
-    
-    i2, j2 = np.unravel_index(np.nanargmin(mat2), mat2.shape) 
-    j2_ref = np.argmin(np.abs(diff_vc_vec - 0.05))
-    i2_ref = np.nanargmin(mat2[:, j2_ref])
-    ax2.axvline(x=0.05, color='gray', linestyle=':', linewidth=1.5, alpha=0.7)
-    ax2.plot(diff_vc_vec[j1_ref], diff_ec_vec[i1_ref], 'bo', markersize=14)
-    ax2.plot(diff_vc_vec[j2_ref], diff_ec_vec[i2_ref], 'r*', markersize=15,
-                label=f'({diff_vc_vec[j2_ref]:.2g}, {diff_ec_vec[i2_ref]:.2g})')
-
-    # ax2.annotate(
-    #     'Tuned',
-    #     (diff_vc_vec[j], diff_ec_vec[i]),
-    #     textcoords="offset points",
-    #     xytext=(10, -10),
-    #     ha='left',
-    #     color='k',
-    #     fontsize=12,
-    #     fontweight='bold',
-    #     bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
-    # )
-            
-    i3, j3 = np.unravel_index(np.nanargmin(mat3), mat3.shape)
-    j3_ref = np.argmin(np.abs(diff_vc_vec - 0.05))
-    i3_ref = np.nanargmin(mat3[:, j3_ref])
-    ax3.axvline(x=0.05, color='gray', linestyle=':', linewidth=1.5, alpha=0.7)
-    ax3.plot(diff_vc_vec[j1_ref], diff_ec_vec[i1_ref], 'bo', markersize=14)
-    ax3.plot(diff_vc_vec[j3_ref], diff_ec_vec[i3_ref], 'r*', markersize=15,
-             label=f'({diff_vc_vec[j3_ref]:.2g}, {diff_ec_vec[i3_ref]:.2g})')
-
-    # [ax.grid(False) for ax in (ax1, ax2, ax3)] 
-    [ax.legend() for ax in (ax1, ax2, ax3)]
-    # ax3.annotate(
-    #         'Tuned',
-    #         (diff_vc_vec[j], diff_ec_vec[i]),
-    #         textcoords="offset points",
-    #         xytext=(10, 10),
-    #         ha='left',
-    #         color='k',
-    #         fontsize=12,
-    #         fontweight='bold',
-    #         bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none")
-    #             )
+    # Fixed reference line at kappa_vc = 0.05 mS/m
+    ref_vc = 0.05
+    j1_ref = np.argmin(np.abs(diff_vc_vec - ref_vc))
+    for ax, mat in zip((ax1, ax2, ax3), (mat1, mat2, mat3)):
+        i_ref = np.nanargmin(mat[:, j1_ref])
+        ax.axvline(x=ref_vc, color='gray', linestyle=':', linewidth=1.5, alpha=0.7)
+        ax.plot(diff_vc_vec[j1_ref], diff_ec_vec[i_ref], 'bo', markersize=14)
+        ax.plot(diff_vc_vec[j1_ref], diff_ec_vec[i_ref], 'r*', markersize=15,
+                label=f'({diff_vc_vec[j1_ref]:.2g}, {diff_ec_vec[i_ref]:.2g})')
+        ax.legend()
 
     plt.tight_layout()
 

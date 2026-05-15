@@ -265,7 +265,7 @@ def state_update_ocv_r_2rc(I, T, Rs, R1, R2, C1, C2):
     x = [VT, z, V1, V2]^T
 
     """
-
+    # TODO: implement state update equations for the 2RC ECM
     return None
 
 
@@ -352,7 +352,7 @@ def update_ocv(z):
     ---------
     OCV at z
     """
-
+    # TODO: this is a trivial wrapper around ocv(); consider removing
     return ocv(z)
 
 def decompose_resistance_curve(capacity_vec,

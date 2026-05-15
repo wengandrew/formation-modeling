@@ -8,55 +8,23 @@ from scipy import interpolate
 from scipy.optimize import fsolve
 
 import src.plotter as plotter
+from src import modelutils as mu
 
 
 def f_pos_ocv(sto):
     """
-    Nickel Managanese Cobalt Oxide (NMC) Open Circuit Potential (OCP) as a
-    function of the stochiometry. The fit is taken from Peyman MPM.
-    References
-    ----------
-    Peyman MPM manuscript (to be submitted)
-    Parameters
-    ----------
-    sto : :class:`pybamm.Symbol`
-       Stochiometry of material (li-fraction)
+    NMC cathode OCP. Delegates to modelutils.Up with adjust=False (no
+    stoichiometry shift) so the raw polynomial is used directly.
     """
-
-    u_eq = (
-        4.3452
-        - 1.6518 * sto
-        + 1.6225 * (sto ** 2)
-        - 2.0843 * (sto ** 3)
-        + 3.5146 * (sto ** 4)
-        - 2.2166 * (sto ** 5)
-        - 0.5623e-4 * np.exp(109.451 * sto - 100.006)
-    )
-
-    return u_eq
+    return mu.Up(sto, adjust=False)
 
 
 def f_neg_ocv(sto):
     """
-    Graphite Open Circuit Potential (OCP) as a function of the
-    stochiometry. The fit is taken from Peyman MPM [1].
-    References
-    ----------
-    .. [1] Peyman Mohtat et al, MPM (to be submitted)
+    Graphite anode OCP. Delegates to modelutils.Un with adjust=False (no
+    stoichiometry shift) so the raw polynomial is used directly.
     """
-
-    u_eq = (
-        0.063
-        + 0.8 * np.exp(-75 * (sto + 0.001))
-        - 0.0120 * np.tanh((sto - 0.127) / 0.016)
-        - 0.0118 * np.tanh((sto - 0.155) / 0.016)
-        - 0.0035 * np.tanh((sto - 0.220) / 0.020)
-        - 0.0095 * np.tanh((sto - 0.190) / 0.013)
-        - 0.0145 * np.tanh((sto - 0.490) / 0.020)
-        - 0.0800 * np.tanh((sto - 1.030) / 0.055)
-    )
-
-    return u_eq
+    return mu.Un(sto, adjust=False)
 
 
 def esoh_to_voc(x100, y100, Cn, Cp, q):

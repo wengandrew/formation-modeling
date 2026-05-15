@@ -2,8 +2,8 @@
 Classes for the formation modeling work
 """
 
-import plotter as plotter
-import modelutils as mu
+from src import plotter as plotter
+from src import modelutils as mu
 import pandas as pd
 import numpy as np
 import yaml
@@ -18,7 +18,7 @@ R = 8.314          # J/mol/K    Universal gas constant
 STEP_NUM_CHARGE_CC = 0
 STEP_NUM_CHARGE_CV = 1
 STEP_NUM_DISCHARGE_CC = 2
-STEP_NUM_DISCHARGE_CV = 4
+STEP_NUM_DISCHARGE_CV = 3
 STEP_NUM_REST = 4
 
 class Cell:
@@ -59,11 +59,11 @@ class Cell:
 
     def get_tag(self):
 
-        tag = f'k={self.k_SEI1}, '\
-              f'D={self.D_SEI11}, '\
-              f'U={self.U_SEI1}, '
-
-        return tag
+        return ', '.join([
+            f'k={self.k_SEI1}',
+            f'D={self.D_SEI11}',
+            f'U={self.U_SEI1}',
+        ])
 
 
 
@@ -147,39 +147,18 @@ class Simulation:
         self.expansion_irrev = mu.initialize(self.t, 0)
         self.expansion  = mu.initialize(self.t, 0)
 
-        # Faulty implementation of SEI conductivity updates based on SEI diffusivity 
-        # via Nernst-Einstein (this is not physically valid)
-        #
-        # self.kappa_sei1 = mu.initialize(self.t, self.D_sei1[0] /
-        #                                 cell.V_SEI1 *
-        #                                 (cell.n_SEI1 * F)**2 / (R*T))
-        # self.kappa_sei2 = mu.initialize(self.t, self.D_sei2[0] /
-        #                                 cell.V_SEI2 *
-        #                                 (cell.n_SEI2 * F)**2 / (R*T))
-        # self.R_sei1     = mu.initialize(self.t,
-        #                         self.delta_sei1[0] /
-        #                         (cell.GAMMA_KAPPA * self.kappa_sei1[0] *
-        #                          (cell.a_sn * cell.A_n * cell.L_n)))
-
-        # self.R_sei2     = mu.initialize(self.t,
-        #                         self.delta_sei2[0] /
-        #                         (cell.GAMMA_KAPPA * self.kappa_sei2[0] *
-        #                          (cell.a_sn * cell.A_n * cell.L_n)))
-
         # Total quantities
         self.j_sei   = mu.initialize(self.t, 0)
         self.i_sei   = mu.initialize(self.t, 0)
         self.q_sei   = mu.initialize(self.t, 0)
 
+        a_n_init = (3 * cell.epsilon_n / (cell.R_n * (1 + cell.En(cell.theta_n))**(1/3))) * cell.A_n * cell.L_n
+
         self.R_sei1     = mu.initialize(self.t,
-                                self.delta_sei1[0] /
-                                (cell.kappa_SEI1 * (3 * cell.epsilon_n / ( cell.R_n * (1 + cell.En(cell.theta_n))**(1/3) ) * cell.A_n * cell.L_n))
-                                )
+                                self.delta_sei1[0] / (cell.kappa_SEI1 * a_n_init))
 
         self.R_sei2     = mu.initialize(self.t,
-                                self.delta_sei2[0] /
-                                (cell.kappa_SEI2 * (3 * cell.epsilon_n / ( cell.R_n * (1 + cell.En(cell.theta_n))**(1/3) ) * cell.A_n * cell.L_n))
-                                )
+                                self.delta_sei2[0] / (cell.kappa_SEI2 * a_n_init))
 
         self.R_sei   = mu.initialize(self.t, self.R_sei1[0] + self.R_sei2[0])
  
@@ -229,8 +208,11 @@ class Simulation:
         self.theta_n[k + 1] = self.theta_n[k] + dQint / p.Cn
         self.theta_p[k + 1] = self.theta_p[k] - dQapp / p.Cp
 
-        N = 163045167
-        curr_epsilon_n = N * 4/3 * np.pi * p.R_n**3 * (1 + self.cell.En(self.theta_n[k+1])) / (p.A_n * p.L_n)
+        # Number of graphite anode particles (from electrode geometry)
+        N_PARTICLES = 163045167
+        curr_epsilon_n = N_PARTICLES * 4/3 * np.pi * p.R_n**3 * (1 + self.cell.En(self.theta_n[k+1])) / (p.A_n * p.L_n)
+        # Active anode surface area [m^2] accounting for current porosity
+        a_n = (3 * curr_epsilon_n / (p.R_n * (1 + self.cell.En(self.theta_n[k+1]))**(1/3))) * p.A_n * p.L_n
 
         # Equilibrium potential updates
         self.ocv_n[k + 1] = self.cell.Un(self.theta_n[k + 1])
@@ -304,31 +286,15 @@ class Simulation:
 
         self.j_sei[k+1] = self.j_sei1[k+1] + self.j_sei2[k+1]
 
-        ## Current density to current conversion
-        # self.i_sei[k+1]  = self.j_sei[k+1]  * ( (3 * p.epsilon_n / (p.R_n * (1 + self.cell.En(self.theta_n[k+1]))**(1/3))) * p.A_n * p.L_n)
-        # self.i_sei1[k+1] = self.j_sei1[k+1] * ( (3 * p.epsilon_n / (p.R_n * (1 + self.cell.En(self.theta_n[k+1]))**(1/3))) * p.A_n * p.L_n)
-        # self.i_sei2[k+1] = self.j_sei2[k+1] * ( (3 * p.epsilon_n / (p.R_n * (1 + self.cell.En(self.theta_n[k+1]))**(1/3))) * p.A_n * p.L_n)
-
-        self.i_sei[k+1]  = self.j_sei[k+1]  * ( (3 * curr_epsilon_n / (p.R_n * (1 + self.cell.En(self.theta_n[k+1]))**(1/3))) * p.A_n * p.L_n)
-        self.i_sei1[k+1] = self.j_sei1[k+1] * ( (3 * curr_epsilon_n / (p.R_n * (1 + self.cell.En(self.theta_n[k+1]))**(1/3))) * p.A_n * p.L_n)
-        self.i_sei2[k+1] = self.j_sei2[k+1] * ( (3 * curr_epsilon_n / (p.R_n * (1 + self.cell.En(self.theta_n[k+1]))**(1/3))) * p.A_n * p.L_n) 
-
-        # self.i_sei[k+1]  = self.j_sei[k+1]  * ( 3 * p.epsilon_n / p.R_n ) * p.A_n * p.L_n 
-        # self.i_sei1[k+1] = self.j_sei1[k+1] * ( 3 * p.epsilon_n / p.R_n ) * p.A_n * p.L_n
-        # self.i_sei2[k+1] = self.j_sei2[k+1] * ( 3 * p.epsilon_n / p.R_n ) * p.A_n * p.L_n
+        # Current density to current conversion
+        self.i_sei[k+1]  = self.j_sei[k+1]  * a_n
+        self.i_sei1[k+1] = self.j_sei1[k+1] * a_n
+        self.i_sei2[k+1] = self.j_sei2[k+1] * a_n
 
         # Update SEI reacting species concentrations
-        self.c_sei1[k+1] = self.c_sei1[k] - self.dt * \
-                            ((3 * curr_epsilon_n / (p.R_n * (1 + self.cell.En(self.theta_n[k+1]))**(1/3))) * self.j_sei1[k+1] / (p.n_SEI1 * F))
+        self.c_sei1[k+1] = self.c_sei1[k] - self.dt * (a_n / p.A_n / p.L_n) * self.j_sei1[k+1] / (p.n_SEI1 * F)
+        self.c_sei2[k+1] = self.c_sei2[k] - self.dt * (a_n / p.A_n / p.L_n) * self.j_sei2[k+1] / (p.n_SEI2 * F)
 
-        self.c_sei2[k+1] = self.c_sei2[k] - self.dt * \
-                            ((3 * curr_epsilon_n / (p.R_n * (1 + self.cell.En(self.theta_n[k+1]))**(1/3))) * self.j_sei2[k+1] / (p.n_SEI2 * F))
-
-        # self.c_sei1[k+1] = self.c_sei1[k] - self.dt * \
-                            # ( 3 * p.epsilon_n / p.R_n ) * self.j_sei1[k+1] / (p.n_SEI1 * F)
-        # self.c_sei2[k+1] = self.c_sei2[k] - self.dt * \
-                            # ( 3 * p.epsilon_n / p.R_n ) * self.j_sei2[k+1] / (p.n_SEI2 * F)
-        
         # Update the intercalation current
         self.i_int[k+1] = self.i_app[k]  - self.i_sei[k+1]
 
@@ -378,28 +344,8 @@ class Simulation:
                               self.expansion_irrev[k+1]
 
         # SEI resistance updates
-        # self.kappa_sei1[k+1] = self.D_sei1[k+1] / \
-        #             p.V_SEI1 * (p.n_SEI1 * F)**2 / (R*T) * p.GAMMA_KAPPA
-        # self.kappa_sei2[k+1] = self.D_sei2[k+1] / \
-        #             p.V_SEI2 * (p.n_SEI2 * F)**2 / (R*T) * p.GAMMA_KAPPA
-
-        # self.R_sei1[k+1] = self.delta_sei1[k+1] / \
-        #         (self.kappa_sei1[k+1] * (p.a_sn * p.A_n * p.L_n))
-        # self.R_sei2[k+1] = self.delta_sei2[k+1] / \
-        #         (self.kappa_sei2[k+1] * (p.a_sn * p.A_n * p.L_n))
-
-        # self.R_sei[k+1] = self.R_sei1[k+1] + self.R_sei2[k+1]
-
-        self.R_sei1[k+1] = self.delta_sei1[k+1] / \
-                (p.kappa_SEI1 * ((3 * curr_epsilon_n / (p.R_n * (1 + self.cell.En(self.theta_n[k+1]))**(1/3))) * p.A_n * p.L_n))
-        self.R_sei2[k+1] = self.delta_sei2[k+1] / \
-                (p.kappa_SEI2 * ((3 * curr_epsilon_n / (p.R_n * (1 + self.cell.En(self.theta_n[k+1]))**(1/3))) * p.A_n * p.L_n))
-
-        # self.R_sei1[k+1] = self.delta_sei1[k+1] / \
-                # (p.kappa_SEI1 * (3 * p.epsilon_n / p.R_n ) * p.A_n * p.L_n)
-        # self.R_sei2[k+1] = self.delta_sei2[k+1] / \
-                # (p.kappa_SEI2 * (3 * p.epsilon_n / p.R_n ) * p.A_n * p.L_n)
-
+        self.R_sei1[k+1] = self.delta_sei1[k+1] / (p.kappa_SEI1 * a_n)
+        self.R_sei2[k+1] = self.delta_sei2[k+1] / (p.kappa_SEI2 * a_n)
         self.R_sei[k+1] = self.R_sei1[k+1] + self.R_sei2[k+1]
 
         # SEI density update
@@ -419,7 +365,7 @@ class Simulation:
         """
 
         if to_print:
-            print(f'Running Cyc{cycle_number}: Rest for {rest_time_hrs:2f} hours...')
+            print(f'Running Cyc{cycle_number}: Rest for {rest_time_hrs:.2f} hours...')
 
         k = self.curr_k
 

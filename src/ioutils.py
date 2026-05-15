@@ -61,7 +61,9 @@ def fetch_file_list(cellid):
 
         hr_max = 20*24
 
-    hr_max = 100000000
+    else:
+        raise ValueError(f"Unsupported cellid: {cellid}. "
+                         f"Valid IDs are: 152064, 152074, 152071, 152098.")
 
     return file_arbin_list, daq_channel, hr_max
 

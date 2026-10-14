@@ -7,6 +7,14 @@ import matplotlib.cm as cm
 from scipy.interpolate import interp1d
 from src import cellsim
 
+PHASE_PRE_FORMATION = 0
+PHASE_FIRST_CHARGE = 1
+PHASE_FORMATION_CYCLING = 2
+PHASE_RPT1 = 3
+PHASE_FORMATION_AGING = 4
+PHASE_RPT2 = 5
+PHASE_CYCLING = 6
+
 def run_sim(formation_type, 
             diff_ec=3.86e-20,
             diff_vc=1.58e-17,
@@ -102,12 +110,15 @@ def run_sim(formation_type,
                 sim.step(k, mode='cc', icc=current, to_debug=False)
                 sim.curr_k = k
         else:
+            sim.phase[sim.curr_k:] = PHASE_PRE_FORMATION
             sim.run_rest(1, rest_time_hrs=0.5)
+            sim.phase[sim.curr_k:] = PHASE_FIRST_CHARGE
             if include_flag == 0:
                 sim.run_chg_cccv(1, 2.5/10, 2.5/10, 4.2) # Charge to 4.2V with no CV
                 return sim.get_results()
             else:
                 sim.run_chg_cccv(2, 2.5/10, 2.5/20, 4.2) # Charge to 4.2V with CV
+            sim.phase[sim.curr_k:] = PHASE_FORMATION_CYCLING
             sim.run_rest(2, rest_time_hrs=1/6) 
             sim.run_dch_cccv(2, -2.5/10, -2.5/10, 3.0)
             sim.run_rest(2, rest_time_hrs=1/6) 
@@ -134,13 +145,16 @@ def run_sim(formation_type,
                 sim.step(k, mode='cc', icc=current, to_debug=False)
                 sim.curr_k = k
         else:
+            sim.phase[sim.curr_k:] = PHASE_PRE_FORMATION
             sim.run_rest(1, rest_time_hrs=0.5)
+            sim.phase[sim.curr_k:] = PHASE_FIRST_CHARGE
             sim.run_chg_cccv(2, 2.5, 2.5, 3.9)
             if include_flag == 0:
                 sim.run_chg_cccv(2, 2.5/5, 2.5/5, 4.2) # Charge to 4.2V with no CV
                 return sim.get_results()
             else:
                 sim.run_chg_cccv(2, 2.5/5, 0.125, 4.2) # Charge to 4.2V with CV
+            sim.phase[sim.curr_k:] = PHASE_FORMATION_CYCLING
             sim.run_rest(2, rest_time_hrs=1/6)
             sim.run_dch_cccv(2, -2.5/5, 2.5/5, 3.9)
             sim.run_rest(2, rest_time_hrs=1/6)
@@ -172,13 +186,16 @@ def run_sim(formation_type,
                 sim.curr_k = k
 
         else:
+            sim.phase[sim.curr_k:] = PHASE_PRE_FORMATION
             sim.run_rest(1, rest_time_hrs=0.5)
+            sim.phase[sim.curr_k:] = PHASE_FIRST_CHARGE
             sim.run_chg_cccv(2, 5.0, 5.0, 3.9)
             if include_flag == 0:
                 sim.run_chg_cccv(2, 2.5, 2.5, 4.2) # Charge to 4.2V with no CV
                 return sim.get_results()
             else:
                 sim.run_chg_cccv(2, 2.5, 0.125, 4.2) # Charge to 4.2V with CV
+            sim.phase[sim.curr_k:] = PHASE_FORMATION_CYCLING
             sim.run_rest(2, rest_time_hrs=1/6)
             sim.run_dch_cccv(2, -2.5, 2.5, 3.9)
             sim.run_rest(2, rest_time_hrs=1/6)
@@ -204,6 +221,7 @@ def run_sim(formation_type,
         return sim.get_results()
 
     # RPT
+    sim.phase[sim.curr_k:] = PHASE_RPT1
     sim.run_chg_cccv(cn + 1, +2.5/30, +2.5/30, 4.2) # Approximate HPPC Pulse Charge
     sim.run_dch_cccv(cn + 1, -2.5/20, +2.5/20, 3.0)
     sim.run_chg_cccv(cn + 2, +2.5/20, +2.5/20, 4.2)
@@ -214,6 +232,7 @@ def run_sim(formation_type,
         return sim.get_results()
 
     # Formation Aging
+    sim.phase[sim.curr_k:] = PHASE_FORMATION_AGING
     # Synchronize when the formation aging starts
     rest_before_aging_hrs = 174.7799 - (sim.curr_k * sim.dt) / 3600
     sim.run_rest(cn + 2, rest_time_hrs=rest_before_aging_hrs)
@@ -227,6 +246,7 @@ def run_sim(formation_type,
     cn = cn + 4
 
     # RPT
+    sim.phase[sim.curr_k:] = PHASE_RPT2
     sim.run_chg_cccv(cn , +2.5/30, +2.5/30, vmax) # Approximate HPPC Pulse Charge
     sim.run_dch_cccv(cn, -2.5/20, Icv, vmin)
     sim.run_chg_cccv(cn+1, +2.5/20, Icv, vmax)
@@ -236,6 +256,7 @@ def run_sim(formation_type,
         return sim.get_results()
 
     # Cycling:
+    sim.phase[sim.curr_k:] = PHASE_CYCLING
     cell.D_SEI11 = diff_ec * dsei_derating_cycling
     cell.D_SEI21 = diff_ec * dsei_derating_cycling
     cell.D_SEI12 = diff_vc * dsei_derating_cycling
@@ -454,6 +475,7 @@ def plot_heatmaps_diff(diff_ec_vec, diff_vc_vec,
                        to_annotate=False,
                        annotation_orientation='vertical',
                        annotation_coord=None,
+                       annotation_line_only=False,
                        savename='temp.svg'):
 
     fig, ax1, ax2, ax3, *_ = _plot_heatmaps_base(
@@ -467,10 +489,32 @@ def plot_heatmaps_diff(diff_ec_vec, diff_vc_vec,
     if to_annotate:
         if annotation_coord is None:
             annotation_coord = 1.3e-17
-        _annotate_heatmap_panels(
-            (ax1, ax2, ax3), (mat1, mat2, mat3),
-            diff_vc_vec, diff_ec_vec, annotation_coord, annotation_orientation,
-        )
+
+        # Normalize to per-panel list: scalar -> [val, val, val]
+        try:
+            coords = list(annotation_coord)
+        except TypeError:
+            coords = [annotation_coord] * 3
+
+        for ax, mat, coord in zip([ax1, ax2, ax3], [mat1, mat2, mat3], coords):
+            i_min, j_min = np.unravel_index(np.nanargmin(mat), mat.shape)
+
+            if annotation_orientation == 'minimum':
+                i_ref, j_ref = i_min, j_min
+            elif annotation_orientation == 'horizontal':
+                i_ref = np.argmin(np.abs(diff_ec_vec - coord))
+                j_ref = np.nanargmin(mat[i_ref, :])
+                ax.axhline(y=coord, color='darkred', linestyle=':', linewidth=1.5, alpha=0.7,
+                           label=f'{coord:.3g}' if annotation_line_only else None)
+            else:
+                j_ref = np.argmin(np.abs(diff_vc_vec - coord))
+                i_ref = np.nanargmin(mat[:, j_ref])
+                ax.axvline(x=coord, color='darkred', linestyle=':', linewidth=1.5, alpha=0.7,
+                           label=f'{coord:.3g}' if annotation_line_only else None)
+
+            if not annotation_line_only:
+                ax.plot(diff_vc_vec[j_ref], diff_ec_vec[i_ref], 'r*', markersize=10,
+                        label=f'({diff_vc_vec[j_ref]:.3g}, {diff_ec_vec[i_ref]:.3g})')
 
     for ax in (ax1, ax2, ax3):
         ax.legend(facecolor='lightgray', framealpha=1.0, frameon=True, fontsize=10)
@@ -481,30 +525,56 @@ def plot_heatmaps_diff(diff_ec_vec, diff_vc_vec,
         plt.savefig(savename, bbox_inches='tight', format='svg')
 
 
-def plot_heatmaps_kappa(diff_ec_vec, diff_vc_vec,
+def plot_heatmaps_kappa(kappa_ec_vec, kappa_vc_vec,
                         mat1, mat2, mat3, label,
                         zmin=None,
                         zmax=None,
                         tosave=False,
+                        to_annotate=False,
+                        annotation_orientation='vertical',
+                        annotation_coord=None,
+                        annotation_line_only=False,
                         savename='temp.svg'):
 
     fig, ax1, ax2, ax3, *_ = _plot_heatmaps_base(
-        diff_vc_vec, diff_ec_vec, mat1, mat2, mat3, label,
+        kappa_vc_vec, kappa_ec_vec, mat1, mat2, mat3, label,
         x_label=r'$\kappa_{\mathrm{LVDC}}$ (mS/m)',
         y_label=r'$\kappa_{\mathrm{LEDC}}$ (mS/m)',
         zmin=zmin, zmax=zmax,
     )
 
-    # Fixed reference line at kappa_vc = 0.05 mS/m
-    ref_vc = 0.05
-    j1_ref = np.argmin(np.abs(diff_vc_vec - ref_vc))
-    for ax, mat in zip((ax1, ax2, ax3), (mat1, mat2, mat3)):
-        i_ref = np.nanargmin(mat[:, j1_ref])
-        ax.axvline(x=ref_vc, color='gray', linestyle=':', linewidth=1.5, alpha=0.7)
-        ax.plot(diff_vc_vec[j1_ref], diff_ec_vec[i_ref], 'bo', markersize=14)
-        ax.plot(diff_vc_vec[j1_ref], diff_ec_vec[i_ref], 'r*', markersize=15,
-                label=f'({diff_vc_vec[j1_ref]:.2g}, {diff_ec_vec[i_ref]:.2g})')
-        ax.legend()
+    if to_annotate:
+        if annotation_coord is None:
+            annotation_coord = 0.05
+
+        # Normalize to per-panel list: scalar -> [val, val, val]
+        try:
+            coords = list(annotation_coord)
+        except TypeError:
+            coords = [annotation_coord] * 3
+
+        for ax, mat, coord in zip([ax1, ax2, ax3], [mat1, mat2, mat3], coords):
+            i_min, j_min = np.unravel_index(np.nanargmin(mat), mat.shape)
+
+            if annotation_orientation == 'minimum':
+                i_ref, j_ref = i_min, j_min
+            elif annotation_orientation == 'horizontal':
+                i_ref = np.argmin(np.abs(kappa_ec_vec - coord))
+                j_ref = np.nanargmin(mat[i_ref, :])
+                ax.axhline(y=coord, color='darkred', linestyle=':', linewidth=1.5, alpha=0.7,
+                           label=f'{coord:.3g}' if annotation_line_only else None)
+            else:
+                j_ref = np.argmin(np.abs(kappa_vc_vec - coord))
+                i_ref = np.nanargmin(mat[:, j_ref])
+                ax.axvline(x=coord, color='darkred', linestyle=':', linewidth=1.5, alpha=0.7,
+                           label=f'{coord:.3g}' if annotation_line_only else None)
+
+            if not annotation_line_only:
+                ax.plot(kappa_vc_vec[j_ref], kappa_ec_vec[i_ref], 'r*', markersize=10,
+                        label=f'({kappa_vc_vec[j_ref]:.3g}, {kappa_ec_vec[i_ref]:.3g})')
+
+    for ax in (ax1, ax2, ax3):
+        ax.legend(facecolor='lightgray', framealpha=1.0, frameon=True, fontsize=10)
 
     plt.tight_layout()
 

@@ -93,6 +93,7 @@ class Simulation:
 
         self.cycle_number = np.zeros(self.t.shape)
         self.step_number = np.zeros(self.t.shape)
+        self.phase = np.zeros(self.t.shape, dtype=int)
 
         # eSOH states
         self.theta_n = mu.initialize(self.t, cell.theta_n)

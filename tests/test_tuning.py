@@ -71,7 +71,11 @@ class TestSpecsMatchNotebooks:
         assert s.kink_window('base') == (0.5, 0.85)
         assert s.v_range == (3.2, 4.2)
         assert s.smooth_strain
+        # Step 2 uses the assumed rho/kappa, like step 1 ...
         assert s.sim_kwargs('base', 1e-19, 1e-18) == dict(
+            diff_ec=1e-19, diff_vc=1e-18, dt=1, include_flag=3)
+        # ... but the cached sweep was run with the values stored in the pickle
+        assert s.as_cached().sim_kwargs('base', 1e-19, 1e-18) == dict(
             diff_ec=1e-19, diff_vc=1e-18,
             rho_ec=raw['rho_ec'], rho_vc=raw['rho_vc'],
             kappa_ec=raw['kappa_ec'], kappa_vc=raw['kappa_vc'],
@@ -341,7 +345,7 @@ SPOT_POINTS = {
 @pytest.mark.slow
 @pytest.mark.parametrize('name', sorted(SPOT_POINTS))
 def test_resimulated_point_matches_cache(name):
-    spec = tuning.SPECS[name]
+    spec = tuning.SPECS[name].as_cached()
     if spec.window != 'hppc1' and not HAS_EXPT_DATA:
         pytest.skip('experimental data not downloaded')
     cached = tuning.load_sweep(spec)
@@ -355,3 +359,13 @@ def test_resimulated_point_matches_cache(name):
             assert out[metric] == pytest.approx(cached.metrics[metric][protocol][i, j], rel=1e-9), \
                 (protocol, metric)
 
+
+def test_specs_without_cache_fixed_are_unchanged_by_as_cached():
+    for spec in tuning.SPECS.values():
+        if spec.cache_fixed is None:
+            assert spec.as_cached() is spec
+
+
+def test_step2_uses_same_assumed_values_as_step1():
+    s1, s2 = tuning.SPECS['dsei_fc'], tuning.SPECS['dsei_all']
+    assert s1.fixed == s2.fixed == {}

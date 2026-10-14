@@ -20,7 +20,7 @@ import pickle
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -120,7 +120,8 @@ class SweepSpec:
 
     Matrices are indexed [row, col], with rows over row_param and columns
     over col_param. `fixed` holds the other run_sim arguments; a value may be
-    a dict keyed by protocol.
+    a dict keyed by protocol. If the cached result was run with different
+    fixed arguments, they are recorded in `cache_fixed` (see as_cached()).
 
     window: 'fc'    first charge only (include_flag=0), voltage + expansion RMSE
             'all'   through formation aging (include_flag=3), voltage + expansion RMSE
@@ -138,6 +139,7 @@ class SweepSpec:
     v_range: tuple = (3.2, 4.2)
     smooth_strain: bool = True
     kink_overrides: dict = field(default_factory=dict)
+    cache_fixed: dict = None
 
     @property
     def include_flag(self):
@@ -165,6 +167,10 @@ class SweepSpec:
     def kink_window(self, protocol):
         return self.kink_overrides.get(protocol, KINK_WINDOWS[self.expt_cell(protocol)])
 
+    def as_cached(self):
+        """This spec with the fixed arguments its cached result was run with."""
+        return self if self.cache_fixed is None else replace(self, fixed=self.cache_fixed)
+
 
 DATA_DIR = 'notebooks_2026/data'
 
@@ -180,14 +186,19 @@ SPECS = {spec.name: spec for spec in [
         base_cell=BASE_REPEAT_CELL, v_range=(2.0, 4.2),
         cache=f'{DATA_DIR}/simulation_results_ec_tuning_diff_20260421.pkl',
     ),
-    # Step 2: set D_LEDC from all ~400 h. This cached sweep was run with the
-    # rho/kappa values below rather than the ASSUMED values.
+    # Step 2: set D_LEDC from all ~400 h, with rho/kappa at the ASSUMED values.
+    # The cached sweep was run with the cache_fixed rho/kappa instead. Re-running
+    # the D_LVDC = 1.22e-18 column with the ASSUMED values
+    # (data/dsei_all_column_assumed_20261014.pkl) leaves the grid minimum at
+    # D_LEDC = 6.66e-20 for all protocols; interpolating between grid points
+    # moves it about 5% lower (~6.3e-20).
     SweepSpec(
         name='dsei_all',
         row_param='diff_ec', row_vec=np.logspace(-20, -16, 35),
         col_param='diff_vc', col_vec=np.logspace(-21, -12, 36),
         window='all',
-        fixed=dict(rho_ec=1.29, rho_vc=1.49, kappa_ec=0.090e-3, kappa_vc=0.051e-3),
+        fixed={},
+        cache_fixed=dict(rho_ec=1.29, rho_vc=1.49, kappa_ec=0.090e-3, kappa_vc=0.051e-3),
         kink_overrides={'base': (0.5, 0.85)},
         cache=f'{DATA_DIR}/simulation_results_clean_dsei_sweep_20260422.pkl',
     ),

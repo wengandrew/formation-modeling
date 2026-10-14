@@ -12,8 +12,15 @@ paper's main results. Each step fixes the parameters set by the previous steps.
 
 Per-protocol values are listed as {base, fast, fast+}.
 
-\* The cached step 2 sweep was run with rho_LEDC = 1.29, rho_LVDC = 1.49 g/cm³
-and kappa_LEDC = 9.0e-5, kappa_LVDC = 5.1e-5 S/m, not the assumed values.
+\* Step 2 is defined with the same assumed rho/kappa as step 1, but the cached
+step 2 sweep was run with rho_LEDC = 1.29, rho_LVDC = 1.49 g/cm³ and
+kappa_LEDC = 9.0e-5, kappa_LVDC = 5.1e-5 S/m (recorded as `cache_fixed` in
+`src/tuning.py`). Re-running the D_LVDC = 1.22e-18 column with the assumed
+values (`data/dsei_all_column_assumed_20261014.pkl`) leaves the grid minimum at
+D_LEDC = 6.66e-20 m²/s for all three protocols and changes the voltage RMSE
+near it by at most ~3 mV. Interpolating between grid points, the minimum moves
+about 5% lower (6.65e-20 → 6.34e-20, protocol mean), well within the ~31% grid
+spacing, so the set value is kept and the later steps were not re-run.
 
 `density_sweep.py` also plots `rho_fc`, the step 3 sweep repeated over the
 first charge only. `model_vs_experiment.py` runs the fully tuned model and
@@ -48,6 +55,7 @@ checks that this code reproduces the cached results (`pytest tests/
 | `rho_fc` | 3 (first charge) | `data/simulation_results_first_charge_density_20260429.pkl` |
 | `rho_all` | 3 | `data/simulation_results_density_sweep_20260426.pkl` |
 | `kappa_hppc1` | 4 | `data/resistance_optimization_results_20260504.pkl` |
+| `dsei_all`, one column | 2 (check) | `data/dsei_all_column_assumed_20261014.pkl` |
 
 These were produced by the original notebooks, which are in the git history
 (commits ffdc89b and 3f1fd69). Re-runs are saved as `data/<sweep>_<date>.pkl`; point the

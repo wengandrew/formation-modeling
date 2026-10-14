@@ -65,6 +65,10 @@ def fetch_file_list(cellid):
         raise ValueError(f"Unsupported cellid: {cellid}. "
                          f"Valid IDs are: 152064, 152074, 152071, 152098.")
 
+    # The per-cell cutoffs above are disabled: all data is kept. The 2026
+    # tuning sweeps were run this way (through ~497 h).
+    hr_max = 100000000
+
     return file_arbin_list, daq_channel, hr_max
 
 

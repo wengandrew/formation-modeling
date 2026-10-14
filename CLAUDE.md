@@ -13,9 +13,13 @@ src/            Core Python source
   dvdq.py       dV/dQ analysis tools
   ioutils.py    Data loading utilities (cell IDs → CSV paths)
   plotter.py    Matplotlib style initialization
+  tuning.py     SEI parameter sweeps: specs, tuned values, metrics, cached results
+  tuning_plots.py  Sweep heatmaps
+  tuning_cli.py Shared entry point for the notebooks_2026 sweep scripts
 params/         YAML configuration files for cell parameters
   default.yaml  Primary parameter set
 notebooks/      Jupyter analysis notebooks (YYYY_MM_DD naming)
+notebooks_2026/ Paper parameter-tuning scripts + cached sweep pickles (see its README)
 tests/          pytest test suite
 data/           Experimental data (not committed; download from Google Drive)
 outputs/        Figures and pickled simulation results
@@ -92,7 +96,10 @@ Cell parameters are loaded from YAML via `cell.load_config(path)`. Key SEI param
 - One figure per notebook; name notebooks `YYYY_MM_DD_description.ipynb`.
 - Prototype in notebooks, then refactor proven code into `src/`.
 - Python 3.8.8 compatible.
-- Run tests with `pytest tests/`.
+- Run tests with `pytest tests/`. Add `--runslow` to re-simulate cached sweep points
+  (needs the experimental data; a few minutes).
+- Tuned SEI parameters live in `src/tuning.py` (`TUNED`, `tuned_params()`); don't
+  hard-code them in scripts.
 
 ## Notebook Usage Examples
 

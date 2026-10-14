@@ -16,6 +16,9 @@ Note: the cached step 2 sweep was run with rho_LEDC = 1.29, rho_LVDC = 1.49
 g/cm³ and kappa_LEDC = 9.0e-5, kappa_LVDC = 5.1e-5 S/m (stored in the pickle),
 not the assumed values in the table.
 
+`2026_04_29_first_charge_density_sweep` repeats the step 3 density sweep over
+the first charge cycle only, as a first-charge counterpart to step 3.
+
 `2026_05_06_model_vs_experiment` runs the model with the final parameter set
 and compares it against the voltage, expansion, capacity and resistance data.
 
@@ -29,6 +32,7 @@ in `data/`:
 | 1 | `data/simulation_results_ec_tuning_diff_20260421.pkl` |
 | 2 | `data/simulation_results_clean_dsei_sweep_20260422.pkl` |
 | 3 | `data/simulation_results_density_sweep_20260426.pkl` |
+| 3 (first charge) | `data/simulation_results_first_charge_density_20260429.pkl` |
 | 4 | `data/resistance_optimization_results_20260504.pkl` |
 
 The experimental data is not committed; see `data/README.md` at the repo root.

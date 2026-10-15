@@ -3,9 +3,8 @@
 import os
 
 import numpy as np
-from matplotlib import pyplot as plt
 
-from src import tuning
+from src import heatmaps, tuning
 
 # Axis label, axis scale, and display multiplier for each swept parameter
 PARAM_AXES = {
@@ -24,8 +23,6 @@ METRIC_STYLE = {
     'r_err': (r'$|R - \hat{R}|$ (m$\Omega$)', 1e3, (0.0, 10.0)),
 }
 
-PANEL_TITLES = {'base': 'Base Formation', 'fast': 'Fast Formation', 'fast+': 'Fast+ Formation'}
-
 FIGURE_DIR = 'notebooks_2026/figures'
 
 
@@ -40,36 +37,18 @@ def plot_heatmap_trio(result, metric, pin_col=None, zlim=None, title=None, saven
     x_label, x_scale, x_mult = PARAM_AXES[spec.col_param]
     y_label, y_scale, y_mult = PARAM_AXES[spec.row_param]
     z_label, z_mult, z_default = METRIC_STYLE[metric]
-    zmin, zmax = zlim if zlim is not None else z_default
 
     x = np.asarray(result.col_vec) * x_mult
     y = np.asarray(result.row_vec) * y_mult
-    X, Y = np.meshgrid(x, y)
-    cmap = plt.get_cmap('viridis_r', 20)
+    mats = [result.metrics[metric][p] * z_mult for p in tuning.PROTOCOLS]
+    fig, axes = heatmaps.heatmap_trio(x, y, mats, z_label, x_label, y_label,
+                                      zlim=zlim if zlim is not None else z_default,
+                                      xscale=x_scale, yscale=y_scale)
 
     if pin_col is not None:
-        selected = tuning.select_row(result, metric, pin_col)
         x_pin = result.col_vec[tuning.nearest_index(result.col_vec, pin_col)] * x_mult
-
-    fig, axes = plt.subplots(1, 3, figsize=(11, 4))
-    for ax, protocol in zip(axes, tuning.PROTOCOLS):
-        mat = result.metrics[metric][protocol] * z_mult
-        pcm = ax.pcolormesh(X, Y, mat, shading='auto', cmap=cmap, vmin=zmin, vmax=zmax)
-        fig.colorbar(pcm, ax=ax, label=z_label, orientation='horizontal', pad=0.2)
-        ax.set_xscale(x_scale)
-        ax.set_yscale(y_scale)
-        ax.set_xlim(x.min(), x.max())
-        ax.set_ylim(y.min(), y.max())
-        ax.set_xlabel(x_label)
-        ax.set_ylabel(y_label)
-        ax.set_title(PANEL_TITLES[protocol])
-        ax.grid(False)
-
-        if pin_col is not None:
-            y_sel = selected[protocol] * y_mult
-            ax.axvline(x_pin, color='darkred', linestyle=':', linewidth=1.5, alpha=0.7)
-            ax.plot(x_pin, y_sel, 'r*', markersize=10, label=f'({x_pin:.3g}, {y_sel:.3g})')
-            ax.legend(facecolor='lightgray', framealpha=1.0, frameon=True, fontsize=10)
+        heatmaps.annotate_panels(axes, mats, x, y, x_pin)
+        heatmaps.add_legends(axes)
 
     if title:
         fig.suptitle(title, fontsize=14)

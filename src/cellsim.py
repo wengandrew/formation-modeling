@@ -540,16 +540,16 @@ class Simulation:
 
         # Voltages and Potentials
         i = 0
-        axs[i].plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label='$U^+ + \eta^+$')
+        axs[i].plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label=r'$U^+ + \eta^+$')
         axs[i].plot(xx, self.vt, ls='-', c='k', label='$V_t$')
         # axs[i].plot(xx, self.ocv, ls='--', c='k')
         axs[i].set_ylabel('Voltage/Potential [V]')
         # axs[i].plot(xx, self.ocv_p, ls='--', c='b', label='$U_p$')
         # axs[i].plot(xx, self.ocv_n, ls='--', c='r', label='$U_n$')
-        axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label='$U^- - \eta^-$')
+        axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label=r'$U^- - \eta^-$')
         # axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label=rf'$U_{{\mathrm{{SEI,B}}}}$ = {self.cell.U_SEI2} V')
-        axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label='$U_{\mathrm{VC}}$ = 1.35V')
-        axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='c', label='$U_{\mathrm{EC}}$ = 0.80V')
+        axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label=r'$U_{\mathrm{VC}}$ = 1.35V')
+        axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='c', label=r'$U_{\mathrm{EC}}$ = 0.80V')
         axs[i].text(1.5, 0.9, 'EC', fontsize=20, fontweight='bold', color='c')
         axs[i].text(1.5, 1.45, 'VC', fontsize=20, fontweight='bold', color='m')
         axs[i].set_ylim((0.0, 4.0))
@@ -588,9 +588,9 @@ class Simulation:
         #     axs[i].set_ylim((-5, 75))
         # else:
         #     axs[i].set_ylim(ylim_thickness)
-        axs[i].plot(xx, self.q_sei2, c='m', label='$Q_{\mathrm{VC}}$')
-        axs[i].plot(xx, self.q_sei1, c='c', label='$Q_{\mathrm{EC}}$')
-        axs[i].plot(xx, self.q_sei, c='k', label='$Q_{\mathrm{sei}}$')
+        axs[i].plot(xx, self.q_sei2, c='m', label=r'$Q_{\mathrm{VC}}$')
+        axs[i].plot(xx, self.q_sei1, c='c', label=r'$Q_{\mathrm{EC}}$')
+        axs[i].plot(xx, self.q_sei, c='k', label=r'$Q_{\mathrm{sei}}$')
         axs[i].legend(loc='upper right')
         axs[i].set_ylabel(r'$Q_{\mathrm{sei}}$ [Ah]')
         axs[i].set_ylim((-0.0, 0.29))
@@ -646,16 +646,16 @@ class Simulation:
 
         # Voltages and Potentials
         i = 0
-        axs[i].plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label='$U^+ + \eta^+$')
+        axs[i].plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label=r'$U^+ + \eta^+$')
         axs[i].plot(xx, self.vt, ls='-', c='k', label='$V_t$')
         # axs[i].plot(xx, self.ocv, ls='--', c='k')
         axs[i].set_ylabel('Voltage/Potential [V]')
         # axs[i].plot(xx, self.ocv_p, ls='--', c='b', label='$U_p$')
         # axs[i].plot(xx, self.ocv_n, ls='--', c='r', label='$U_n$')
-        axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label='$U^- - \eta^-$')
+        axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label=r'$U^- - \eta^-$')
         # axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label=rf'$U_{{\mathrm{{SEI,B}}}}$ = {self.cell.U_SEI2} V')
-        axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label='$U_{\mathrm{VC}}$ = 1.35V')
-        axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='c', label='$U_{\mathrm{EC}}$ = 0.80V')
+        axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label=r'$U_{\mathrm{VC}}$ = 1.35V')
+        axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='c', label=r'$U_{\mathrm{EC}}$ = 0.80V')
         axs[i].text(1.5, 0.9, 'SEI 2 (EC)', fontsize=20, fontweight='bold', color='c')
         axs[i].text(1.5, 1.45, 'SEI 1 (VC)', fontsize=20, fontweight='bold', color='m')
         axs[i].set_ylim((0.0, 4.0))
@@ -856,11 +856,11 @@ class Simulation:
 
         i = 0
         # axs[i].plot(xx, self.ocv_p, ls='--', c='b', label='$U_p$')
-        axs[i].plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label='$U_p + \eta_p$')
+        axs[i].plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label=r'$U_p + \eta_p$')
         # axs[i].plot(xx, self.ocv, ls='--', c='k', label='')
         axs[i].plot(xx, self.vt, ls='-', c='k', label='$V_t$')
         # axs[i].plot(xx, self.ocv_n, ls='--', c='r', label='$U_n$')
-        axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label='$U_n - \eta_n$')
+        axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label=r'$U_n - \eta_n$')
         axs[i].set_ylabel('Voltage/Potential [V]')
         axs[i].legend(loc='right', fontsize=18)
         # axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='g', label=rf'$U_{{\mathrm{{SEI,1}}}}$ = {self.cell.U_SEI1} V')
@@ -945,9 +945,9 @@ class Simulation:
         axs[i].plot(xx, self.ocv, ls='--', c='k')
         axs[i].set_ylabel('V / V vs $Li/Li^+$ (V)')
         axs[i].plot(xx, self.ocv_p, ls='--', c='b', label='$U_p$')
-        axs[i].plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label='$U_p + \eta_p$')
+        axs[i].plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label=r'$U_p + \eta_p$')
         axs[i].plot(xx, self.ocv_n, ls='--', c='r', label='$U_n$')
-        axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label='$U_n - \eta_n$')
+        axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label=r'$U_n - \eta_n$')
         axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='c', label=rf'$U_{{\mathrm{{SEI,A}}}}$ = {self.cell.U_SEI1} V')
         axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label=rf'$U_{{\mathrm{{SEI,B}}}}$ = {self.cell.U_SEI2} V')
 
@@ -979,9 +979,9 @@ class Simulation:
         # Total cell expansion
         i += 1
         axs[i].set_ylabel(r'$\epsilon$ ($\mu$m)')
-        axs[i].plot(xx, self.expansion_irrev*1e6, c='c', label='$\epsilon_{irrev}$')
+        axs[i].plot(xx, self.expansion_irrev*1e6, c='c', label=r'$\epsilon_{irrev}$')
         axs[i].plot(xx, (self.expansion_rev + self.expansion_irrev)*1e6,
-                    c='k', label='$\epsilon_{irrev} + \epsilon_{rev}$')
+                    c='k', label=r'$\epsilon_{irrev} + \epsilon_{rev}$')
         axs[i].legend()
 
         # SEI reaction current densities
@@ -1012,9 +1012,9 @@ class Simulation:
 
         # Total SEI capacity
         i += 1
-        axs[i].plot(xx, self.q_sei1, c='g', label='$Q_{\mathrm{sei,1}}$')
-        axs[i].plot(xx, self.q_sei2, c='m', label='$Q_{\mathrm{sei,2}}$')
-        axs[i].plot(xx, self.q_sei, c='k', label='$Q_{\mathrm{sei}}$')
+        axs[i].plot(xx, self.q_sei1, c='g', label=r'$Q_{\mathrm{sei,1}}$')
+        axs[i].plot(xx, self.q_sei2, c='m', label=r'$Q_{\mathrm{sei,2}}$')
+        axs[i].plot(xx, self.q_sei, c='k', label=r'$Q_{\mathrm{sei}}$')
         axs[i].legend(loc='upper right')
         axs[i].set_ylabel(r'$Q_{\mathrm{sei}}$ [Ah]')
 

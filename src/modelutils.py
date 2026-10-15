@@ -247,28 +247,6 @@ def Un(sto, adjust=True):
     return u_eq
 
 
-def state_update_ocv_r_2rc(I, T, Rs, R1, R2, C1, C2):
-    """
-    State update equations for the OCV-R-RC model
-
-    Parameters
-    ---------
-    I: input current (A), positive is discharge
-    T: input temperature in Celsius
-    Rs: series resistance in Ohms
-    R1: R1 in Ohms
-    R2: R2 in Ohms
-    C1: C1 in Farads
-    C2: C2 in Farads
-
-    Outputs:
-    x = [VT, z, V1, V2]^T
-
-    """
-    # TODO: implement state update equations for the 2RC ECM
-    return None
-
-
 def ocv(z):
     """
     Return the open circuit voltage at a specific SOC

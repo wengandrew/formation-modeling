@@ -1,7 +1,7 @@
 """ Utilities for input/output management."""
 import numpy as np
 import pandas as pd
-import os, sys
+import os
 
 
 def fetch_file_list(cellid):
@@ -99,7 +99,6 @@ def fetch_experimental_data(cellid, max_hours=1000000, to_include_cycling=False)
     df_arbin = pd.concat(df_arbin_list, axis=0)
 
     # Filter the Arbin Data
-    qq = df_arbin['Charge Capacity (Ah)']
     tv = df_arbin['Timestamp'].astype(int)
     tv = (tv - np.min(tv)) / 1e9
     y_voltage = df_arbin['Potential (V)'].copy()

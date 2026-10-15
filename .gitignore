@@ -144,3 +144,7 @@ data/raw/*
 # VS Code studd
 
 .vscode/
+
+# Local editor / agent worktrees
+.claude/worktrees/
+.cursor/

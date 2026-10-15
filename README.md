@@ -30,3 +30,16 @@ The code runs on Python 3.8.8.
 
 5. Download the data files
   - Follow the link in the `data` folder
+
+# Repository layout
+
+- `src/`: simulation engine (`cellsim.py`, `simutils.py`) and the SEI parameter
+  tuning code (`tuning.py`).
+- `notebooks_2026/`: scripts behind the paper's SEI parameter tuning and
+  model-vs-experiment figures, with their cached sweep results and figures.
+  See `notebooks_2026/README.md`.
+- `notebooks/`: exploratory analysis notebooks; their figures and pickled
+  results are in `notebooks/outputs/`.
+- `params/`: cell parameter sets (YAML).
+- `tests/`: run `pytest tests/` from the repo root (`--runslow` also
+  re-simulates cached sweep points; needs the data files).

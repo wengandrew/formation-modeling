@@ -148,3 +148,9 @@ data/raw/*
 # Local editor / agent worktrees
 .claude/worktrees/
 .cursor/
+
+# Notebook outputs kept locally (old sweep iterations, exported data)
+notebooks/outputs/*pkl
+notebooks/outputs/*.csv
+notebooks/outputs/figures/from_root/
+notebooks/outputs/figures/*copy.pdf

@@ -8,7 +8,8 @@ Published in the Journal of the Electrochemical Society (December 2023).
 ```
 src/            Core Python source
   cellsim.py    Cell and Simulation classes (main simulation engine)
-  simutils.py   run_sim() orchestration, RMSE, heatmap plotting
+  simutils.py   run_sim() (protocols in FORMATION_PROTOCOLS), RMSE, legacy heatmap wrappers
+  heatmaps.py   Shared base/fast/fast+ heatmap panels
   modelutils.py Electrochemistry lookup functions (OCP, expansion, resistance)
   dvdq.py       dV/dQ analysis tools
   ioutils.py    Data loading utilities (cell IDs → CSV paths)
@@ -99,7 +100,12 @@ Cell parameters are loaded from YAML via `cell.load_config(path)`. Key SEI param
 - Prototype in notebooks, then refactor proven code into `src/`.
 - Python 3.12 (pyenv env `formation-modeling-env`, see `.python-version`); notebooks use 3.10+ syntax such as `match`.
 - Run tests with `pytest tests/`. Add `--runslow` to re-simulate cached sweep points
-  (needs the experimental data; a few minutes).
+  and the multi-cycle run_sim regression cases (needs the experimental data; slow).
+- `tests/regression/` holds exact fingerprints of run_sim output and of every figure
+  function. After changing simulation or plotting code, check with
+  `python -m tests.regression.make_references --check` (parallel); re-record with
+  `python -m tests.regression.make_references --only <prefix>` only when a change
+  is intended.
 - Tuned SEI parameters live in `src/tuning.py` (`TUNED`, `tuned_params()`); don't
   hard-code them in scripts.
 

@@ -513,113 +513,123 @@ class Simulation:
         return df
 
 
+    # ------------------------------------------------------------------
+    # Plotting
+    # ------------------------------------------------------------------
+
+    def _new_figure(self, num_subplots, figsize, xlims=None):
+        """Vertically stacked panels sharing the time axis [hrs]."""
+        gridspec = dict(hspace=0.05, height_ratios=np.ones(num_subplots))
+        fig, axs = plt.subplots(nrows=num_subplots, ncols=1, figsize=figsize,
+                                gridspec_kw=gridspec, sharex=True)
+        for ax in axs:
+            ax.grid(False)
+        if xlims is not None:
+            axs[0].set_xlim(xlims)
+        return fig, axs, self.t / 3600
+
+    @staticmethod
+    def _panel_letters(axs, x):
+        for ax, letter in zip(axs, 'ABCD'):
+            ax.text(x, 0.92, letter, transform=ax.transAxes, fontsize=30, fontweight='bold')
+
+    @staticmethod
+    def _numbered_markers(markers, facecolor='none'):
+        """Circled numbers; markers is a list of (ax, x, y, number)."""
+        bbox_dict = dict(boxstyle='circle', pad=0.1, facecolor=facecolor, edgecolor='k')
+        for ax, x, y, number in markers:
+            ax.text(x, y, number, fontsize=16, bbox=bbox_dict)
+
+    def _plot_potentials_vs_sei_onset(self, ax, xx, ec_text, vc_text):
+        """Electrode potentials with the EC and VC reaction potentials."""
+        ax.plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label=r'$U^+ + \eta^+$')
+        ax.plot(xx, self.vt, ls='-', c='k', label='$V_t$')
+        ax.set_ylabel('Voltage/Potential [V]')
+        ax.plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label=r'$U^- - \eta^-$')
+        ax.axhline(y=self.cell.U_SEI2, ls='--', c='m', label=r'$U_{\mathrm{VC}}$ = 1.35V')
+        ax.axhline(y=self.cell.U_SEI1, ls='--', c='c', label=r'$U_{\mathrm{EC}}$ = 0.80V')
+        ax.text(1.5, 0.9, ec_text, fontsize=20, fontweight='bold', color='c')
+        ax.text(1.5, 1.45, vc_text, fontsize=20, fontweight='bold', color='m')
+        ax.set_ylim((0.0, 4.0))
+        lh = ax.legend(loc='right', fancybox=False, frameon=True, fontsize=18)
+        lh.get_frame().set_alpha(None)
+
+    def _plot_sei_currents(self, ax, xx):
+        """Applied current and the EC/VC SEI currents."""
+        ax.axhline(y=0, ls='-', label='', c='k', lw=0.5)
+        ax.plot(xx, self.i_app, c='k', label=r'$I_{\mathrm{app}}$')
+        ax.plot(np.nan, np.nan, c='k', lw=2, ls='--', label=r'$I_{\mathrm{sei}}$')
+        ax.plot(xx, self.i_sei2, c='m', ls='-', label=r'$I_{\mathrm{VC}}$')
+        ax.plot(xx, self.i_sei1, c='c', ls='-', label=r'$I_{\mathrm{EC}}$')
+        ax.plot(xx, self.i_sei, c='k', lw=2, ls='--', label='')
+        ax.legend(loc='center right', fancybox=False, frameon=False, fontsize=18)
+
+    def _plot_current_density_limits(self, ax, xx, n, color, letter):
+        """SEI n current density with its reaction and diffusion limits (log scale)."""
+        ax.set_yscale('log')
+        ax.plot(xx, getattr(self, f'j_sei{n}'), c=color, linewidth=4, ls='-',
+                label=rf'$j_{{\mathrm{{sei,{letter}}}}}$')
+        ax.plot(xx, getattr(self, f'j_sei_rxn{n}'), c='k', linewidth=2, ls='--',
+                label=rf'$\tilde{{j}}_{{\mathrm{{sei,{letter},rxn}}}}$')
+        ax.plot(xx, getattr(self, f'j_sei_dif{n}'), c='k', linewidth=2, ls='-.',
+                label=rf'$\tilde{{j}}_{{\mathrm{{sei,{letter},dif}}}}$')
+        ax.legend(loc='lower right', fontsize=18)
+
+    @staticmethod
+    def _plot_series(ax, xx, series, ylabel=None, legend_loc=None, yscale=None):
+        """Plot (y, kwargs) pairs on one panel."""
+        if yscale:
+            ax.set_yscale(yscale)
+        for y, kwargs in series:
+            ax.plot(xx, y, **kwargs)
+        if legend_loc is not None:
+            ax.legend(loc=legend_loc)
+        if ylabel is not None:
+            ax.set_ylabel(ylabel)
+
+    def _first_charge_markers(self, axs):
+        self._numbered_markers([
+            (axs[0], 0.25, 0.30, '1'),
+            (axs[1], 1.02, 0.22, '2'),
+            (axs[1], 1.42, 0.11, '3'),
+            (axs[2], 4.40, 64.0, '4'),
+            (axs[1], 4.40, 0.023, '5'),
+        ])
+
     def plot_view_4(self, to_save=False, xlims=None,
                     to_annotate=True, ylim_current=None,
                     ylim_thickness=None):
         """
         Make "View 4"
 
-        Focus on voltage, current, and expansion
+        Focus on voltage, current, and SEI capacity.
+        ylim_thickness is unused (kept for backward compatibility).
         """
+        fig, axs, xx = self._new_figure(3, (8, 3 * 4.5), xlims)
 
-        num_subplots = 3
+        self._plot_potentials_vs_sei_onset(axs[0], xx, 'EC', 'VC')
 
-        gridspec = dict(hspace=0.05, height_ratios=np.ones(num_subplots))
+        self._plot_sei_currents(axs[1], xx)
+        axs[1].set_ylabel('Current [A]')
+        axs[1].set_ylim((0, 0.27) if ylim_current is None else ylim_current)
 
-        fig, axs = plt.subplots(nrows=num_subplots, ncols=1,
-                                figsize=(8, num_subplots * 4.5),
-                                gridspec_kw=gridspec,
-                                sharex=True)
-
-        [ax.grid(False) for ax in axs]
-
-        xx = self.t/3600
-
-        if xlims is not None:
-            axs[0].set_xlim(xlims)
-
-        # Voltages and Potentials
-        i = 0
-        axs[i].plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label=r'$U^+ + \eta^+$')
-        axs[i].plot(xx, self.vt, ls='-', c='k', label='$V_t$')
-        # axs[i].plot(xx, self.ocv, ls='--', c='k')
-        axs[i].set_ylabel('Voltage/Potential [V]')
-        # axs[i].plot(xx, self.ocv_p, ls='--', c='b', label='$U_p$')
-        # axs[i].plot(xx, self.ocv_n, ls='--', c='r', label='$U_n$')
-        axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label=r'$U^- - \eta^-$')
-        # axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label=rf'$U_{{\mathrm{{SEI,B}}}}$ = {self.cell.U_SEI2} V')
-        axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label=r'$U_{\mathrm{VC}}$ = 1.35V')
-        axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='c', label=r'$U_{\mathrm{EC}}$ = 0.80V')
-        axs[i].text(1.5, 0.9, 'EC', fontsize=20, fontweight='bold', color='c')
-        axs[i].text(1.5, 1.45, 'VC', fontsize=20, fontweight='bold', color='m')
-        axs[i].set_ylim((0.0, 4.0))
-        # axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='c', label=rf'$U_{{\mathrm{{SEI,A}}}}$ = {self.cell.U_SEI1} V')
-        lh = axs[i].legend(loc='right', fancybox=False, frameon=True, fontsize=18)
-        lh.get_frame().set_alpha(None)
-
-
-        # Currents
-        i += 1
-        axs[i].axhline(y=0, ls='-', label='', c='k', lw=0.5)
-        axs[i].plot(xx, self.i_app, c='k', label=r'$I_{\mathrm{app}}$')
-        axs[i].plot(np.nan, np.nan, c='k', lw=2, ls='--', label=r'$I_{\mathrm{sei}}$')
-        axs[i].plot(xx, self.i_sei2, c='m', ls='-', label=r'$I_{\mathrm{VC}}$')
-        axs[i].plot(xx, self.i_sei1, c='c', ls='-', label=r'$I_{\mathrm{EC}}$')
-        axs[i].plot(xx, self.i_sei, c='k', lw=2, ls='--', label='')
-        axs[i].legend(loc='center right', fancybox=False, frameon=False, fontsize=18)
-        # axs[i].text(1, 0.17, 'VC', fontsize=20, fontweight='bold', color='m')
-        # axs[i].text(1.85, 0.05, 'EC', fontsize=20, fontweight='bold', color='c')
-        axs[i].set_ylabel('Current [A]')
-        if ylim_current is None:
-            axs[i].set_ylim((0, 0.27))
-        else:
-            axs[i].set_ylim(ylim_current)
-
-
-        # Total cell expansion
-        i += 1
-        # ff = self.delta_sei2 / (self.delta_sei2 + self.delta_sei1)
-        # axs[i].plot(xx, (self.expansion_rev + self.expansion_irrev)*1e6, c='k', label=r'$\Delta_{\mathrm{sei,1}}$ + $\Delta_{\mathrm{sei,2}}$ + $\Delta_{\mathrm{rev}}$')
-        # axs[i].plot(xx, self.expansion_irrev*1e6, c='c', ls='-', label=r'$\Delta_{\mathrm{sei,1}}$ + $\Delta_{\mathrm{sei,2}}$')
-        # axs[i].plot(xx, ff*self.expansion_irrev*1e6, c='m', ls='-', label=r'$\Delta_{\mathrm{sei,1}}$')
-        # axs[i].legend(loc='upper left', fontsize=18)
-        # axs[i].set_ylabel(r'Thickness [$\mu$m]')
-        # if ylim_thickness is None:
-        #     axs[i].set_ylim((-5, 75))
-        # else:
-        #     axs[i].set_ylim(ylim_thickness)
-        axs[i].plot(xx, self.q_sei2, c='m', label=r'$Q_{\mathrm{VC}}$')
-        axs[i].plot(xx, self.q_sei1, c='c', label=r'$Q_{\mathrm{EC}}$')
-        axs[i].plot(xx, self.q_sei, c='k', label=r'$Q_{\mathrm{sei}}$')
-        axs[i].legend(loc='upper right')
-        axs[i].set_ylabel(r'$Q_{\mathrm{sei}}$ [Ah]')
-        axs[i].set_ylim((-0.0, 0.29))
-        axs[i].set_xlabel('Time [hrs]')
-
-        # axs[i].text(4, -0, 'SEI 1', fontsize=20, fontweight='bold', color='m')
-        # axs[i].text(4, 19, 'SEI 2', fontsize=20, fontweight='bold', color='c')
-        # axs[i].text(4, 43, 'Reversible', fontsize=20, fontweight='bold', color='k')
+        axs[2].plot(xx, self.q_sei2, c='m', label=r'$Q_{\mathrm{VC}}$')
+        axs[2].plot(xx, self.q_sei1, c='c', label=r'$Q_{\mathrm{EC}}$')
+        axs[2].plot(xx, self.q_sei, c='k', label=r'$Q_{\mathrm{sei}}$')
+        axs[2].legend(loc='upper right')
+        axs[2].set_ylabel(r'$Q_{\mathrm{sei}}$ [Ah]')
+        axs[2].set_ylim((-0.0, 0.29))
+        axs[2].set_xlabel('Time [hrs]')
 
         if to_annotate:
-            # Markers
-            bbox_dict = dict(boxstyle='circle', pad=0.1, facecolor='none', edgecolor='k')
-            axs[0].text(0.25, 0.30, '1', fontsize=16, bbox=bbox_dict)
-            axs[1].text(1.02, 0.22, '2', fontsize=16, bbox=bbox_dict)
-            axs[1].text(1.42, 0.11, '3', fontsize=16, bbox=bbox_dict)
-            axs[2].text(4.40, 64.0, '4', fontsize=16, bbox=bbox_dict)
-            axs[1].text(4.40, 0.023, '5', fontsize=16, bbox=bbox_dict)
-
-            # Panel Numbers
-            axs[0].text(-0.16, 0.92, 'A', transform=axs[0].transAxes, fontsize=30, fontweight='bold')
-            axs[1].text(-0.16, 0.92, 'B', transform=axs[1].transAxes, fontsize=30, fontweight='bold')
-            axs[2].text(-0.16, 0.92, 'C', transform=axs[2].transAxes, fontsize=30, fontweight='bold')
+            self._first_charge_markers(axs)
+            self._panel_letters(axs, -0.16)
 
         fig.align_ylabels()
 
         if to_save:
             plt.savefig(f'{FIGURE_DIR}/fig_timeseries_1.png',
                         bbox_inches='tight', dpi=200)
-
 
     def plot_view_1(self, to_save=False, xlims=None):
         """
@@ -627,91 +637,38 @@ class Simulation:
 
         Focus on voltage, current, and expansion
         """
+        fig, axs, xx = self._new_figure(3, (10, 3 * 4), xlims)
 
-        num_subplots = 3
+        self._plot_potentials_vs_sei_onset(axs[0], xx, 'SEI 2 (EC)', 'SEI 1 (VC)')
 
-        gridspec = dict(hspace=0.05, height_ratios=np.ones(num_subplots))
-
-        fig, axs = plt.subplots(nrows=num_subplots, ncols=1,
-                                figsize=(10, num_subplots * 4),
-                                gridspec_kw=gridspec,
-                                sharex=True)
-
-        [ax.grid(False) for ax in axs]
-
-        xx = self.t/3600
-
-        if xlims is not None:
-            axs[0].set_xlim(xlims)
-
-        # Voltages and Potentials
-        i = 0
-        axs[i].plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label=r'$U^+ + \eta^+$')
-        axs[i].plot(xx, self.vt, ls='-', c='k', label='$V_t$')
-        # axs[i].plot(xx, self.ocv, ls='--', c='k')
-        axs[i].set_ylabel('Voltage/Potential [V]')
-        # axs[i].plot(xx, self.ocv_p, ls='--', c='b', label='$U_p$')
-        # axs[i].plot(xx, self.ocv_n, ls='--', c='r', label='$U_n$')
-        axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label=r'$U^- - \eta^-$')
-        # axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label=rf'$U_{{\mathrm{{SEI,B}}}}$ = {self.cell.U_SEI2} V')
-        axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label=r'$U_{\mathrm{VC}}$ = 1.35V')
-        axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='c', label=r'$U_{\mathrm{EC}}$ = 0.80V')
-        axs[i].text(1.5, 0.9, 'SEI 2 (EC)', fontsize=20, fontweight='bold', color='c')
-        axs[i].text(1.5, 1.45, 'SEI 1 (VC)', fontsize=20, fontweight='bold', color='m')
-        axs[i].set_ylim((0.0, 4.0))
-        # axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='c', label=rf'$U_{{\mathrm{{SEI,A}}}}$ = {self.cell.U_SEI1} V')
-        lh = axs[i].legend(loc='right', fancybox=False, frameon=True, fontsize=18)
-        lh.get_frame().set_alpha(None)
-
-
-        # Currents
-        i += 1
-        axs[i].axhline(y=0, ls='-', label='', c='k', lw=0.5)
-        axs[i].plot(xx, self.i_app, c='k', label=r'$I_{\mathrm{app}}$')
-        axs[i].plot(np.nan, np.nan, c='k', lw=2, ls='--', label=r'$I_{\mathrm{sei}}$')
-        axs[i].plot(xx, self.i_sei2, c='m', ls='-', label=r'$I_{\mathrm{VC}}$')
-        axs[i].plot(xx, self.i_sei1, c='c', ls='-', label=r'$I_{\mathrm{EC}}$')
-        axs[i].plot(xx, self.i_sei, c='k', lw=2, ls='--', label='')
-        axs[i].legend(loc='center right', fancybox=False, frameon=False, fontsize=18)
-        axs[i].text(1, 0.17, 'SEI 1', fontsize=20, fontweight='bold', color='m')
-        axs[i].text(1.85, 0.05, 'SEI 2', fontsize=20, fontweight='bold', color='c')
-        axs[i].set_ylabel('Current [A]')
-        axs[i].set_ylim((0, 0.27))
+        self._plot_sei_currents(axs[1], xx)
+        axs[1].text(1, 0.17, 'SEI 1', fontsize=20, fontweight='bold', color='m')
+        axs[1].text(1.85, 0.05, 'SEI 2', fontsize=20, fontweight='bold', color='c')
+        axs[1].set_ylabel('Current [A]')
+        axs[1].set_ylim((0, 0.27))
 
         # Total cell expansion
-        i += 1
+        ax = axs[2]
         ff = self.delta_sei2 / (self.delta_sei2 + self.delta_sei1)
-        axs[i].plot(xx, (self.expansion_rev + self.expansion_irrev)*1e6, c='k', label=r'$\Delta_{\mathrm{VC}}$ + $\Delta_{\mathrm{EC}}$ + $\Delta_{\mathrm{rev}}$')
-        axs[i].plot(xx, self.expansion_irrev*1e6, c='c', ls='-', label=r'$\Delta_{\mathrm{VC}}$ + $\Delta_{\mathrm{EC}}$')
-        axs[i].plot(xx, ff*self.expansion_irrev*1e6, c='m', ls='-', label=r'$\Delta_{\mathrm{VC}}$')
-        axs[i].legend(loc='upper left', fontsize=18)
-        axs[i].set_ylabel(r'Thickness [$\mu$m]')
-        axs[i].set_xlabel('Time [hrs]')
-        axs[i].set_ylim((-5, 75))
+        ax.plot(xx, (self.expansion_rev + self.expansion_irrev)*1e6, c='k', label=r'$\Delta_{\mathrm{VC}}$ + $\Delta_{\mathrm{EC}}$ + $\Delta_{\mathrm{rev}}$')
+        ax.plot(xx, self.expansion_irrev*1e6, c='c', ls='-', label=r'$\Delta_{\mathrm{VC}}$ + $\Delta_{\mathrm{EC}}$')
+        ax.plot(xx, ff*self.expansion_irrev*1e6, c='m', ls='-', label=r'$\Delta_{\mathrm{VC}}$')
+        ax.legend(loc='upper left', fontsize=18)
+        ax.set_ylabel(r'Thickness [$\mu$m]')
+        ax.set_xlabel('Time [hrs]')
+        ax.set_ylim((-5, 75))
+        ax.text(4, -0, 'SEI 1', fontsize=20, fontweight='bold', color='m')
+        ax.text(4, 19, 'SEI 2', fontsize=20, fontweight='bold', color='c')
+        ax.text(4, 43, 'Reversible', fontsize=20, fontweight='bold', color='k')
 
-        axs[i].text(4, -0, 'SEI 1', fontsize=20, fontweight='bold', color='m')
-        axs[i].text(4, 19, 'SEI 2', fontsize=20, fontweight='bold', color='c')
-        axs[i].text(4, 43, 'Reversible', fontsize=20, fontweight='bold', color='k')
-
-        # Markers
-        bbox_dict = dict(boxstyle='circle', pad=0.1, facecolor='none', edgecolor='k')
-        axs[0].text(0.25, 0.30, '1', fontsize=16, bbox=bbox_dict)
-        axs[1].text(1.02, 0.22, '2', fontsize=16, bbox=bbox_dict)
-        axs[1].text(1.42, 0.11, '3', fontsize=16, bbox=bbox_dict)
-        axs[2].text(4.40, 64.0, '4', fontsize=16, bbox=bbox_dict)
-        axs[1].text(4.40, 0.023, '5', fontsize=16, bbox=bbox_dict)
-
-        # Panel Numbers
-        axs[0].text(-0.16, 0.92, 'A', transform=axs[0].transAxes, fontsize=30, fontweight='bold')
-        axs[1].text(-0.16, 0.92, 'B', transform=axs[1].transAxes, fontsize=30, fontweight='bold')
-        axs[2].text(-0.16, 0.92, 'C', transform=axs[2].transAxes, fontsize=30, fontweight='bold')
+        self._first_charge_markers(axs)
+        self._panel_letters(axs, -0.16)
 
         fig.align_ylabels()
 
         if to_save:
             plt.savefig(f'{FIGURE_DIR}/fig_timeseries_1.png',
                         bbox_inches='tight', dpi=200)
-
 
     def plot_view_2(self, to_save=False, xlims=None):
         """
@@ -723,187 +680,123 @@ class Simulation:
         - thicknesss of the SEI
         - solvent depletion
         """
-
-        num_subplots = 4
-
-        gridspec = dict(hspace=0.05, height_ratios=np.ones(num_subplots))
-
-        fig, axs = plt.subplots(nrows=num_subplots, ncols=1,
-                                figsize=(10, num_subplots * 5),
-                                gridspec_kw=gridspec,
-                                sharex=True)
-
-        [ax.grid(False) for ax in axs]
-
-        xx = self.t/3600
-
-        if xlims is not None:
-            axs[0].set_xlim(xlims)
+        fig, axs, xx = self._new_figure(4, (10, 4 * 5), xlims)
 
         # Currents
-        i = 0
-        # axs[i].axhline(y=0, ls='-', label='', c='k', lw=0.5)
-        axs[i].plot(xx, self.i_app, c='k', lw=2, label=r'$I_{\mathrm{app}}$')
-        axs[i].plot(np.nan, np.nan, c='k', lw=3, ls='--', label=r'$I_{\mathrm{sei}}$')
-        axs[i].plot(xx, self.i_sei1, c='c', ls='-', lw=3, label=r'$I_{\mathrm{sei,A}}$')
-        axs[i].plot(xx, self.i_sei2, c='m', ls='-', lw=3, label=r'$I_{\mathrm{sei,B}}$')
-        axs[i].plot(xx, self.i_sei, c='k', lw=3, ls='--', label=r'')
-        axs[i].text(0.86, 0.20, 'VC', fontsize=26, fontweight='bold', color='m')
-        axs[i].text(1.43, 0.07, 'EC', fontsize=26, fontweight='bold', color='c')
+        ax = axs[0]
+        ax.plot(xx, self.i_app, c='k', lw=2, label=r'$I_{\mathrm{app}}$')
+        ax.plot(np.nan, np.nan, c='k', lw=3, ls='--', label=r'$I_{\mathrm{sei}}$')
+        ax.plot(xx, self.i_sei1, c='c', ls='-', lw=3, label=r'$I_{\mathrm{sei,A}}$')
+        ax.plot(xx, self.i_sei2, c='m', ls='-', lw=3, label=r'$I_{\mathrm{sei,B}}$')
+        ax.plot(xx, self.i_sei, c='k', lw=3, ls='--', label=r'')
+        ax.text(0.86, 0.20, 'VC', fontsize=26, fontweight='bold', color='m')
+        ax.text(1.43, 0.07, 'EC', fontsize=26, fontweight='bold', color='c')
+        ax.legend(loc='right', fontsize=18)
+        ax.set_ylabel(r'$I$ [A]')
+        ax.set_ylim((-0.01, 0.27))
 
-        axs[i].legend(loc='right', fontsize=18)
-        axs[i].set_ylabel(r'$I$ [A]')
-        axs[i].set_ylim((-0.01, 0.27))
+        # Current density of SEI 2 (VC)
+        ax = axs[1]
+        self._plot_current_density_limits(ax, xx, 2, 'm', 'B')
+        ax.axvline(0.775, color=(0.7, 0.7, 0.7), ls=':')
+        ax.set_ylim((1e-13, 1e8))
+        ax.text(0.1, 1e-5, 'VC', fontsize=26, fontweight='bold', color='m')
+        ax.set_ylabel(r'$j_{\mathrm{sei}}$ [A/m$^2$]')
 
-        # Current density of SEI 2
-        i += 1
-        axs[i].set_yscale('log')
-        axs[i].plot(xx, self.j_sei2, c='m', linewidth=4, ls='-', label=r'$j_{\mathrm{sei,B}}$')
-        axs[i].plot(xx, self.j_sei_rxn2, c='k', linewidth=2, ls='--', label=r'$\tilde{j}_{\mathrm{sei,B,rxn}}$')
-        axs[i].plot(xx, self.j_sei_dif2, c='k', linewidth=2, ls='-.', label=r'$\tilde{j}_{\mathrm{sei,B,dif}}$')
-        axs[i].legend(loc='lower right', fontsize=18)
-        axs[i].axvline(0.775, color=(0.7, 0.7, 0.7), ls=':')
-        axs[i].set_ylim((1e-13, 1e8))
-        axs[i].text(0.1, 1e-5, 'VC', fontsize=26, fontweight='bold', color='m')
-        axs[i].set_ylabel(r'$j_{\mathrm{sei}}$ [A/m$^2$]')
-
-
-        # Current density of SEI 1
-        i += 1
-        axs[i].set_yscale('log')
-        axs[i].plot(xx, self.j_sei1, c='c', linewidth=4, ls='-', label=r'$j_{\mathrm{sei,A}}$')
-        axs[i].plot(xx, self.j_sei_rxn1, c='k', linewidth=2, ls='--', label=r'$\tilde{j}_{\mathrm{sei,A,rxn}}$')
-        axs[i].plot(xx, self.j_sei_dif1, c='k', linewidth=2, ls='-.', label=r'$\tilde{j}_{\mathrm{sei,A,dif}}$')
-        axs[i].legend(loc='lower right', fontsize=18)
-        axs[i].text(0.1, 1e-5, 'EC', fontsize=26, fontweight='bold', color='c')
-        axs[i].axvline(1.14, color=(0.7, 0.7, 0.7), ls=':')
-        axs[i].text(0.1, 1e5, 'Reaction-Limited', color=(0.4, 0.4, 0.4), fontsize=20, fontweight='bold')
-        axs[i].text(1.3, 1e5, 'Diffusion-Limited', color=(0.4, 0.4, 0.4), fontsize=20, fontweight='bold')
-        axs[i].set_ylim((1e-13, 1e8))
-        axs[i].set_ylabel(r'$j_{\mathrm{sei}}$ [A/m$^2$]')
-
-        # Total cell expansion
-        # i += 1
-        # ff = self.delta_sei2 / (self.delta_sei2 + self.delta_sei1)
-        # axs[i].plot(xx, (self.expansion_rev + self.expansion_irrev)*1e6, c='k', label=r'$dL_{\mathrm{SEI,A}} + dL_{\mathrm{SEI,B}} + dL_{\mathrm{rev}}$')
-        # axs[i].plot(xx, self.expansion_irrev*1e6, c='c', ls='-', label=r'$dL_{\mathrm{SEI,A}} + dL_{\mathrm{SEI,B}}$')
-        # axs[i].plot(xx, ff*self.expansion_irrev*1e6, c='m', ls='-', label=r'$dL_{\mathrm{SEI,B}}$')
-        # axs[i].legend(loc='upper right', fontsize=16)
-        # axs[i].set_ylabel(r'$dL$ ($\mu$m)')
-        # axs[i].set_ylim(-2, 70)
+        # Current density of SEI 1 (EC)
+        ax = axs[2]
+        self._plot_current_density_limits(ax, xx, 1, 'c', 'A')
+        ax.text(0.1, 1e-5, 'EC', fontsize=26, fontweight='bold', color='c')
+        ax.axvline(1.14, color=(0.7, 0.7, 0.7), ls=':')
+        ax.text(0.1, 1e5, 'Reaction-Limited', color=(0.4, 0.4, 0.4), fontsize=20, fontweight='bold')
+        ax.text(1.3, 1e5, 'Diffusion-Limited', color=(0.4, 0.4, 0.4), fontsize=20, fontweight='bold')
+        ax.set_ylim((1e-13, 1e8))
+        ax.set_ylabel(r'$j_{\mathrm{sei}}$ [A/m$^2$]')
 
         # Solvent consumption
-        i += 1
-        axs[i].plot(np.nan, np.nan,      c='c', lw=3, label=r'$c^{\mathrm{0}}_{\mathrm{sei,A}}$') # dummy
-        axs[i].plot(xx, self.c_sei2/1e3, c='m', lw=3, label=r'$c^{\mathrm{0}}_{\mathrm{sei,B}}$')
-        ax2 = axs[i].twinx()
+        ax = axs[3]
+        ax.plot(np.nan, np.nan,      c='c', lw=3, label=r'$c^{\mathrm{0}}_{\mathrm{sei,A}}$') # dummy
+        ax.plot(xx, self.c_sei2/1e3, c='m', lw=3, label=r'$c^{\mathrm{0}}_{\mathrm{sei,B}}$')
+        ax2 = ax.twinx()
         ax2.plot(xx, self.c_sei1/1e3, c='c', lw=3, label=r'$c^{\mathrm{bulk}}_{\mathrm{sei,A}}$')
         ax2.grid(False)
-        axs[i].arrow(0.85, 0.20, -0.3, 0, head_width=0.01, head_length=0.05, color='m')
+        ax.arrow(0.85, 0.20, -0.3, 0, head_width=0.01, head_length=0.05, color='m')
         ax2.arrow(1.5, 4.5, 0.3, 0, head_width=0.03, head_length=0.05, color='c')
-        axs[i].set_ylabel(r'$c^{\mathrm{0}}$ [kmol/m$^3$]')
-        axs[i].set_xlabel('Time [hrs]')
-        axs[i].legend(loc='center right', fontsize=18)
-
-        axs[i].text(0.55, 0.21, 'VC', fontsize=26, fontweight='bold', color='m')
+        ax.set_ylabel(r'$c^{\mathrm{0}}$ [kmol/m$^3$]')
+        ax.set_xlabel('Time [hrs]')
+        ax.legend(loc='center right', fontsize=18)
+        ax.text(0.55, 0.21, 'VC', fontsize=26, fontweight='bold', color='m')
         ax2.text(1.9, 4.47, 'EC', fontsize=26, fontweight='bold', color='c')
 
-        axs[0].text(-0.15, 0.92, 'A', transform=axs[0].transAxes, fontsize=30, fontweight='bold')
-        axs[1].text(-0.15, 0.92, 'B', transform=axs[1].transAxes, fontsize=30, fontweight='bold')
-        axs[2].text(-0.15, 0.92, 'C', transform=axs[2].transAxes, fontsize=30, fontweight='bold')
-        axs[3].text(-0.15, 0.92, 'D', transform=axs[3].transAxes, fontsize=30, fontweight='bold')
+        self._panel_letters(axs, -0.15)
 
         fig.align_ylabels()
 
-        bbox_dict = dict(boxstyle='circle', pad=0.1, facecolor='w', edgecolor='k')
-        axs[2].text(0.4, 1e-12, '1', fontsize=16, bbox=bbox_dict)
-        axs[2].text(0.8, 1e-8, '2', fontsize=16, bbox=bbox_dict)
-        axs[2].text(1.12, 5e-3, '3', fontsize=16, bbox=bbox_dict)
-        axs[1].text(0.4, 1e-12, '1', fontsize=16, bbox=bbox_dict)
-        axs[1].text(0.65, 1e-8, '2', fontsize=16, bbox=bbox_dict)
-        axs[1].text(0.75, 1e-2, '3', fontsize=16, bbox=bbox_dict)
-        axs[1].text(1.20, 5e-2, '4', fontsize=16, bbox=bbox_dict)
-        axs[1].text(0.60, 9e1, '5', fontsize=16, bbox=bbox_dict)
-        axs[3].text(1.15, 0.17, '6', fontsize=16, bbox=bbox_dict)
+        self._numbered_markers([
+            (axs[2], 0.4, 1e-12, '1'),
+            (axs[2], 0.8, 1e-8, '2'),
+            (axs[2], 1.12, 5e-3, '3'),
+            (axs[1], 0.4, 1e-12, '1'),
+            (axs[1], 0.65, 1e-8, '2'),
+            (axs[1], 0.75, 1e-2, '3'),
+            (axs[1], 1.20, 5e-2, '4'),
+            (axs[1], 0.60, 9e1, '5'),
+            (axs[3], 1.15, 0.17, '6'),
+        ], facecolor='w')
 
         if to_save:
             plt.savefig(f'{FIGURE_DIR}/fig_timeseries_2.tif', bbox_inches='tight',
                         dpi=200)
 
-
     def plot_view_3(self, to_save=False, xlims=None):
         """
         Make "View 3"
 
-        Focus on understanding SEI growth boosting during cycling
+        Focus on understanding SEI growth boosting during cycling.
+        Always saves the figure (to_save is ignored, as before).
         """
+        fig, axs, xx = self._new_figure(4, (8, 4 * 4), xlims)
 
-        num_subplots = 4
+        ax = axs[0]
+        ax.plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label=r'$U_p + \eta_p$')
+        ax.plot(xx, self.vt, ls='-', c='k', label='$V_t$')
+        ax.plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label=r'$U_n - \eta_n$')
+        ax.set_ylabel('Voltage/Potential [V]')
+        ax.legend(loc='right', fontsize=18)
 
-        gridspec = dict(hspace=0.05, height_ratios=np.ones(num_subplots))
+        ax = axs[1]
+        ax.set_ylabel(r'$\nu$ [-]')
+        ax.plot(xx, self.delta_n, c='r', label=r'$\nu_\mathrm{n}$')
+        ax.plot(xx, self.delta_p, c='b', label=r'$\nu_\mathrm{p}$')
+        ax.legend(loc='center right', fontsize=18)
 
-        fig, axs = plt.subplots(nrows=num_subplots, ncols=1,
-                                figsize=(8, num_subplots * 4),
-                                gridspec_kw=gridspec,
-                                sharex=True)
+        ax = axs[2]
+        ax.plot(xx, self.boost, c='k', label=r'$B$')
+        ax.plot(xx, self.dndt*self.cell.gamma_boost, c='k',
+                ls='--', label=r'$\gamma \frac{d\nu_\mathrm{n}}{dt}$')
+        ax.set_ylabel(r'$B$ [-]')
+        ax.legend(loc='lower right', fontsize=18)
 
-        [ax.grid(False) for ax in axs]
-
-        xx = self.t/3600
-
-        if xlims is not None:
-            axs[0].set_xlim(xlims)
-
-        i = 0
-        # axs[i].plot(xx, self.ocv_p, ls='--', c='b', label='$U_p$')
-        axs[i].plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label=r'$U_p + \eta_p$')
-        # axs[i].plot(xx, self.ocv, ls='--', c='k', label='')
-        axs[i].plot(xx, self.vt, ls='-', c='k', label='$V_t$')
-        # axs[i].plot(xx, self.ocv_n, ls='--', c='r', label='$U_n$')
-        axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label=r'$U_n - \eta_n$')
-        axs[i].set_ylabel('Voltage/Potential [V]')
-        axs[i].legend(loc='right', fontsize=18)
-        # axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='g', label=rf'$U_{{\mathrm{{SEI,1}}}}$ = {self.cell.U_SEI1} V')
-        # axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label=rf'$U_{{\mathrm{{SEI,2}}}}$ = {self.cell.U_SEI2} V')
-
-        i += 1
-        axs[i].set_ylabel(r'$\nu$ [-]')
-        axs[i].plot(xx, self.delta_n, c='r', label=r'$\nu_\mathrm{n}$')
-        axs[i].plot(xx, self.delta_p, c='b', label=r'$\nu_\mathrm{p}$')
-        axs[i].legend(loc='center right', fontsize=18)
-
-        i += 1
-        axs[i].plot(xx, self.boost, c='k', label=r'$B$')
-        axs[i].plot(xx, self.dndt*self.cell.gamma_boost, c='k',
-                     ls='--', label=r'$\gamma \frac{d\nu_\mathrm{n}}{dt}$')
-        axs[i].set_ylabel(r'$B$ [-]')
-        axs[i].legend(loc='lower right', fontsize=18)
-
-        i += 1
-        axs[i].plot(xx, self.delta_sei1 * 1e9 + self.delta_sei2 * 1e9, c='k', label=r'$\delta_{\mathrm{SEI}}$')
-        axs[i].plot(xx, self.delta_sei1 * 1e9, c='c', label=r'$\delta_{\mathrm{SEI,A}}$ (EC)')
-        axs[i].plot(xx, self.delta_sei2 * 1e9, c='m', label=r'$\delta_{\mathrm{SEI,B}}$ (VC)')
-        axs[i].legend(loc='right', fontsize=18)
-        axs[i].set_ylabel(r'$\delta_{\mathrm{SEI}}$ [$nm$]')
-
-        axs[i].set_xlabel('Time [hrs]')
+        ax = axs[3]
+        ax.plot(xx, self.delta_sei1 * 1e9 + self.delta_sei2 * 1e9, c='k', label=r'$\delta_{\mathrm{SEI}}$')
+        ax.plot(xx, self.delta_sei1 * 1e9, c='c', label=r'$\delta_{\mathrm{SEI,A}}$ (EC)')
+        ax.plot(xx, self.delta_sei2 * 1e9, c='m', label=r'$\delta_{\mathrm{SEI,B}}$ (VC)')
+        ax.legend(loc='right', fontsize=18)
+        ax.set_ylabel(r'$\delta_{\mathrm{SEI}}$ [$nm$]')
+        ax.set_xlabel('Time [hrs]')
 
         fig.align_ylabels()
 
-        axs[0].text(-0.15, 0.92, 'A', transform=axs[0].transAxes, fontsize=30, fontweight='bold')
-        axs[1].text(-0.15, 0.92, 'B', transform=axs[1].transAxes, fontsize=30, fontweight='bold')
-        axs[2].text(-0.15, 0.92, 'C', transform=axs[2].transAxes, fontsize=30, fontweight='bold')
-        axs[3].text(-0.15, 0.92, 'D', transform=axs[3].transAxes, fontsize=30, fontweight='bold')
-
-        bbox_dict = dict(boxstyle='circle', pad=0.1, facecolor='none', edgecolor='k')
-        axs[2].text(5, 0, '1', fontsize=16, bbox=bbox_dict)
-        axs[1].text(30, 0.09, '2', fontsize=16, bbox=bbox_dict)
-        axs[2].text(30, 35, '3', fontsize=16, bbox=bbox_dict)
-        axs[2].text(55, 10, '4', fontsize=16, bbox=bbox_dict)
+        self._panel_letters(axs, -0.15)
+        self._numbered_markers([
+            (axs[2], 5, 0, '1'),
+            (axs[1], 30, 0.09, '2'),
+            (axs[2], 30, 35, '3'),
+            (axs[2], 55, 10, '4'),
+        ])
 
         plt.savefig(f'{FIGURE_DIR}/fig_timeseries_3.tif',
                     bbox_inches='tight', dpi=200)
-
 
     def plot(self, to_save=True,
                    xlims=None,
@@ -911,137 +804,110 @@ class Simulation:
         """
         Make a standard plot of the outputs
         """
-
-        num_subplots = 13
-
-        gridspec = dict(hspace=0.05, height_ratios=np.ones(num_subplots))
-
-        fig, axs = plt.subplots(nrows=num_subplots, ncols=1,
-                                figsize=(10, num_subplots * 4),
-                                gridspec_kw=gridspec,
-                                sharex=True)
-
-        [ax.grid(False) for ax in axs]
-
-        xx = self.t/3600
-
-        if xlims is not None:
-            axs[0].set_xlim(xlims)
+        fig, axs, xx = self._new_figure(13, (10, 13 * 4), xlims)
+        series = self._plot_series
 
         # Currents
-        i = 0
-        axs[i].axhline(y=0, ls='-', label='', c='k', lw=0.5)
-        axs[i].plot(xx, self.i_app, c='k', label='$I_{app}$')
-        axs[i].plot(xx, self.i_int, c='k', ls=':', label='$I_{int}$')
-        axs[i].plot(xx, self.i_sei, c='g', ls='--', label='$I_{SEI}$')
-        # axs[0].plot(xx, self.i_r1n, c='r', label='$I_{R_{1,n}}$')
-        # axs[0].plot(xx, self.i_r1p, c='b', ls='--', label='$I_{R_{1,p}}$')
-        axs[i].set_ylabel('Current (A)')
-        axs[i].legend(loc='upper right')
+        axs[0].axhline(y=0, ls='-', label='', c='k', lw=0.5)
+        series(axs[0], xx, [
+            (self.i_app, dict(c='k', label='$I_{app}$')),
+            (self.i_int, dict(c='k', ls=':', label='$I_{int}$')),
+            (self.i_sei, dict(c='g', ls='--', label='$I_{SEI}$')),
+        ])
+        axs[0].set_ylabel('Current (A)')
+        axs[0].legend(loc='upper right')
 
         # Voltages and Potentials
-        i += 1
-        axs[i].plot(xx, self.vt, ls='-', c='k')
-        axs[i].plot(xx, self.ocv, ls='--', c='k')
-        axs[i].set_ylabel('V / V vs $Li/Li^+$ (V)')
-        axs[i].plot(xx, self.ocv_p, ls='--', c='b', label='$U_p$')
-        axs[i].plot(xx, self.ocv_p + self.eta_p, ls='-', c='b', label=r'$U_p + \eta_p$')
-        axs[i].plot(xx, self.ocv_n, ls='--', c='r', label='$U_n$')
-        axs[i].plot(xx, self.ocv_n - self.eta_n, ls='-', c='r', label=r'$U_n - \eta_n$')
-        axs[i].axhline(y=self.cell.U_SEI1, ls='--', c='c', label=rf'$U_{{\mathrm{{SEI,A}}}}$ = {self.cell.U_SEI1} V')
-        axs[i].axhline(y=self.cell.U_SEI2, ls='--', c='m', label=rf'$U_{{\mathrm{{SEI,B}}}}$ = {self.cell.U_SEI2} V')
+        ax = axs[1]
+        ax.plot(xx, self.vt, ls='-', c='k')
+        ax.plot(xx, self.ocv, ls='--', c='k')
+        ax.set_ylabel('V / V vs $Li/Li^+$ (V)')
+        series(ax, xx, [
+            (self.ocv_p, dict(ls='--', c='b', label='$U_p$')),
+            (self.ocv_p + self.eta_p, dict(ls='-', c='b', label=r'$U_p + \eta_p$')),
+            (self.ocv_n, dict(ls='--', c='r', label='$U_n$')),
+            (self.ocv_n - self.eta_n, dict(ls='-', c='r', label=r'$U_n - \eta_n$')),
+        ])
+        ax.axhline(y=self.cell.U_SEI1, ls='--', c='c', label=rf'$U_{{\mathrm{{SEI,A}}}}$ = {self.cell.U_SEI1} V')
+        ax.axhline(y=self.cell.U_SEI2, ls='--', c='m', label=rf'$U_{{\mathrm{{SEI,B}}}}$ = {self.cell.U_SEI2} V')
 
         # Electrode stoichiometries
-        i += 1
-        axs[i].plot(xx, self.theta_n, c='r')
-        axs[i].plot(xx, self.theta_p, c='b')
-        axs[i].axhline(y=1, ls='-', label='', c='k', lw=0.5)
-        axs[i].axhline(y=0, ls='-', label='', c='k', lw=0.5)
-        axs[i].legend([r'$\theta_n$', r'$\theta_p$'], loc='upper right')
-        axs[i].set_ylabel(r'$\theta$')
-        axs[i].set_ylim((-0.1, 1.1))
+        ax = axs[2]
+        ax.plot(xx, self.theta_n, c='r')
+        ax.plot(xx, self.theta_p, c='b')
+        ax.axhline(y=1, ls='-', label='', c='k', lw=0.5)
+        ax.axhline(y=0, ls='-', label='', c='k', lw=0.5)
+        ax.legend([r'$\theta_n$', r'$\theta_p$'], loc='upper right')
+        ax.set_ylabel(r'$\theta$')
+        ax.set_ylim((-0.1, 1.1))
 
         # Electrode expansion factors
-        i += 1
-        axs[i].set_ylabel(r'$\delta$')
-        axs[i].plot(xx, self.delta_n, c='r')
-        axs[i].plot(xx, self.delta_p, c='b')
-        axs[i].legend([r'$\delta_n$', r'$\delta_p$'], loc='upper right')
+        ax = axs[3]
+        ax.set_ylabel(r'$\delta$')
+        ax.plot(xx, self.delta_n, c='r')
+        ax.plot(xx, self.delta_p, c='b')
+        ax.legend([r'$\delta_n$', r'$\delta_p$'], loc='upper right')
 
-        # SEI expansion factor
-        i += 1
-        axs[i].plot(xx, self.delta_sei1 * 1e9, c='c', label=r'$\delta_{\mathrm{sei},1}$')
-        axs[i].plot(xx, self.delta_sei2 * 1e9, c='m', label=r'$\delta_{\mathrm{sei,2}}$')
-        axs[i].plot(xx, self.delta_sei1 * 1e9 + self.delta_sei2 * 1e9, c='k', label=r'$\delta_{\mathrm{sei}}$')
-        axs[i].legend(loc='upper right')
-        axs[i].set_ylabel(r'$\delta_{\mathrm{sei}}$ [$nm$]')
+        # SEI thickness
+        series(axs[4], xx, [
+            (self.delta_sei1 * 1e9, dict(c='c', label=r'$\delta_{\mathrm{sei},1}$')),
+            (self.delta_sei2 * 1e9, dict(c='m', label=r'$\delta_{\mathrm{sei,2}}$')),
+            (self.delta_sei1 * 1e9 + self.delta_sei2 * 1e9, dict(c='k', label=r'$\delta_{\mathrm{sei}}$')),
+        ], ylabel=r'$\delta_{\mathrm{sei}}$ [$nm$]', legend_loc='upper right')
 
         # Total cell expansion
-        i += 1
-        axs[i].set_ylabel(r'$\epsilon$ ($\mu$m)')
-        axs[i].plot(xx, self.expansion_irrev*1e6, c='c', label=r'$\epsilon_{irrev}$')
-        axs[i].plot(xx, (self.expansion_rev + self.expansion_irrev)*1e6,
-                    c='k', label=r'$\epsilon_{irrev} + \epsilon_{rev}$')
-        axs[i].legend()
+        ax = axs[5]
+        ax.set_ylabel(r'$\epsilon$ ($\mu$m)')
+        ax.plot(xx, self.expansion_irrev*1e6, c='c', label=r'$\epsilon_{irrev}$')
+        ax.plot(xx, (self.expansion_rev + self.expansion_irrev)*1e6,
+                c='k', label=r'$\epsilon_{irrev} + \epsilon_{rev}$')
+        ax.legend()
 
         # SEI reaction current densities
-        i += 1
-        axs[i].set_yscale('log')
-        axs[i].plot(xx, self.j_sei_rxn1, c='g', label='$j_{sei,1,rxn}$')
-        axs[i].plot(xx, self.j_sei_dif1, c='m', label='$j_{sei,1,dif}$')
-        axs[i].plot(xx, np.abs(self.j_sei1), c='k', label='$j_{sei,1}$')
-        axs[i].legend(loc='upper right')
-        axs[i].set_ylabel(r'$j_{\mathrm{sei}}$ [A/m$^2$]')
-
-        # SEI reaction current densities
-        i += 1
-        axs[i].set_yscale('log')
-        axs[i].plot(xx, self.j_sei_rxn2, c='g', label='$j_{sei,2,rxn}$')
-        axs[i].plot(xx, self.j_sei_dif2, c='m', label='$j_{sei,2,dif}$')
-        axs[i].plot(xx, np.abs(self.j_sei2), c='k', label='$j_{sei,2}$')
-        axs[i].legend(loc='upper right')
-        axs[i].set_ylabel(r'$j_{\mathrm{sei}}$ [A/m$^2$]')
+        for ax, n in ((axs[6], 1), (axs[7], 2)):
+            series(ax, xx, [
+                (getattr(self, f'j_sei_rxn{n}'), dict(c='g', label=f'$j_{{sei,{n},rxn}}$')),
+                (getattr(self, f'j_sei_dif{n}'), dict(c='m', label=f'$j_{{sei,{n},dif}}$')),
+                (np.abs(getattr(self, f'j_sei{n}')), dict(c='k', label=f'$j_{{sei,{n}}}$')),
+            ], ylabel=r'$j_{\mathrm{sei}}$ [A/m$^2$]', legend_loc='upper right', yscale='log')
 
         # Total SEI reaction current
-        i += 1
-        axs[i].plot(xx, self.i_sei1, c='g', label='$I_{sei,1}$')
-        axs[i].plot(xx, self.i_sei2, c='m', label='$I_{sei,2}$')
-        axs[i].plot(xx, self.i_sei, c='k', label='$I_{sei}$')
-        axs[i].legend(loc='upper right')
-        axs[i].set_ylabel(r'$I_{\mathrm{sei}}$ [A]')
+        series(axs[8], xx, [
+            (self.i_sei1, dict(c='g', label='$I_{sei,1}$')),
+            (self.i_sei2, dict(c='m', label='$I_{sei,2}$')),
+            (self.i_sei, dict(c='k', label='$I_{sei}$')),
+        ], ylabel=r'$I_{\mathrm{sei}}$ [A]', legend_loc='upper right')
 
         # Total SEI capacity
-        i += 1
-        axs[i].plot(xx, self.q_sei1, c='g', label=r'$Q_{\mathrm{sei,1}}$')
-        axs[i].plot(xx, self.q_sei2, c='m', label=r'$Q_{\mathrm{sei,2}}$')
-        axs[i].plot(xx, self.q_sei, c='k', label=r'$Q_{\mathrm{sei}}$')
-        axs[i].legend(loc='upper right')
-        axs[i].set_ylabel(r'$Q_{\mathrm{sei}}$ [Ah]')
+        series(axs[9], xx, [
+            (self.q_sei1, dict(c='g', label=r'$Q_{\mathrm{sei,1}}$')),
+            (self.q_sei2, dict(c='m', label=r'$Q_{\mathrm{sei,2}}$')),
+            (self.q_sei, dict(c='k', label=r'$Q_{\mathrm{sei}}$')),
+        ], ylabel=r'$Q_{\mathrm{sei}}$ [Ah]', legend_loc='upper right')
 
-        i += 1
-        axs[i].set_yscale('log')
-        axs[i].plot(xx, self.D_sei1, c='g', label='$D_{sei,1}$')
-        axs[i].plot(xx, self.D_sei2, c='m', label='$D_{sei,2}$')
-        axs[i].axhline(y=self.cell.D_SEI11, ls='--', label='$D_{sei,11}$', c='g')
-        axs[i].axhline(y=self.cell.D_SEI22, ls='--', label='$D_{sei,22}$', c='m')
-        axs[i].legend(loc='right')
-        axs[i].set_ylabel(r'$D_{sei}$')
+        # SEI diffusivities
+        ax = axs[10]
+        ax.set_yscale('log')
+        ax.plot(xx, self.D_sei1, c='g', label='$D_{sei,1}$')
+        ax.plot(xx, self.D_sei2, c='m', label='$D_{sei,2}$')
+        ax.axhline(y=self.cell.D_SEI11, ls='--', label='$D_{sei,11}$', c='g')
+        ax.axhline(y=self.cell.D_SEI22, ls='--', label='$D_{sei,22}$', c='m')
+        ax.legend(loc='right')
+        ax.set_ylabel(r'$D_{sei}$')
 
         # Boost
-        i += 1
-        axs[i].plot(xx, self.dndt*self.cell.gamma_boost, c='k',
-                     ls='--', label=r'$\gamma \frac{d\delta_n}{dt}$')
-        axs[i].plot(xx, self.boost, c='k', label=r'$B$')
-        axs[i].set_ylabel(r'$B$')
-        axs[i].legend(loc='right')
+        series(axs[11], xx, [
+            (self.dndt*self.cell.gamma_boost, dict(c='k', ls='--', label=r'$\gamma \frac{d\delta_n}{dt}$')),
+            (self.boost, dict(c='k', label=r'$B$')),
+        ], ylabel=r'$B$', legend_loc='right')
 
         # SEI concentrations
-        i += 1
-        axs[i].plot(xx, self.c_sei1/1e3, c='g', label=r'$c^{\mathrm{bulk}}_{SEI,1}$')
-        axs[i].plot(xx, self.c_sei2/1e3, c='m', label=r'$c^{\mathrm{bulk}}_{SEI,2}$')
-        axs[i].set_ylabel(r'$c^{\mathrm{bulk}}$ (kmol/m$^3$)')
-        axs[i].set_xlabel('Time [hrs]')
-        axs[i].legend(loc='right')
+        ax = axs[12]
+        ax.plot(xx, self.c_sei1/1e3, c='g', label=r'$c^{\mathrm{bulk}}_{SEI,1}$')
+        ax.plot(xx, self.c_sei2/1e3, c='m', label=r'$c^{\mathrm{bulk}}_{SEI,2}$')
+        ax.set_ylabel(r'$c^{\mathrm{bulk}}$ (kmol/m$^3$)')
+        ax.set_xlabel('Time [hrs]')
+        ax.legend(loc='right')
 
         fig.align_ylabels()
 

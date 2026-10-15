@@ -19,10 +19,12 @@ src/            Core Python source
 params/         YAML configuration files for cell parameters
   default.yaml  Primary parameter set
 notebooks/      Jupyter analysis notebooks (YYYY_MM_DD naming)
-notebooks_2026/ Paper parameter-tuning scripts + cached sweep pickles (see its README)
+  outputs/      Figures and pickled results written by the notebooks
+notebooks_2026/ Paper parameter-tuning scripts (see its README)
+  data/         Cached sweep results
+  figures/      Figures written by the scripts
 tests/          pytest test suite
 data/           Experimental data (not committed; download from Google Drive)
-outputs/        Figures and pickled simulation results
 ```
 
 ## Running Simulations

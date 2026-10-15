@@ -26,7 +26,7 @@ METRIC_STYLE = {
 
 PANEL_TITLES = {'base': 'Base Formation', 'fast': 'Fast Formation', 'fast+': 'Fast+ Formation'}
 
-FIGURE_DIR = 'outputs/figures'
+FIGURE_DIR = 'notebooks_2026/figures'
 
 
 def plot_heatmap_trio(result, metric, pin_col=None, zlim=None, title=None, savename=None):
@@ -86,6 +86,7 @@ def plot_sweep_heatmaps(result, pin_col=None, zlims=None, figure_dir=FIGURE_DIR)
     zlims maps metric -> (zmin, zmax). Returns {metric: figure}.
     """
     zlims = zlims or {}
+    os.makedirs(figure_dir, exist_ok=True)
     window = tuning.WINDOW_LABELS[result.spec.window]
     figs = {}
     for metric in result.spec.metrics:

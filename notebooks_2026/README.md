@@ -26,6 +26,9 @@ spacing, so the set value is kept and the later steps were not re-run.
 first charge only. `model_vs_experiment.py` runs the fully tuned model and
 compares it against the voltage, expansion, capacity and resistance data.
 
+Everything the scripts produce stays in this folder: figures in `figures/`,
+sweep results in `data/`.
+
 ## Running
 
 ```bash
@@ -37,7 +40,7 @@ python notebooks_2026/model_vs_experiment.py   # final comparison (a few minutes
 
 The sweep scripts load the cached results below, save voltage and expansion
 RMSE heatmaps (first charge and all ~400 h) or resistance-error heatmaps to
-`outputs/figures/<sweep>_<metric>.svg`, and print the selected parameter values
+`figures/<sweep>_<metric>.svg`, and print the selected parameter values
 next to the tuned ones. Add `--run <sweep>` to re-run a sweep (hours; uses all
 cores, set with `--n-jobs`) and `--show` to display the figures.
 

@@ -23,8 +23,7 @@ from matplotlib import pyplot as plt  # noqa: E402
 from mpl_toolkits.axes_grid1.inset_locator import mark_inset  # noqa: E402
 
 from src import ioutils, plotter, simutils, tuning  # noqa: E402
-
-FIGURE_DIR = 'outputs/figures'
+from src.tuning_plots import FIGURE_DIR  # noqa: E402
 
 COLORS = {'base': 'b', 'fast': 'g', 'fast+': 'r'}
 LONG_COLORS = {'base': 'blue', 'fast': 'green', 'fast+': 'red'}
@@ -72,6 +71,7 @@ def _hours(t):
 
 
 def _save(fig, name):
+    os.makedirs(FIGURE_DIR, exist_ok=True)
     fig.savefig(os.path.join(FIGURE_DIR, name), format='svg', dpi=300)
 
 

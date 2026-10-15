@@ -21,6 +21,9 @@ STEP_NUM_DISCHARGE_CC = 2
 STEP_NUM_DISCHARGE_CV = 3
 STEP_NUM_REST = 4
 
+# Where the Simulation plotting methods save figures
+FIGURE_DIR = 'notebooks/outputs/figures'
+
 class Cell:
 
     def __init__(self, name=''):
@@ -614,7 +617,7 @@ class Simulation:
         fig.align_ylabels()
 
         if to_save:
-            plt.savefig(f'outputs/figures/fig_timeseries_1.png',
+            plt.savefig(f'{FIGURE_DIR}/fig_timeseries_1.png',
                         bbox_inches='tight', dpi=200)
 
 
@@ -706,7 +709,7 @@ class Simulation:
         fig.align_ylabels()
 
         if to_save:
-            plt.savefig(f'outputs/figures/fig_timeseries_1.png',
+            plt.savefig(f'{FIGURE_DIR}/fig_timeseries_1.png',
                         bbox_inches='tight', dpi=200)
 
 
@@ -824,7 +827,7 @@ class Simulation:
         axs[3].text(1.15, 0.17, '6', fontsize=16, bbox=bbox_dict)
 
         if to_save:
-            plt.savefig(f'outputs/figures/fig_timeseries_2.tif', bbox_inches='tight',
+            plt.savefig(f'{FIGURE_DIR}/fig_timeseries_2.tif', bbox_inches='tight',
                         dpi=200)
 
 
@@ -898,7 +901,7 @@ class Simulation:
         axs[2].text(30, 35, '3', fontsize=16, bbox=bbox_dict)
         axs[2].text(55, 10, '4', fontsize=16, bbox=bbox_dict)
 
-        plt.savefig(f'outputs/figures/fig_timeseries_3.tif',
+        plt.savefig(f'{FIGURE_DIR}/fig_timeseries_3.tif',
                     bbox_inches='tight', dpi=200)
 
 
@@ -1046,6 +1049,6 @@ class Simulation:
             fig_name = f'{self.name}_output'
 
         if to_save:
-            plt.savefig(f'outputs/figures/{fig_name}.png',
+            plt.savefig(f'{FIGURE_DIR}/{fig_name}.png',
                         bbox_inches='tight',
                         dpi=150)

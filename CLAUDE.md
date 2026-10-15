@@ -97,7 +97,7 @@ Cell parameters are loaded from YAML via `cell.load_config(path)`. Key SEI param
 - Do **not** commit raw data files (use Google Drive; see `data/README.md`).
 - One figure per notebook; name notebooks `YYYY_MM_DD_description.ipynb`.
 - Prototype in notebooks, then refactor proven code into `src/`.
-- Python 3.8.8 compatible.
+- Python 3.12 (pyenv env `formation-modeling-env`, see `.python-version`); notebooks use 3.10+ syntax such as `match`.
 - Run tests with `pytest tests/`. Add `--runslow` to re-simulate cached sweep points
   (needs the experimental data; a few minutes).
 - Tuned SEI parameters live in `src/tuning.py` (`TUNED`, `tuned_params()`); don't

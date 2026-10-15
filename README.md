@@ -6,13 +6,13 @@ Source code for modeling battery formation.
 
 This work is published in the Journal of the Electrochemical Society [here](https://iopscience.iop.org/article/10.1149/1945-7111/aceffe).
 
-The code runs on Python 3.8.8.
+The code runs on Python 3.12 (the notebooks use Python 3.10+ syntax).
 
 # Getting Started
 
 1. Clone this repository.
 
-2. Make sure you have Python 3.8.8 installed. Another version of Python will probably work, but no guarantees!
+2. Make sure you have Python 3.12 installed. Python 3.10 or later will probably work, but no guarantees!
 
 3. Set up your Python virtual environment
   - Make sure you're in the root directory of the repo

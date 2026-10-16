@@ -27,6 +27,9 @@ LEGACY_FILES = {
     'kappa_hppc1': 'resistance_optimization_results_20260504.pkl',
 }
 
+# Current caches; dsei_fc was re-run with baseline cell 152064 (base protocol only)
+CACHE_FILES = dict(LEGACY_FILES, dsei_fc='dsei_fc_20261015.pkl')
+
 HAS_EXPT_DATA = os.path.isdir('data/raw/from-voltaiq')
 needs_expt_data = pytest.mark.skipif(not HAS_EXPT_DATA, reason='experimental data not downloaded')
 
@@ -46,7 +49,7 @@ class TestSpecsMatchNotebooks:
         assert set(tuning.SPECS) == set(LEGACY_FILES)
 
     def test_cache_paths(self):
-        for name, fname in LEGACY_FILES.items():
+        for name, fname in CACHE_FILES.items():
             assert tuning.SPECS[name].cache == os.path.join(DATA_DIR, fname)
 
     def test_dsei_fc(self):
@@ -55,7 +58,8 @@ class TestSpecsMatchNotebooks:
         np.testing.assert_array_equal(s.row_vec, np.logspace(-20, -16, 55))
         np.testing.assert_array_equal(s.col_vec, np.logspace(-21, -12, 56))
         assert s.window == 'fc' and s.include_flag == 0
-        assert s.expt_cell('base') == 152074
+        assert s.expt_cell('base') == 152064
+        assert s.kink_window('base') == (0.5, 0.75)
         assert s.v_range == (2.0, 4.2)
         assert s.smooth_strain
         assert s.sim_kwargs('fast', 1e-19, 1e-18) == dict(
@@ -168,7 +172,7 @@ LEGACY_KEYS = {
 }
 
 
-@pytest.mark.parametrize('name', sorted(LEGACY_FILES))
+@pytest.mark.parametrize('name', sorted(set(LEGACY_FILES) - {'dsei_fc'}))
 def test_load_cached_matches_raw_pickle(name):
     spec = tuning.SPECS[name]
     result = tuning.load_sweep(spec)
@@ -185,6 +189,19 @@ def test_load_cached_matches_raw_pickle(name):
             mat = result.metrics[metric][protocol]
             assert mat.shape == (len(spec.row_vec), len(spec.col_vec))
             np.testing.assert_array_equal(mat, raw[key])
+
+
+def test_dsei_fc_cache_rerun_base_only():
+    # Fast and fast+ are the original results; only the base protocol (now cell
+    # 152064 instead of 152074) was re-run.
+    result = tuning.load_sweep(tuning.SPECS['dsei_fc'])
+    raw = _raw('dsei_fc')
+    for metric, key in (('v_rmse', 'rmse{n}_v_mat'), ('e_rmse', 'rmse{n}_e_mat')):
+        for n, protocol in ((2, 'fast'), (3, 'fast+')):
+            np.testing.assert_array_equal(result.metrics[metric][protocol], raw[key.format(n=n)])
+        base = result.metrics[metric]['base']
+        assert not np.isnan(base).any()
+        assert not np.array_equal(base, raw[key.format(n=1)])
 
 
 def test_save_load_roundtrip(tmp_path):

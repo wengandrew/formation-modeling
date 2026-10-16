@@ -29,9 +29,8 @@ from src import ioutils, simutils
 
 PROTOCOLS = ('base', 'fast', 'fast+')
 
-# Experimental cell for each protocol. 152074 is the second baseline cell.
+# Experimental cell for each protocol (152074 is a second, unused baseline cell)
 EXPT_CELLS = {'base': 152064, 'fast': 152071, 'fast+': 152098}
-BASE_REPEAT_CELL = 152074
 
 # Time window (hours) of the early expansion kink that is smoothed out
 KINK_WINDOWS = {
@@ -177,14 +176,17 @@ DATA_DIR = 'notebooks_2026/data'
 _D_TUNED = dict(diff_ec=TUNED['diff_ec'], diff_vc=TUNED['diff_vc'])
 
 SPECS = {spec.name: spec for spec in [
-    # Step 1: set D_LVDC from the first charge
+    # Step 1: set D_LVDC from the first charge. The original sweep
+    # (simulation_results_ec_tuning_diff_20260421.pkl) used baseline cell
+    # 152074; the base protocol was re-run with 152064 so every step uses the
+    # same cells. D_LVDC = 1.22e-18 is within 0.5 mV (mean voltage RMSE) of the
+    # best D_LVDC with either cell; the valley is flat over ~2 decades.
     SweepSpec(
         name='dsei_fc',
         row_param='diff_ec', row_vec=np.logspace(-20, -16, 55),
         col_param='diff_vc', col_vec=np.logspace(-21, -12, 56),
-        window='fc', fixed={},
-        base_cell=BASE_REPEAT_CELL, v_range=(2.0, 4.2),
-        cache=f'{DATA_DIR}/simulation_results_ec_tuning_diff_20260421.pkl',
+        window='fc', fixed={}, v_range=(2.0, 4.2),
+        cache=f'{DATA_DIR}/dsei_fc_20261015.pkl',
     ),
     # Step 2: set D_LEDC from all ~400 h, with rho/kappa at the ASSUMED values.
     # The cached sweep was run with the cache_fixed rho/kappa instead. Re-running

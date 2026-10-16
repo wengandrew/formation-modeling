@@ -22,6 +22,18 @@ near it by at most ~3 mV. Interpolating between grid points, the minimum moves
 about 5% lower (6.65e-20 → 6.34e-20, protocol mean), well within the ~31% grid
 spacing, so the set value is kept and the later steps were not re-run.
 
+All steps use the same experimental cells: 152064 (base), 152071 (fast) and
+152098 (fast+). The original step 1 sweep used the second baseline cell 152074
+for the base protocol; its base runs were redone with 152064
+(`data/dsei_fc_20261015.pkl`, fast and fast+ unchanged). D_LVDC = 1.22e-18 m²/s
+holds with either cell: averaged over the three protocols, the first-charge
+voltage RMSE at 1.22e-18 is within 0.4 mV (152074) and 0.1 mV (152064) of the
+best D_LVDC, which moves from 4.0e-18 to 6.0e-19. The first-charge voltage
+constrains D_LVDC only weakly: D_LVDC values within 2 mV of the best fit span
+about two decades. With cell 152064 the base protocol alone is nearly flat in
+D_LVDC (45-48 mV from 1e-19 to 1e-17), so D_LVDC is set mainly by the fast and
+fast+ data.
+
 `density_sweep.py` also plots `rho_fc`, the step 3 sweep repeated over the
 first charge only. `model_vs_experiment.py` runs the fully tuned model and
 compares it against the voltage, expansion, capacity and resistance data.
@@ -53,7 +65,7 @@ checks that this code reproduces the cached results (`pytest tests/
 
 | Sweep | Step | File |
 |---|---|---|
-| `dsei_fc` | 1 | `data/simulation_results_ec_tuning_diff_20260421.pkl` |
+| `dsei_fc` | 1 | `data/dsei_fc_20261015.pkl` (original, base cell 152074: `data/simulation_results_ec_tuning_diff_20260421.pkl`) |
 | `dsei_all` | 2 | `data/simulation_results_clean_dsei_sweep_20260422.pkl` |
 | `rho_fc` | 3 (first charge) | `data/simulation_results_first_charge_density_20260429.pkl` |
 | `rho_all` | 3 | `data/simulation_results_density_sweep_20260426.pkl` |

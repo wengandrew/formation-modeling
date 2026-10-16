@@ -133,6 +133,9 @@ HEATMAP_CASES = {
 # Sweep heatmaps (src/tuning_plots.py) from the cached sweep results
 # ---------------------------------------------------------------------------
 
+# First-charge sweeps only mark the pinned value (they don't set the row parameter)
+_LINE_ONLY = {'dsei_fc', 'rho_fc'}
+
 _SWEEP_PINS = {'dsei_fc': 'diff_vc', 'dsei_all': 'diff_vc', 'rho_fc': 'rho_vc',
                'rho_all': 'rho_vc', 'kappa_hppc1': 'kappa_vc'}
 
@@ -144,7 +147,7 @@ def _sweep(name, metric):
         plt.close('all')
         result = tuning.load_sweep(tuning.SPECS[name])
         fig = tuning_plots.plot_heatmap_trio(result, metric, pin_col=tuning.TUNED[_SWEEP_PINS[name]],
-                                             title='t')
+                                             title='t', mark_minimum=name not in _LINE_ONLY)
         fp = figure_fingerprint(fig)
         plt.close('all')
         return fp

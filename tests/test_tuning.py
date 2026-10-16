@@ -386,3 +386,17 @@ def test_specs_without_cache_fixed_are_unchanged_by_as_cached():
 def test_step2_uses_same_assumed_values_as_step1():
     s1, s2 = tuning.SPECS['dsei_fc'], tuning.SPECS['dsei_all']
     assert s1.fixed == s2.fixed == {}
+
+
+def test_plot_heatmap_trio_line_only_marks_exact_pin(tmp_path):
+    import matplotlib
+    matplotlib.use('Agg')
+    from src import tuning_plots
+
+    result = tuning.load_sweep(tuning.SPECS['dsei_fc'])
+    fig = tuning_plots.plot_heatmap_trio(result, 'v_rmse', pin_col=1.22e-18, mark_minimum=False)
+    for ax in [ax for ax in fig.axes if ax.get_title()]:
+        assert not [line for line in ax.get_lines() if line.get_marker() == '*']
+        (vline,) = ax.get_lines()
+        assert vline.get_xdata()[0] == 1.22e-18
+        assert [t.get_text() for t in ax.get_legend().get_texts()] == ['1.22e-18']

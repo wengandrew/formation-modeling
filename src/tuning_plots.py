@@ -26,11 +26,14 @@ METRIC_STYLE = {
 FIGURE_DIR = 'notebooks_2026/figures'
 
 
-def plot_heatmap_trio(result, metric, pin_col=None, zlim=None, title=None, savename=None):
+def plot_heatmap_trio(result, metric, pin_col=None, zlim=None, title=None, savename=None,
+                      mark_minimum=True):
     """One heatmap per formation protocol for a sweep metric.
 
-    If pin_col is given, a dotted line marks that column-parameter value and a
-    star marks the row value minimizing the metric along it (select_row).
+    If pin_col is given, a dotted line marks that column-parameter value. With
+    mark_minimum, the line is drawn at the nearest grid column and a star marks
+    the row value minimizing the metric along it (select_row); otherwise the
+    line is drawn at exactly pin_col and labelled with it.
     Returns the figure.
     """
     spec = result.spec
@@ -46,8 +49,12 @@ def plot_heatmap_trio(result, metric, pin_col=None, zlim=None, title=None, saven
                                       xscale=x_scale, yscale=y_scale)
 
     if pin_col is not None:
-        x_pin = result.col_vec[tuning.nearest_index(result.col_vec, pin_col)] * x_mult
-        heatmaps.annotate_panels(axes, mats, x, y, x_pin)
+        if mark_minimum:
+            x_pin = result.col_vec[tuning.nearest_index(result.col_vec, pin_col)] * x_mult
+            heatmaps.annotate_panels(axes, mats, x, y, x_pin)
+        else:
+            heatmaps.annotate_panels(axes, mats, x, y, pin_col * x_mult,
+                                     line_only=True, label_line=True)
         heatmaps.add_legends(axes)
 
     if title:
@@ -59,10 +66,12 @@ def plot_heatmap_trio(result, metric, pin_col=None, zlim=None, title=None, saven
     return fig
 
 
-def plot_sweep_heatmaps(result, pin_col=None, zlims=None, figure_dir=FIGURE_DIR):
+def plot_sweep_heatmaps(result, pin_col=None, zlims=None, figure_dir=FIGURE_DIR,
+                        mark_minimum=True):
     """Heatmaps for every metric of a sweep, saved as {spec.name}_{metric}.svg.
 
-    zlims maps metric -> (zmin, zmax). Returns {metric: figure}.
+    zlims maps metric -> (zmin, zmax). See plot_heatmap_trio for mark_minimum.
+    Returns {metric: figure}.
     """
     zlims = zlims or {}
     os.makedirs(figure_dir, exist_ok=True)
@@ -70,7 +79,7 @@ def plot_sweep_heatmaps(result, pin_col=None, zlims=None, figure_dir=FIGURE_DIR)
     figs = {}
     for metric in result.spec.metrics:
         figs[metric] = plot_heatmap_trio(
-            result, metric, pin_col=pin_col, zlim=zlims.get(metric),
+            result, metric, pin_col=pin_col, zlim=zlims.get(metric), mark_minimum=mark_minimum,
             title=f'{window}: {METRIC_STYLE[metric][0]}',
             savename=os.path.join(figure_dir, f'{result.spec.name}_{metric}.svg'),
         )

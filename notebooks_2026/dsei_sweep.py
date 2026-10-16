@@ -28,6 +28,5 @@ if __name__ == '__main__':
         spec_names=['dsei_fc', 'dsei_all'],
         pins={'dsei_fc': pin, 'dsei_all': pin},
         zlims={'v_rmse': (0.04, 0.2), 'e_rmse': (0, 100)},
-        selections=[('dsei_fc', 'v_rmse', None),
-                    ('dsei_all', 'v_rmse', 'diff_ec')],
+        selections=[('dsei_all', 'v_rmse', 'diff_ec')],
     )

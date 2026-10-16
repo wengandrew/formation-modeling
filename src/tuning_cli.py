@@ -42,7 +42,9 @@ def main(description, spec_names, pins, zlims, selections, argv=None):
 
     pins:       {spec name: column value marked on its heatmaps}
     zlims:      {metric: (zmin, zmax)}
-    selections: [(spec name, metric, TUNED key)] tuned values to report
+    selections: [(spec name, metric, TUNED key)] tuned values to report. Only
+                these sweeps get a star at the minimum along the pinned column;
+                the others just mark the pinned value.
     """
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('--run', nargs='+', choices=spec_names, default=[],
@@ -55,9 +57,11 @@ def main(description, spec_names, pins, zlims, selections, argv=None):
 
     plotter.initialize(plt)
     results = _results(spec_names, args.run, args.n_jobs)
+    selecting = {name for name, _, _ in selections}
 
     for name, result in results.items():
-        tuning_plots.plot_sweep_heatmaps(result, pin_col=pins.get(name), zlims=zlims)
+        tuning_plots.plot_sweep_heatmaps(result, pin_col=pins.get(name), zlims=zlims,
+                                         mark_minimum=name in selecting)
         print(f'Saved heatmaps for {name} to {tuning_plots.FIGURE_DIR}/{name}_*.svg')
 
     for name, metric, tuned_key in selections:

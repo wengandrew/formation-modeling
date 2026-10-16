@@ -400,3 +400,28 @@ def test_plot_heatmap_trio_line_only_marks_exact_pin(tmp_path):
         (vline,) = ax.get_lines()
         assert vline.get_xdata()[0] == 1.22e-18
         assert [t.get_text() for t in ax.get_legend().get_texts()] == ['1.22e-18']
+
+
+def test_plot_tuning_summary_layout(tmp_path):
+    import matplotlib
+    matplotlib.use('Agg')
+    from src import tuning_plots
+
+    rows = [(tuning.load_sweep(tuning.SPECS[name]), metric, tuning.TUNED[pin], None)
+            for name, metric, pin in (('dsei_all', 'v_rmse', 'diff_vc'),
+                                      ('rho_all', 'e_rmse', 'rho_vc'),
+                                      ('kappa_hppc1', 'r_err', 'kappa_vc'))]
+    savename = tmp_path / 'summary.svg'
+    fig = tuning_plots.plot_tuning_summary(rows, savename=savename)
+
+    assert savename.exists()
+    panels = [ax for ax in fig.axes if ax.get_label() != '<colorbar>']
+    assert len(panels) == 9 and len(fig.axes) == 12          # one colorbar per row
+    letters = [t.get_text() for ax in panels for t in ax.texts]
+    assert letters == [f'({c})' for c in 'abcdefghi']
+    assert [ax.get_title() for ax in panels[:3]] == ['Base Formation', 'Fast Formation',
+                                                     'Fast+ Formation']
+    assert all(ax.get_title() == '' for ax in panels[3:])
+    for ax, protocol in zip(panels[3:6], tuning.PROTOCOLS):     # step 3 row: tuned rho_LEDC
+        star = [line for line in ax.get_lines() if line.get_marker() == '*'][0]
+        assert star.get_ydata()[0] == pytest.approx(tuning.TUNED['rho_ec'][protocol], abs=0.005)

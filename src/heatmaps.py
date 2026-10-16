@@ -10,27 +10,35 @@ from matplotlib import pyplot as plt
 PANEL_TITLES = ('Base Formation', 'Fast Formation', 'Fast+ Formation')
 
 
+def heatmap_panel(ax, x_vec, y_vec, mat, zlim=(None, None), xscale='linear', yscale='linear',
+                  x_label=None, y_label=None):
+    """Draw one heatmap (mat indexed [y, x]) on ax. Returns the QuadMesh."""
+    X, Y = np.meshgrid(x_vec, y_vec)
+    pcm = ax.pcolormesh(X, Y, mat, shading='auto', cmap=plt.get_cmap('viridis_r', 20),
+                        vmin=zlim[0], vmax=zlim[1])
+    ax.set_xscale(xscale)
+    ax.set_yscale(yscale)
+    ax.set_xlim(np.min(x_vec), np.max(x_vec))
+    ax.set_ylim(np.min(y_vec), np.max(y_vec))
+    if x_label is not None:
+        ax.set_xlabel(x_label)
+    if y_label is not None:
+        ax.set_ylabel(y_label)
+    ax.grid(False)
+    return pcm
+
+
 def heatmap_trio(x_vec, y_vec, mats, z_label, x_label, y_label,
                  zlim=(None, None), xscale='linear', yscale='linear'):
     """Three heatmaps side by side with horizontal colorbars.
 
     mats holds one matrix per panel, indexed [y, x]. Returns (fig, axes).
     """
-    X, Y = np.meshgrid(x_vec, y_vec)
-    cmap = plt.get_cmap('viridis_r', 20)
-
     fig, axes = plt.subplots(1, 3, figsize=(11, 4))
     for ax, mat, title in zip(axes, mats, PANEL_TITLES):
-        pcm = ax.pcolormesh(X, Y, mat, shading='auto', cmap=cmap, vmin=zlim[0], vmax=zlim[1])
+        pcm = heatmap_panel(ax, x_vec, y_vec, mat, zlim, xscale, yscale, x_label, y_label)
         fig.colorbar(pcm, ax=ax, label=z_label, orientation='horizontal', pad=0.2)
-        ax.set_xscale(xscale)
-        ax.set_yscale(yscale)
-        ax.set_xlim(np.min(x_vec), np.max(x_vec))
-        ax.set_ylim(np.min(y_vec), np.max(y_vec))
-        ax.set_xlabel(x_label)
-        ax.set_ylabel(y_label)
         ax.set_title(title)
-        ax.grid(False)
     return fig, axes
 
 
@@ -70,6 +78,7 @@ def annotate_panels(axes, mats, x_vec, y_vec, coords, orientation='vertical',
                     label=f'({x_vec[j]:.3g}, {y_vec[i]:.3g})')
 
 
-def add_legends(axes):
+def add_legends(axes, **kwargs):
     for ax in axes:
-        ax.legend(facecolor='lightgray', framealpha=1.0, frameon=True, fontsize=10)
+        ax.legend(facecolor='lightgray', framealpha=1.0, frameon=True,
+                  **{'fontsize': 10, **kwargs})

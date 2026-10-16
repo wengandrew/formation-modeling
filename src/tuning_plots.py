@@ -3,6 +3,7 @@
 import os
 
 import numpy as np
+from matplotlib import pyplot as plt
 
 from src import heatmaps, tuning
 
@@ -84,3 +85,45 @@ def plot_sweep_heatmaps(result, pin_col=None, zlims=None, figure_dir=FIGURE_DIR,
             savename=os.path.join(figure_dir, f'{result.spec.name}_{metric}.svg'),
         )
     return figs
+
+
+def plot_tuning_summary(rows, savename=None, figsize=(13, 11)):
+    """Composite of several sweeps: one row per sweep, one column per protocol.
+
+    rows: list of (result, metric, pin_col, zlim). Each row gets one colorbar
+    on the right, a dotted line at the pinned column and a star at the
+    minimum along it. Panels are labelled (a), (b), ... in reading order and
+    the protocol names appear once, above the first row. Returns the figure.
+    """
+    fig, axs = plt.subplots(len(rows), 3, figsize=figsize, layout='constrained')
+    axs = np.atleast_2d(axs)
+    letters = iter('abcdefghijklmnopqrstuvwxyz')
+
+    for r, (result, metric, pin_col, zlim) in enumerate(rows):
+        spec = result.spec
+        x_label, x_scale, x_mult = PARAM_AXES[spec.col_param]
+        y_label, y_scale, y_mult = PARAM_AXES[spec.row_param]
+        z_label, z_mult, z_default = METRIC_STYLE[metric]
+        zlim = zlim if zlim is not None else z_default
+
+        x = np.asarray(result.col_vec) * x_mult
+        y = np.asarray(result.row_vec) * y_mult
+        mats = [result.metrics[metric][p] * z_mult for p in tuning.PROTOCOLS]
+
+        for c, (ax, mat) in enumerate(zip(axs[r], mats)):
+            pcm = heatmaps.heatmap_panel(ax, x, y, mat, zlim, x_scale, y_scale,
+                                         x_label=x_label, y_label=y_label if c == 0 else None)
+            if r == 0:
+                ax.set_title(heatmaps.PANEL_TITLES[c])
+            ax.text(0.03, 0.96, f'({next(letters)})', transform=ax.transAxes,
+                    ha='left', va='top', fontsize=13, fontweight='bold',
+                    bbox=dict(facecolor='white', alpha=0.85, edgecolor='none', pad=1.5))
+
+        x_pin = result.col_vec[tuning.nearest_index(result.col_vec, pin_col)] * x_mult
+        heatmaps.annotate_panels(axs[r], mats, x, y, x_pin)
+        heatmaps.add_legends(axs[r], loc='upper right', fontsize=9)
+        fig.colorbar(pcm, ax=axs[r, :], location='right', label=z_label, aspect=15)
+
+    if savename:
+        fig.savefig(savename, bbox_inches='tight')
+    return fig

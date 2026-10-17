@@ -7,7 +7,7 @@ Mostly contains lookup functions and helper functions.
 import numpy as np
 from scipy import interpolate
 
-def initialize(time_vec, initial_val=np.NaN):
+def initialize(time_vec, initial_val=np.nan):
     """
     Initialize a vector to store simulation results.
     Allows a user to specify the initial value.
@@ -26,7 +26,7 @@ def initialize(time_vec, initial_val=np.NaN):
     """
 
     output_vec = np.empty(len(time_vec))
-    output_vec[:] = np.NaN
+    output_vec[:] = np.nan
     output_vec[0] = initial_val
 
     return output_vec
@@ -75,6 +75,9 @@ def En(sto):
     ----------
     sto : stoichiometry of material (lithium fraction)
     """
+
+    if np.isnan(sto):
+        raise ValueError("En() received NaN stoichiometry value")
 
     if sto < 0.12:
         expansion = 0.2 * sto
@@ -244,28 +247,6 @@ def Un(sto, adjust=True):
     return u_eq
 
 
-def state_update_ocv_r_2rc(I, T, Rs, R1, R2, C1, C2):
-    """
-    State update equations for the OCV-R-RC model
-
-    Parameters
-    ---------
-    I: input current (A), positive is discharge
-    T: input temperature in Celsius
-    Rs: series resistance in Ohms
-    R1: R1 in Ohms
-    R2: R2 in Ohms
-    C1: C1 in Farads
-    C2: C2 in Farads
-
-    Outputs:
-    x = [VT, z, V1, V2]^T
-
-    """
-
-    return None
-
-
 def ocv(z):
     """
     Return the open circuit voltage at a specific SOC
@@ -349,7 +330,7 @@ def update_ocv(z):
     ---------
     OCV at z
     """
-
+    # TODO: this is a trivial wrapper around ocv(); consider removing
     return ocv(z)
 
 def decompose_resistance_curve(capacity_vec,

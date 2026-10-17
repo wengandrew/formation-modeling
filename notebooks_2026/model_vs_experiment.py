@@ -72,7 +72,7 @@ def _hours(t):
 
 def _save(fig, name):
     os.makedirs(FIGURE_DIR, exist_ok=True)
-    fig.savefig(os.path.join(FIGURE_DIR, name), format='svg', dpi=300)
+    fig.savefig(os.path.join(FIGURE_DIR, name), format='svg', dpi=300, metadata={'Date': None})
 
 
 def plot_experiment_overview(expts, xmax=650, strain_lim=(0, 200)):

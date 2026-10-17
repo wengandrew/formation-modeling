@@ -19,7 +19,7 @@ PARAM_AXES = {
 
 # Colorbar label, display multiplier, and default color limits for each metric
 METRIC_STYLE = {
-    'v_rmse': ('Voltage RMSE (V)', 1.0, (0.0, 0.25)),
+    'v_rmse': ('Voltage RMSE (mV)', 1e3, (0.0, 250.0)),
     'e_rmse': (r'Expansion RMSE ($\mu$m)', 1.0, (0.0, 100.0)),
     'r_err': (r'$|R - \hat{R}|$ (m$\Omega$)', 1e3, (0.0, 10.0)),
 }
@@ -63,7 +63,7 @@ def plot_heatmap_trio(result, metric, pin_col=None, zlim=None, title=None, saven
     fig.tight_layout()
 
     if savename:
-        fig.savefig(savename, bbox_inches='tight', format='svg')
+        fig.savefig(savename, bbox_inches='tight', format='svg', metadata={'Date': None})
     return fig
 
 
@@ -87,7 +87,7 @@ def plot_sweep_heatmaps(result, pin_col=None, zlims=None, figure_dir=FIGURE_DIR,
     return figs
 
 
-def plot_tuning_summary(rows, savename=None, figsize=(13, 11)):
+def plot_tuning_summary(rows, savename=None, figsize=(13, 11.5)):
     """Composite of several sweeps: one row per sweep, one column per protocol.
 
     rows: list of (result, metric, pin_col, zlim). Each row gets one colorbar
@@ -96,6 +96,7 @@ def plot_tuning_summary(rows, savename=None, figsize=(13, 11)):
     the protocol names appear once, above the first row. Returns the figure.
     """
     fig, axs = plt.subplots(len(rows), 3, figsize=figsize, layout='constrained')
+    fig.get_layout_engine().set(hspace=0.06)    # extra space between rows
     axs = np.atleast_2d(axs)
     letters = iter('abcdefghijklmnopqrstuvwxyz')
 
@@ -116,14 +117,15 @@ def plot_tuning_summary(rows, savename=None, figsize=(13, 11)):
             if r == 0:
                 ax.set_title(heatmaps.PANEL_TITLES[c])
             ax.text(0.03, 0.96, f'({next(letters)})', transform=ax.transAxes,
-                    ha='left', va='top', fontsize=13, fontweight='bold',
+                    ha='left', va='top', fontsize=18, fontweight='bold',
                     bbox=dict(facecolor='white', alpha=0.85, edgecolor='none', pad=1.5))
 
         x_pin = result.col_vec[tuning.nearest_index(result.col_vec, pin_col)] * x_mult
         heatmaps.annotate_panels(axs[r], mats, x, y, x_pin)
-        heatmaps.add_legends(axs[r], loc='upper right', fontsize=9)
+        heatmaps.add_legends(axs[r], loc='upper right', fontsize=11, facecolor='white',
+                             edgecolor='black')
         fig.colorbar(pcm, ax=axs[r, :], location='right', label=z_label, aspect=15)
 
     if savename:
-        fig.savefig(savename, bbox_inches='tight')
+        fig.savefig(savename, bbox_inches='tight', metadata={'Date': None})
     return fig

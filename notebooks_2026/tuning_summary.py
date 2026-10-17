@@ -22,7 +22,7 @@ from src import plotter, tuning, tuning_plots  # noqa: E402
 
 # (sweep, metric, pinned column parameter, color limits)
 ROWS = [
-    ('dsei_all', 'v_rmse', 'diff_vc', (0.04, 0.2)),     # step 2
+    ('dsei_all', 'v_rmse', 'diff_vc', (40, 200)),       # step 2 (mV)
     ('rho_all', 'e_rmse', 'rho_vc', (0, 100)),          # step 3
     ('kappa_hppc1', 'r_err', 'kappa_vc', (0, 10)),      # step 4
 ]

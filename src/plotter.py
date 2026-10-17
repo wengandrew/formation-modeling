@@ -45,6 +45,9 @@ def initialize(plt, style='default'):
                     grid=True,
                     linewidth=1.0)
 
+    # Stable SVG element ids, so re-saving an unchanged figure gives the same file
+    plt.rcParams['svg.hashsalt'] = 'formation-modeling'
+
     plt.rc('legend', fontsize='medium',
                      frameon=False)
 

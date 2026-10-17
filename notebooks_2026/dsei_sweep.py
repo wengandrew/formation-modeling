@@ -27,6 +27,6 @@ if __name__ == '__main__':
         description=__doc__.splitlines()[0],
         spec_names=['dsei_fc', 'dsei_all'],
         pins={'dsei_fc': pin, 'dsei_all': pin},
-        zlims={'v_rmse': (0.04, 0.2), 'e_rmse': (0, 100)},
+        zlims={'v_rmse': (40, 200), 'e_rmse': (0, 100)},
         selections=[('dsei_all', 'v_rmse', 'diff_ec')],
     )

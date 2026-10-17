@@ -79,6 +79,7 @@ def annotate_panels(axes, mats, x_vec, y_vec, coords, orientation='vertical',
 
 
 def add_legends(axes, **kwargs):
+    style = dict(facecolor='lightgray', framealpha=1.0, frameon=True, fontsize=10)
+    style.update(kwargs)
     for ax in axes:
-        ax.legend(facecolor='lightgray', framealpha=1.0, frameon=True,
-                  **{'fontsize': 10, **kwargs})
+        ax.legend(**style)

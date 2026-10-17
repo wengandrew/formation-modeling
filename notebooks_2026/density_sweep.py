@@ -27,6 +27,6 @@ if __name__ == '__main__':
         description=__doc__.splitlines()[0],
         spec_names=['rho_fc', 'rho_all'],
         pins={'rho_fc': pin, 'rho_all': pin},
-        zlims={'v_rmse': (0, 0.25), 'e_rmse': (0, 100)},
+        zlims={'v_rmse': (0, 250), 'e_rmse': (0, 100)},
         selections=[('rho_all', 'e_rmse', 'rho_ec')],
     )

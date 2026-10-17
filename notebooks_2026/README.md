@@ -90,4 +90,9 @@ These were produced by the original notebooks, which are in the git history
 (commits ffdc89b and 3f1fd69). Re-runs are saved as `data/<sweep>_<date>.pkl`; point the
 sweep's `cache` in `src/tuning.py` at the new file to use it.
 
+Measured HPPC resistances and RPT capacities (with their sources) are in
+`data/measurements.yaml`. The HPPC values are the median series resistance over
+each HPPC sequence from `notebooks/2025_04_16_hppc.ipynb`, compared at the
+sequence midpoint; their error bars come from an external source.
+
 The experimental data is not committed; see `data/README.md` at the repo root.

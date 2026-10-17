@@ -23,6 +23,7 @@ from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field, replace
 
 import numpy as np
+import yaml
 from scipy.interpolate import interp1d
 
 from src import ioutils, paths, simutils
@@ -67,21 +68,43 @@ R_OFFSET = 0.01
 class Measurement:
     t_s: float      # time in the model's time base [s]
     r_ohm: float    # measured resistance [Ohm]
-    r_std: float    # measurement spread [Ohm]
+    r_std: float    # error bar [Ohm]
 
 
-# HPPC resistance after formation (first RPT) and after formation aging.
-# The 54000 s / 5e4 s offsets align the pulse with the model's time base.
-HPPC1 = {
-    'base':  Measurement(69.39 * 3600 + 54000, 21.5e-3, 4.7e-3),
-    'fast':  Measurement(16.17 * 3600 + 54000, 17.7e-3, 3.9e-3),
-    'fast+': Measurement(7.465 * 3600 + 54000, 16.6e-3, 4.3e-3),
-}
-HPPC2 = {
-    'base':  Measurement(505.23 * 3600 + 5e4, 0.0375, 4.7e-3),
-    'fast':  Measurement(505.23 * 3600 + 5e4, 0.0366, 3.9e-3),
-    'fast+': Measurement(505.23 * 3600 + 5e4, 0.0366, 4.3e-3),
-}
+@dataclass(frozen=True)
+class CapacityPoint:
+    t_s: float      # time in the model's time base [s]
+    q_ah: float     # measured discharge capacity [Ah]
+    q_std: float    # error bar [Ah]
+
+
+# Measured values and their provenance live in this file
+MEASUREMENTS_FILE = paths.repo_path('notebooks_2026', 'data', 'measurements.yaml')
+
+
+def load_measurements(path=MEASUREMENTS_FILE):
+    """(HPPC1, HPPC2, QD_RPT1, QD_RPT2), each keyed by protocol.
+
+    HPPC resistance is compared at the midpoint of each HPPC sequence
+    (sequence start + offset); see the file for sources.
+    """
+    with open(path) as f:
+        m = yaml.safe_load(f)
+
+    def hppc(key):
+        return {p: Measurement(v['t_start_h'] * 3600 + v['offset_s'], v['r_ohm'], v['r_err_ohm'])
+                for p, v in m['hppc_resistance'][key].items()}
+
+    def capacity(key):
+        return {p: CapacityPoint(v['t_h'] * 3600, v['q_ah'], v['q_err_ah'])
+                for p, v in m['discharge_capacity'][key].items()}
+
+    return hppc('hppc1'), hppc('hppc2'), capacity('rpt1'), capacity('rpt2')
+
+
+# HPPC resistance after formation (HPPC1) and after formation aging (HPPC2);
+# discharge capacity at the RPTs after formation and after formation aging
+HPPC1, HPPC2, QD_RPT1, QD_RPT2 = load_measurements()
 
 
 def _check_protocol(protocol):

@@ -432,3 +432,23 @@ def test_plot_tuning_summary_line_only_rows():
     for ax, pin in zip(panels, [1.22e-18] * 3 + [1.5] * 3):
         assert not [line for line in ax.get_lines() if line.get_marker() == '*']
         assert ax.get_lines()[0].get_xdata()[0] == pin
+
+
+def test_measurements_file_values():
+    # The values used to tune kappa and to compare the final model. Changing
+    # notebooks_2026/data/measurements.yaml should be deliberate.
+    expected_hppc1 = {'base': (69.39 * 3600 + 54000, 21.5e-3, 4.7e-3),
+                      'fast': (16.17 * 3600 + 54000, 17.7e-3, 3.9e-3),
+                      'fast+': (7.465 * 3600 + 54000, 16.6e-3, 4.3e-3)}
+    expected_hppc2 = {'base': (505.23 * 3600 + 5e4, 0.0375, 4.7e-3),
+                      'fast': (505.23 * 3600 + 5e4, 0.0366, 3.9e-3),
+                      'fast+': (505.23 * 3600 + 5e4, 0.0366, 4.3e-3)}
+    expected_q1 = {'base': (100.6 * 3600, 2.53, 0.0069), 'fast': (47.5 * 3600, 2.54, 0.0116),
+                   'fast+': (38.7 * 3600, 2.54, 0.0714)}
+    for p in tuning.PROTOCOLS:
+        h1, h2 = tuning.HPPC1[p], tuning.HPPC2[p]
+        assert (h1.t_s, h1.r_ohm, h1.r_std) == expected_hppc1[p]
+        assert (h2.t_s, h2.r_ohm, h2.r_std) == expected_hppc2[p]
+        q1, q2 = tuning.QD_RPT1[p], tuning.QD_RPT2[p]
+        assert (q1.t_s, q1.q_ah, q1.q_std) == expected_q1[p]
+        assert (q2.t_s, q2.q_ah, q2.q_std) == (534.8 * 3600, 2.46, expected_q1[p][2])

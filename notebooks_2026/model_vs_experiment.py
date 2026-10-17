@@ -11,7 +11,6 @@ first-HPPC resistance error. Replaces 2026_05_06_model_vs_experiment.
 import argparse
 import os
 import sys
-from typing import NamedTuple
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO_ROOT)
@@ -32,21 +31,6 @@ TITLES = {'base': 'Baseline Formation', 'fast': 'Fast Formation', 'fast+': 'Fast
 # D_SEI multiplier applied once the aging cycles start
 DSEI_DERATING_CYCLING = 0.1
 
-
-class CapacityPoint(NamedTuple):
-    t_s: float      # time [s]
-    q_ah: float     # measured discharge capacity [Ah]
-    q_std: float    # measurement spread [Ah]
-
-
-# Measured discharge capacity at the RPT after formation and after formation aging
-Q_STD = {'base': 0.0069, 'fast': 0.0116, 'fast+': 0.0714}
-QD_RPT1 = {
-    'base':  CapacityPoint(100.6 * 3600, 2.53, Q_STD['base']),
-    'fast':  CapacityPoint(47.5 * 3600, 2.54, Q_STD['fast']),
-    'fast+': CapacityPoint(38.7 * 3600, 2.54, Q_STD['fast+']),
-}
-QD_RPT2 = {p: CapacityPoint(534.8 * 3600, 2.46, Q_STD[p]) for p in tuning.PROTOCOLS}
 
 LEGEND = dict(fontsize='small', frameon=True, facecolor=(1, 1, 1, 0), edgecolor='black')
 
@@ -210,7 +194,7 @@ def calibrate_initial_capacity(sims):
     """Q0 per protocol so the model capacity matches the first RPT exactly."""
     q0 = {}
     for p in tuning.PROTOCOLS:
-        df, point = sims[p], QD_RPT1[p]
+        df, point = sims[p], tuning.QD_RPT1[p]
         q_sei = df.loc[(df['t'] - point.t_s).abs().idxmin(), 'q_sei']
         q0[p] = point.q_ah + q_sei
         print(f'Q0 = {q0[p]:.5f} Ah  ({p})')
@@ -228,7 +212,7 @@ def plot_capacity_and_resistance(sims, q0, xmax=650):
 
     for p in tuning.PROTOCOLS:
         c, n = COLORS[p], NAMES[p]
-        for k, point in enumerate((QD_RPT1[p], QD_RPT2[p])):
+        for k, point in enumerate((tuning.QD_RPT1[p], tuning.QD_RPT2[p])):
             axs[0].plot(_hours(point.t_s), point.q_ah, c + 'o', markersize=8,
                         label=f'{n} (meas.)' if k == 0 else '')
             axs[0].errorbar(_hours(point.t_s), point.q_ah, yerr=point.q_std,

@@ -25,7 +25,7 @@ from dataclasses import dataclass, field, replace
 import numpy as np
 from scipy.interpolate import interp1d
 
-from src import ioutils, simutils
+from src import ioutils, paths, simutils
 
 PROTOCOLS = ('base', 'fast', 'fast+')
 
@@ -171,7 +171,7 @@ class SweepSpec:
         return self if self.cache_fixed is None else replace(self, fixed=self.cache_fixed)
 
 
-DATA_DIR = 'notebooks_2026/data'
+DATA_DIR = paths.repo_path('notebooks_2026', 'data')
 
 _D_TUNED = dict(diff_ec=TUNED['diff_ec'], diff_vc=TUNED['diff_vc'])
 

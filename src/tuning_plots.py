@@ -5,7 +5,7 @@ import os
 import numpy as np
 from matplotlib import pyplot as plt
 
-from src import heatmaps, tuning
+from src import heatmaps, paths, tuning
 
 # Axis label, axis scale, and display multiplier for each swept parameter
 PARAM_AXES = {
@@ -24,7 +24,7 @@ METRIC_STYLE = {
     'r_err': (r'$|R - \hat{R}|$ (m$\Omega$)', 1e3, (0.0, 10.0)),
 }
 
-FIGURE_DIR = 'notebooks_2026/figures'
+FIGURE_DIR = paths.repo_path('notebooks_2026', 'figures')
 
 
 def plot_heatmap_trio(result, metric, pin_col=None, zlim=None, title=None, savename=None,

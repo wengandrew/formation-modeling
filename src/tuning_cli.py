@@ -6,7 +6,7 @@ import os
 
 from matplotlib import pyplot as plt
 
-from src import plotter, tuning, tuning_plots
+from src import paths, plotter, tuning, tuning_plots
 
 
 def _results(spec_names, run, n_jobs):
@@ -17,7 +17,7 @@ def _results(spec_names, run, n_jobs):
             result = tuning.run_sweep(spec, n_jobs=n_jobs)
             path = f'{tuning.DATA_DIR}/{name}_{datetime.date.today():%Y%m%d}.pkl'
             tuning.save_sweep(result, path)
-            print(f'Saved {path}. Point SPECS[{name!r}].cache at it to use it by default.')
+            print(f'Saved {paths.relative(path)}. Point SPECS[{name!r}].cache at it to use it by default.')
         else:
             result = tuning.load_sweep(spec)
         results[name] = result
@@ -62,7 +62,7 @@ def main(description, spec_names, pins, zlims, selections, argv=None):
     for name, result in results.items():
         tuning_plots.plot_sweep_heatmaps(result, pin_col=pins.get(name), zlims=zlims,
                                          mark_minimum=name in selecting)
-        print(f'Saved heatmaps for {name} to {tuning_plots.FIGURE_DIR}/{name}_*.svg')
+        print(f'Saved heatmaps for {name} to {paths.relative(tuning_plots.FIGURE_DIR)}/{name}_*.svg')
 
     for name, metric, tuned_key in selections:
         _report(results[name], metric, pins[name], tuned_key)

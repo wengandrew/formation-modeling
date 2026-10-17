@@ -8,7 +8,7 @@ tests in test_regression.py compare against them.
 import numpy as np
 from matplotlib import pyplot as plt
 
-from src import cellsim, plotter, simutils, tuning
+from src import cellsim, paths, plotter, simutils, tuning
 from tests.regression.fingerprint import dataframe_fingerprint, figure_fingerprint
 
 PROTOCOLS = ('base', 'fast', 'fast+')
@@ -53,7 +53,7 @@ SLOW_RUN_SIM_CASES = {k for k in RUN_SIM_CASES
 
 def _short_sim():
     cell = cellsim.Cell()
-    cell.load_config('params/default.yaml')
+    cell.load_config(paths.repo_path('params', 'default.yaml'))
     sim = cellsim.Simulation(cell, sim_time_s=8 * 3600, dt=5.0)
     sim.run_rest(1, rest_time_hrs=0.5)
     sim.run_chg_cccv(1, 2.5 / 2, 2.5 / 20, 4.2)

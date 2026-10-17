@@ -20,11 +20,10 @@ import sys
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO_ROOT)
-os.chdir(REPO_ROOT)
 
 from matplotlib import pyplot as plt  # noqa: E402
 
-from src import plotter, tuning, tuning_plots  # noqa: E402
+from src import paths, plotter, tuning, tuning_plots  # noqa: E402
 
 # name: [(sweep, metric, pinned column parameter, color limits, mark minimum)]
 FIGURES = {
@@ -61,7 +60,7 @@ def main(argv=None):
         base = os.path.join(tuning_plots.FIGURE_DIR, name)
         fig = tuning_plots.plot_tuning_summary(rows, savename=base + '.svg')
         fig.savefig(base + '.png', bbox_inches='tight', dpi=200)
-        print(f'Saved {base}.svg and {base}.png')
+        print(f'Saved {paths.relative(base)}.svg and .png')
 
     if args.show:
         plt.show()

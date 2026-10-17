@@ -15,14 +15,13 @@ from typing import NamedTuple
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO_ROOT)
-os.chdir(REPO_ROOT)
 
 import matplotlib.patches as patches  # noqa: E402
 import numpy as np  # noqa: E402
 from matplotlib import pyplot as plt  # noqa: E402
 from mpl_toolkits.axes_grid1.inset_locator import mark_inset  # noqa: E402
 
-from src import ioutils, plotter, simutils, tuning  # noqa: E402
+from src import ioutils, paths, plotter, simutils, tuning  # noqa: E402
 from src.tuning_plots import FIGURE_DIR  # noqa: E402
 
 COLORS = {'base': 'b', 'fast': 'g', 'fast+': 'r'}
@@ -347,7 +346,7 @@ def main(argv=None):
     plot_capacity_and_resistance(sims, q0)
     print_resistance_errors(sims)
     plot_model_outputs(sims)
-    print(f'\nFigures saved to {FIGURE_DIR}/')
+    print(f'\nFigures saved to {paths.relative(FIGURE_DIR)}/')
 
     if args.show:
         plt.show()

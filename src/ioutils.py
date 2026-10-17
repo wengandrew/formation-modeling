@@ -1,12 +1,13 @@
 """ Utilities for input/output management."""
 import numpy as np
 import pandas as pd
-import os
+
+from src import paths
 
 
 def fetch_file_list(cellid):
 
-    target_dir = os.getcwd()
+    target_dir = paths.REPO_ROOT
 
     target_dir_arbin = f'{target_dir}/data/raw/from-voltaiq'
 
@@ -75,7 +76,7 @@ def fetch_file_list(cellid):
 
 def fetch_experimental_data(cellid, max_hours=1000000, to_include_cycling=False):
 
-    target_dir = os.getcwd()
+    target_dir = paths.REPO_ROOT
 
     # To make the dQ/dV plot work, be sure to only select the FORM protocol without
     # including the aging file. Otherwise the time vector will be confused.

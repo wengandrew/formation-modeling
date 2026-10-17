@@ -17,7 +17,6 @@ import sys
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO_ROOT)
-os.chdir(REPO_ROOT)
 
 from src import tuning, tuning_cli  # noqa: E402
 

@@ -17,7 +17,7 @@ import pytest
 from src import simutils, tuning
 
 
-DATA_DIR = 'notebooks_2026/data'
+DATA_DIR = tuning.DATA_DIR
 
 LEGACY_FILES = {
     'dsei_fc': 'simulation_results_ec_tuning_diff_20260421.pkl',

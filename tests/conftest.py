@@ -5,7 +5,7 @@ import matplotlib
 matplotlib.use('Agg')   # headless plotting for every test
 
 import pytest  # noqa: E402
-from src import cellsim  # noqa: E402
+from src import cellsim, paths  # noqa: E402
 
 
 def pytest_addoption(parser):
@@ -29,7 +29,7 @@ def pytest_collection_modifyitems(config, items):
 @pytest.fixture
 def default_cell():
     cell = cellsim.Cell()
-    cell.load_config('params/default.yaml')
+    cell.load_config(paths.repo_path('params', 'default.yaml'))
     return cell
 
 

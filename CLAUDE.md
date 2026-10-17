@@ -14,6 +14,7 @@ src/            Core Python source
   dvdq.py       eSOH -> open-circuit voltage helpers (tested; not used by current notebooks)
   ioutils.py    Data loading utilities (cell IDs → CSV paths)
   plotter.py    Matplotlib style initialization
+  paths.py      Repo-root paths (data, params, outputs) independent of the working directory
   tuning.py     SEI parameter sweeps: specs, tuned values, metrics, cached results
   tuning_plots.py  Sweep heatmaps
   tuning_cli.py Shared entry point for the notebooks_2026 sweep scripts
@@ -22,9 +23,10 @@ params/         YAML configuration files for cell parameters
 notebooks/      Jupyter analysis notebooks (YYYY_MM_DD naming)
   outputs/      Figures and pickled results written by the notebooks
 notebooks_2026/ Paper parameter-tuning scripts (see its README)
-  data/         Cached sweep results
+  data/         Cached sweep results; measurements.yaml (measured values + provenance)
   figures/      Figures written by the scripts
-tests/          pytest test suite
+tests/          pytest test suite (regression/ holds exact run_sim and figure fingerprints)
+.github/        CI: fast tests on every push (Python 3.11)
 data/           Experimental data (not committed; download from Google Drive)
 ```
 
@@ -108,6 +110,10 @@ Cell parameters are loaded from YAML via `cell.load_config(path)`. Key SEI param
 ## Development Guidelines
 
 - Do **not** commit raw data files (use Google Drive; see `data/README.md`).
+- Track SVG figures; PNGs, pickles and CSVs are not committed, except the cached
+  sweeps in `notebooks_2026/data/` (local caches go in `notebooks_2026/data/cache/`).
+- Measured values compared against the model (HPPC resistance, RPT capacity) live in
+  `notebooks_2026/data/measurements.yaml`, loaded by `src/tuning.py`.
 - One figure per notebook; name notebooks `YYYY_MM_DD_description.ipynb`.
 - Prototype in notebooks, then refactor proven code into `src/`.
 - Python 3.12 (pyenv env `formation-modeling-env`, see `.python-version`); notebooks use 3.10+ syntax such as `match`.

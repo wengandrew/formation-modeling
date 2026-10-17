@@ -11,7 +11,7 @@ src/            Core Python source
   simutils.py   run_sim() (protocols in FORMATION_PROTOCOLS), RMSE, legacy heatmap wrappers
   heatmaps.py   Shared base/fast/fast+ heatmap panels
   modelutils.py Electrochemistry lookup functions (OCP, expansion, resistance)
-  dvdq.py       dV/dQ analysis tools
+  dvdq.py       eSOH -> open-circuit voltage helpers (tested; not used by current notebooks)
   ioutils.py    Data loading utilities (cell IDs → CSV paths)
   plotter.py    Matplotlib style initialization
   tuning.py     SEI parameter sweeps: specs, tuned values, metrics, cached results
@@ -131,5 +131,4 @@ Cell parameters are loaded from YAML via `cell.load_config(path)`. Key SEI param
 | `2025_06_13_simulate_first_charge_cycle.ipynb` | Canonical single-charge sim + plot |
 | `2026_02_25_ec_tuning.ipynb` | Parameter sweep with `plot_heatmaps_diff` |
 | `2025_05_20_cycle_life_tuning.ipynb` | Multi-cycle aging + capacity fade |
-| `2023_12_12_dynamic_dvdq.ipynb` | dV/dQ analysis via `dvdq.py` |
 | `2023_12_21_build_electrode_resistance_curves.ipynb` | `modelutils.decompose_resistance_curve` usage |

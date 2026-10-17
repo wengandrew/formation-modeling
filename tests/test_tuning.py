@@ -329,8 +329,6 @@ def test_run_sweep_assembles_grid(n_jobs):
 # ---------------------------------------------------------------------------
 
 def test_plot_heatmap_trio_marks_selection(tmp_path):
-    import matplotlib
-    matplotlib.use('Agg')
     from src import tuning_plots
 
     result = tuning.load_sweep(tuning.SPECS['rho_all'])
@@ -389,8 +387,6 @@ def test_step2_uses_same_assumed_values_as_step1():
 
 
 def test_plot_heatmap_trio_line_only_marks_exact_pin(tmp_path):
-    import matplotlib
-    matplotlib.use('Agg')
     from src import tuning_plots
 
     result = tuning.load_sweep(tuning.SPECS['dsei_fc'])
@@ -403,8 +399,6 @@ def test_plot_heatmap_trio_line_only_marks_exact_pin(tmp_path):
 
 
 def test_plot_tuning_summary_layout(tmp_path):
-    import matplotlib
-    matplotlib.use('Agg')
     from src import tuning_plots
 
     rows = [(tuning.load_sweep(tuning.SPECS[name]), metric, tuning.TUNED[pin], None)
@@ -428,8 +422,6 @@ def test_plot_tuning_summary_layout(tmp_path):
 
 
 def test_plot_tuning_summary_line_only_rows():
-    import matplotlib
-    matplotlib.use('Agg')
     from src import tuning_plots
 
     rows = [(tuning.load_sweep(tuning.SPECS['dsei_fc']), 'v_rmse', 1.22e-18, None, False),

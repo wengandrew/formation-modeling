@@ -1,7 +1,11 @@
 """Shared fixtures for the formation-modeling test suite."""
 
-import pytest
-from src import cellsim
+import matplotlib
+
+matplotlib.use('Agg')   # headless plotting for every test
+
+import pytest  # noqa: E402
+from src import cellsim  # noqa: E402
 
 
 def pytest_addoption(parser):

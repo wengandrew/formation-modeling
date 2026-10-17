@@ -106,8 +106,10 @@ def make_cell(diff_ec=3.86e-20, diff_vc=1.58e-17,
               to_boost=True, sei_reactions='all'):
     """Cell from params/default.yaml with the given SEI parameters.
 
-    The EC (LEDC) and VC (LVDC) diffusivities are applied to layer 1 and
-    layer 2 of both SEI species, respectively.
+    diff_ec / diff_vc are the diffusivities through the LEDC (EC product) and
+    LVDC (VC product) layers. Each is shared by both solvents: D_SEIij is solvent
+    i through product j, so D_SEI11 = D_SEI21 = diff_ec and
+    D_SEI12 = D_SEI22 = diff_vc.
     """
     cell = cellsim.Cell()
     cell.load_config('params/default.yaml')

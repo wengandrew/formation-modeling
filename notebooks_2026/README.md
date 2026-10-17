@@ -41,6 +41,19 @@ compares it against the voltage, expansion, capacity and resistance data.
 Everything the scripts produce stays in this folder: figures in `figures/`,
 sweep results in `data/`.
 
+## Fitting settings
+
+| Sweep | Simulated through | Data compared | Voltage RMSE range | Strain |
+|---|---|---|---|---|
+| `dsei_fc`, `rho_fc` | First charge (`include_flag=0`, no CV hold) | First charge, after the first 0.5 h | 2.0-4.2 V | Kink smoothed |
+| `dsei_all` | Formation aging (`include_flag=3`, ~503 h) | 0.5-497.5 h (end of the data) | 3.2-4.2 V | Kink smoothed (0.5-0.85 h) |
+| `rho_all` | Formation aging (`include_flag=3`, ~503 h) | 0.5-497.5 h (end of the data) | 3.2-4.2 V | Unsmoothed |
+| `kappa_hppc1` | First RPT (`include_flag=2`) | R_sei + 10 mOhm at the first HPPC pulse | - | - |
+
+"All 400 h" in the table above refers to this through-formation-aging window,
+which covers 0.5-497.5 h of data. Voltage RMSE is reported in mV and
+expansion RMSE in µm.
+
 ## Running
 
 ```bash

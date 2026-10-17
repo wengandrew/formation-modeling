@@ -35,9 +35,13 @@ Always run from the repo root (not from inside `src/`):
 ```python
 from src import cellsim, simutils
 
-# Single simulation
-df = simutils.run_sim('base')          # formation_type: 'base' | 'fast' | 'fast+'
-df = simutils.run_sim('fast', include_flag=2)  # simulate through first RPT
+# Single simulation (formation_type: 'base' | 'fast' | 'fast+')
+df = simutils.run_sim('fast', include_flag=2)  # through the first RPT
+df = simutils.run_sim('base')   # NOTE: default include_flag=False == 0 stops after the first charge
+
+# Fully tuned model (values from src/tuning.py)
+from src import tuning
+df = simutils.run_sim('fast', **tuning.tuned_params('fast'), include_flag=3)
 
 # Manual simulation
 cell = cellsim.Cell()
@@ -47,6 +51,10 @@ sim.run_rest(1, rest_time_hrs=0.5)
 sim.run_chg_cccv(1, icc=2.5/10, icv=2.5/20, vmax=4.2)
 df = sim.get_results()  # returns a pandas DataFrame
 ```
+
+`include_flag`: 0 = first charge only (ends without a CV hold), 1 = formation
+cycling, 2 = + first RPT (HPPC), 3 = + formation aging (~500 h), 4 = + second RPT,
+5 = + 101 aging cycles. The protocols are step lists in `simutils.FORMATION_PROTOCOLS`.
 
 ## Core Design
 
@@ -85,9 +93,13 @@ Simulation      Time-stepping engine; holds all state arrays pre-allocated as Na
 
 ## Parameters (YAML)
 
-Cell parameters are loaded from YAML via `cell.load_config(path)`. Key SEI parameters:
-- `D_SEI11 / D_SEI12` — EC diffusivity (inner/outer layer)
-- `D_SEI21 / D_SEI22` — VC diffusivity (inner/outer layer)
+Cell parameters are loaded from YAML via `cell.load_config(path)`. Key SEI parameters
+(reaction/solvent 1 = EC, forming LEDC; 2 = VC, forming LVDC):
+- `D_SEIij` — diffusivity of solvent i through SEI product j. The effective
+  diffusivity of each solvent is the harmonic mean over products, weighted by the
+  SEI composition. `run_sim(diff_ec=D_LEDC, diff_vc=D_LVDC)` sets
+  `D_SEI11 = D_SEI21 = D_LEDC` and `D_SEI12 = D_SEI22 = D_LVDC`, i.e. each is a
+  property of the product layer, shared by both solvents.
 - `k_SEI1 / k_SEI2` — kinetic rate constants
 - `U_SEI1 / U_SEI2` — equilibrium reaction potentials (set to -1000 to disable a reaction)
 - `kappa_SEI1 / kappa_SEI2` — SEI conductivities
@@ -109,10 +121,13 @@ Cell parameters are loaded from YAML via `cell.load_config(path)`. Key SEI param
 - Tuned SEI parameters live in `src/tuning.py` (`TUNED`, `tuned_params()`); don't
   hard-code them in scripts.
 
-## Notebook Usage Examples
+## Usage Examples
 
-| Notebook | Shows |
+| Script / notebook | Shows |
 |---|---|
+| `notebooks_2026/dsei_sweep.py` (and `density_sweep.py`, `conductivity_sweep.py`) | Paper tuning steps: load cached sweep, heatmaps, selected values |
+| `notebooks_2026/tuning_summary.py` | Composite multi-row heatmap figures |
+| `notebooks_2026/model_vs_experiment.py` | Fully tuned model vs voltage, expansion, capacity, resistance |
 | `2025_06_13_simulate_first_charge_cycle.ipynb` | Canonical single-charge sim + plot |
 | `2026_02_25_ec_tuning.ipynb` | Parameter sweep with `plot_heatmaps_diff` |
 | `2025_05_20_cycle_life_tuning.ipynb` | Multi-cycle aging + capacity fade |

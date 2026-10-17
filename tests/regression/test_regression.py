@@ -7,15 +7,12 @@ run_sim() and the plotting code. Long run_sim cases need --runslow.
 import json
 import os
 
-import matplotlib
 import pytest
 
-matplotlib.use('Agg')
-
-from src import cellsim  # noqa: E402
-from tests.regression.cases import (  # noqa: E402
+from src import cellsim
+from tests.regression.cases import (
     HEATMAP_CASES, PLOT_CASES, RUN_SIM_CASES, SLOW_RUN_SIM_CASES, SWEEP_CASES)
-from tests.regression.make_references import REFERENCE_FILE  # noqa: E402
+from tests.regression.make_references import REFERENCE_FILE
 
 with open(REFERENCE_FILE) as f:
     REFERENCES = json.load(f)

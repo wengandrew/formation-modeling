@@ -3,8 +3,10 @@
 tuning_summary: step 2 voltage RMSE over D_LEDC x D_LVDC and step 3 expansion
     RMSE over rho_LEDC x rho_LVDC (both through formation aging), and step 4
     first-HPPC resistance error over kappa_LEDC x kappa_LVDC.
-tuning_summary_first_charge: the D and rho rows, over the first charge only.
-    These sweeps don't set a value, so only the pinned value is marked.
+tuning_summary_first_charge / tuning_summary_full_window: voltage and
+    expansion RMSE for the D and rho sweeps, over the first charge or through
+    formation aging (~500 h of data). Stars mark the tuned value only on the
+    rows used to set it; the other rows mark just the pinned value.
 
 Columns: base, fast, fast+. Built from the cached sweeps; saves
 figures/<name>.svg and .png.
@@ -33,7 +35,15 @@ FIGURES = {
     ],
     'tuning_summary_first_charge': [
         ('dsei_fc', 'v_rmse', 'diff_vc', (40, 200), False),       # step 1 (mV)
+        ('dsei_fc', 'e_rmse', 'diff_vc', (0, 100), False),        # um
+        ('rho_fc', 'v_rmse', 'rho_vc', (40, 200), False),         # mV
         ('rho_fc', 'e_rmse', 'rho_vc', (0, 40), False),           # um
+    ],
+    'tuning_summary_full_window': [
+        ('dsei_all', 'v_rmse', 'diff_vc', (40, 200), True),       # step 2 (mV)
+        ('dsei_all', 'e_rmse', 'diff_vc', (0, 100), False),       # um
+        ('rho_all', 'v_rmse', 'rho_vc', (40, 200), False),        # mV
+        ('rho_all', 'e_rmse', 'rho_vc', (0, 100), True),          # step 3 (um)
     ],
 }
 

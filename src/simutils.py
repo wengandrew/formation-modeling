@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from scipy.interpolate import interp1d
-from src import cellsim, heatmaps
+from src import cellsim, heatmaps, paths
 
 PHASE_PRE_FORMATION = 0
 PHASE_FIRST_CHARGE = 1
@@ -83,6 +83,11 @@ FORMATION_AGING_START_HRS = 174.7799
 # Aging cycles simulated after the second RPT
 NUM_AGING_CYCLES = 101
 
+# Simulated time to allocate [h] for each include_flag (upper bounds with
+# margin; formation aging ends near 503 h). Other values use MAX_SIM_HOURS.
+SIM_HOURS = {0: 50, 1: 250, 2: 250, 3: 550}
+MAX_SIM_HOURS = 1000
+
 
 def _run_steps(sim, steps):
     for kind, cycle, *args in steps:
@@ -112,7 +117,7 @@ def make_cell(diff_ec=3.86e-20, diff_vc=1.58e-17,
     D_SEI12 = D_SEI22 = diff_vc.
     """
     cell = cellsim.Cell()
-    cell.load_config('params/default.yaml')
+    cell.load_config(paths.repo_path('params', 'default.yaml'))
 
     if not to_boost:
         cell.gamma_boost = 0
@@ -147,7 +152,7 @@ def run_sim(formation_type,
             dt=1.0,
             to_follow_current=False,
             current_vec=np.nan,
-            include_flag=False,
+            include_flag=0,
             dsei_derating_cycling=1.0,
             to_boost=True,
             sei_reactions='all'):
@@ -171,7 +176,7 @@ def run_sim(formation_type,
                   3 : up to formation aging
                   4 : up to second RPT
                   5 : up to aging cycles
-                  False (default) : same as 0
+                  Default 0. (False also means 0, and True means 1.)
     dsei_derating_cycling: factor to derate D_SEI during the aging cycles,
                            default is 1.0 (no derating)
     to_boost: if True, boost the SEI diffusivity during cycling, default is True
@@ -188,9 +193,31 @@ def run_sim(formation_type,
         raise ValueError(f'Unknown formation_type {formation_type!r}; '
                          f'expected one of {list(FORMATION_PROTOCOLS)}')
 
-    cell = make_cell(diff_ec, diff_vc, rho_ec, rho_vc, kappa_ec, kappa_vc,
-                     to_boost=to_boost, sei_reactions=sei_reactions)
-    sim = cellsim.Simulation(cell, 1000*3600, dt=dt)
+    def simulate(sim_hours):
+        cell = make_cell(diff_ec, diff_vc, rho_ec, rho_vc, kappa_ec, kappa_vc,
+                         to_boost=to_boost, sei_reactions=sei_reactions)
+        return _simulate(cell, formation_type, sim_hours, dt, to_follow_current, current_vec,
+                         include_flag, dsei_derating_cycling, diff_ec, diff_vc)
+
+    # Allocate only the time the requested stages need; if a run outgrows that
+    # (unusual parameters), redo it with the full allocation. Results are the
+    # same either way, since the output is trimmed to the simulated time.
+    if to_follow_current:
+        sim_hours = (len(current_vec) + 10) * dt / 3600
+    else:
+        sim_hours = SIM_HOURS.get(include_flag, MAX_SIM_HOURS)
+    try:
+        return simulate(sim_hours)
+    except IndexError:
+        if sim_hours >= MAX_SIM_HOURS:
+            raise
+        return simulate(MAX_SIM_HOURS)
+
+
+def _simulate(cell, formation_type, sim_hours, dt, to_follow_current, current_vec,
+              include_flag, dsei_derating_cycling, diff_ec, diff_vc):
+    """Run the protocol stages selected by include_flag (see run_sim)."""
+    sim = cellsim.Simulation(cell, sim_hours*3600, dt=dt)
 
     if to_follow_current:
         for k, current in enumerate(current_vec):

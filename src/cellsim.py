@@ -4,6 +4,7 @@ Classes for the formation modeling work
 
 from src import plotter as plotter
 from src import modelutils as mu
+from src import paths
 import pandas as pd
 import numpy as np
 import yaml
@@ -22,7 +23,7 @@ STEP_NUM_DISCHARGE_CV = 3
 STEP_NUM_REST = 4
 
 # Where the Simulation plotting methods save figures
-FIGURE_DIR = 'notebooks/outputs/figures'
+FIGURE_DIR = paths.repo_path('notebooks', 'outputs', 'figures')
 
 class Cell:
 
@@ -597,13 +598,11 @@ class Simulation:
         ])
 
     def plot_view_4(self, to_save=False, xlims=None,
-                    to_annotate=True, ylim_current=None,
-                    ylim_thickness=None):
+                    to_annotate=True, ylim_current=None):
         """
         Make "View 4"
 
         Focus on voltage, current, and SEI capacity.
-        ylim_thickness is unused (kept for backward compatibility).
         """
         fig, axs, xx = self._new_figure(3, (8, 3 * 4.5), xlims)
 
@@ -748,12 +747,11 @@ class Simulation:
             plt.savefig(f'{FIGURE_DIR}/fig_timeseries_2.tif', bbox_inches='tight',
                         dpi=200)
 
-    def plot_view_3(self, to_save=False, xlims=None):
+    def plot_view_3(self, to_save=True, xlims=None):
         """
         Make "View 3"
 
         Focus on understanding SEI growth boosting during cycling.
-        Always saves the figure (to_save is ignored, as before).
         """
         fig, axs, xx = self._new_figure(4, (8, 4 * 4), xlims)
 
@@ -795,8 +793,9 @@ class Simulation:
             (axs[2], 55, 10, '4'),
         ])
 
-        plt.savefig(f'{FIGURE_DIR}/fig_timeseries_3.tif',
-                    bbox_inches='tight', dpi=200)
+        if to_save:
+            plt.savefig(f'{FIGURE_DIR}/fig_timeseries_3.tif',
+                        bbox_inches='tight', dpi=200)
 
     def plot(self, to_save=True,
                    xlims=None,

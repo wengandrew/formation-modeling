@@ -48,7 +48,7 @@ python notebooks_2026/dsei_sweep.py            # steps 1-2
 python notebooks_2026/density_sweep.py         # step 3
 python notebooks_2026/conductivity_sweep.py    # step 4
 python notebooks_2026/model_vs_experiment.py   # final comparison (a few minutes)
-python notebooks_2026/tuning_summary.py        # composite figure of steps 2-4
+python notebooks_2026/tuning_summary.py        # composite figures: steps 2-4, and D/rho over the first charge
 ```
 
 The sweep scripts load the cached results below, save voltage and expansion

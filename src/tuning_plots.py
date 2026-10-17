@@ -87,20 +87,26 @@ def plot_sweep_heatmaps(result, pin_col=None, zlims=None, figure_dir=FIGURE_DIR,
     return figs
 
 
-def plot_tuning_summary(rows, savename=None, figsize=(13, 11.5)):
+def plot_tuning_summary(rows, savename=None, figsize=None):
     """Composite of several sweeps: one row per sweep, one column per protocol.
 
-    rows: list of (result, metric, pin_col, zlim). Each row gets one colorbar
-    on the right, a dotted line at the pinned column and a star at the
-    minimum along it. Panels are labelled (a), (b), ... in reading order and
-    the protocol names appear once, above the first row. Returns the figure.
+    rows: list of (result, metric, pin_col, zlim) or
+          (result, metric, pin_col, zlim, mark_minimum). Each row gets one
+          colorbar on the right and a dotted line at pin_col. With mark_minimum
+          (default True) the line is at the nearest grid column with a star at
+          the minimum along it; otherwise it is at exactly pin_col, labelled.
+    Panels are labelled (a), (b), ... in reading order and the protocol names
+    appear once, above the first row. Returns the figure.
     """
+    if figsize is None:
+        figsize = (13, 0.4 + 3.7 * len(rows))
     fig, axs = plt.subplots(len(rows), 3, figsize=figsize, layout='constrained')
     fig.get_layout_engine().set(hspace=0.06)    # extra space between rows
     axs = np.atleast_2d(axs)
     letters = iter('abcdefghijklmnopqrstuvwxyz')
 
-    for r, (result, metric, pin_col, zlim) in enumerate(rows):
+    for r, (result, metric, pin_col, zlim, *rest) in enumerate(rows):
+        mark_minimum = rest[0] if rest else True
         spec = result.spec
         x_label, x_scale, x_mult = PARAM_AXES[spec.col_param]
         y_label, y_scale, y_mult = PARAM_AXES[spec.row_param]
@@ -118,10 +124,14 @@ def plot_tuning_summary(rows, savename=None, figsize=(13, 11.5)):
                 ax.set_title(heatmaps.PANEL_TITLES[c])
             ax.text(0.03, 0.96, f'({next(letters)})', transform=ax.transAxes,
                     ha='left', va='top', fontsize=18, fontweight='bold',
-                    bbox=dict(facecolor='white', alpha=0.85, edgecolor='none', pad=1.5))
+                    bbox=dict(facecolor='white', alpha=1.0, edgecolor='none', pad=4))
 
-        x_pin = result.col_vec[tuning.nearest_index(result.col_vec, pin_col)] * x_mult
-        heatmaps.annotate_panels(axs[r], mats, x, y, x_pin)
+        if mark_minimum:
+            x_pin = result.col_vec[tuning.nearest_index(result.col_vec, pin_col)] * x_mult
+            heatmaps.annotate_panels(axs[r], mats, x, y, x_pin)
+        else:
+            heatmaps.annotate_panels(axs[r], mats, x, y, pin_col * x_mult,
+                                     line_only=True, label_line=True)
         heatmaps.add_legends(axs[r], loc='upper right', fontsize=11, facecolor='white',
                              edgecolor='black')
         fig.colorbar(pcm, ax=axs[r, :], location='right', label=z_label, aspect=15)

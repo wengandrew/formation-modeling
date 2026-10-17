@@ -425,3 +425,18 @@ def test_plot_tuning_summary_layout(tmp_path):
     for ax, protocol in zip(panels[3:6], tuning.PROTOCOLS):     # step 3 row: tuned rho_LEDC
         star = [line for line in ax.get_lines() if line.get_marker() == '*'][0]
         assert star.get_ydata()[0] == pytest.approx(tuning.TUNED['rho_ec'][protocol], abs=0.005)
+
+
+def test_plot_tuning_summary_line_only_rows():
+    import matplotlib
+    matplotlib.use('Agg')
+    from src import tuning_plots
+
+    rows = [(tuning.load_sweep(tuning.SPECS['dsei_fc']), 'v_rmse', 1.22e-18, None, False),
+            (tuning.load_sweep(tuning.SPECS['rho_fc']), 'e_rmse', 1.5, None, False)]
+    fig = tuning_plots.plot_tuning_summary(rows)
+    panels = [ax for ax in fig.axes if ax.get_label() != '<colorbar>']
+    assert len(panels) == 6 and len(fig.axes) == 8
+    for ax, pin in zip(panels, [1.22e-18] * 3 + [1.5] * 3):
+        assert not [line for line in ax.get_lines() if line.get_marker() == '*']
+        assert ax.get_lines()[0].get_xdata()[0] == pin

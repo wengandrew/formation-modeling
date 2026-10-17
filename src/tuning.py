@@ -365,6 +365,11 @@ def run_sweep(spec, n_jobs=1, experiments=None, progress=True, evaluate=evaluate
         outputs = map(_evaluate_task, tasks)
         pool = None
     else:
+        # One simulation per process: keep numerical libraries single-threaded so
+        # n_jobs workers don't oversubscribe the cores (workers inherit this)
+        for var in ('OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS',
+                    'VECLIB_MAXIMUM_THREADS'):
+            os.environ.setdefault(var, '1')
         pool = ProcessPoolExecutor(n_jobs, initializer=_init_worker,
                                    initargs=(spec, experiments, evaluate))
         outputs = pool.map(_evaluate_task, tasks, chunksize=max(1, len(tasks) // (n_jobs * 50)))

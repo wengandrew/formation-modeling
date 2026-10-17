@@ -32,7 +32,10 @@ best D_LVDC, which moves from 4.0e-18 to 6.0e-19. The first-charge voltage
 constrains D_LVDC only weakly: D_LVDC values within 2 mV of the best fit span
 about two decades. With cell 152064 the base protocol alone is nearly flat in
 D_LVDC (45-48 mV from 1e-19 to 1e-17), so D_LVDC is set mainly by the fast and
-fast+ data.
+fast+ data. `figures/dlvdc_profile.svg` shows this directly: the best voltage
+RMSE over D_LEDC as a function of D_LVDC has a shallow minimum over the first
+charge, and is flat for D_LVDC above ~5e-21 through formation aging, which is
+why D_LVDC is set from the first charge.
 
 `density_sweep.py` also plots `rho_fc`, the step 3 sweep repeated over the
 first charge only. `model_vs_experiment.py` runs the fully tuned model and

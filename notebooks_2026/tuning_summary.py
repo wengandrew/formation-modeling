@@ -3,6 +3,9 @@
 tuning_summary: step 2 voltage RMSE over D_LEDC x D_LVDC and step 3 expansion
     RMSE over rho_LEDC x rho_LVDC (both through formation aging), and step 4
     first-HPPC resistance error over kappa_LEDC x kappa_LVDC.
+dlvdc_profile: best voltage RMSE over D_LEDC as a function of D_LVDC, for
+    the first charge and through formation aging, showing how weakly the data
+    constrain D_LVDC (shaded: mean within 2 mV of its minimum).
 tuning_summary_first_charge / tuning_summary_full_window: voltage and
     expansion RMSE for the D and rho sweeps, over the first charge or through
     formation aging (~500 h of data). Stars mark the tuned value only on the
@@ -61,6 +64,14 @@ def main(argv=None):
         fig = tuning_plots.plot_tuning_summary(rows, savename=base + '.svg')
         fig.savefig(base + '.png', bbox_inches='tight', dpi=200)
         print(f'Saved {paths.relative(base)}.svg and .png')
+
+    base = os.path.join(tuning_plots.FIGURE_DIR, 'dlvdc_profile')
+    fig = tuning_plots.plot_column_profiles(
+        [(tuning.load_sweep(tuning.SPECS['dsei_fc']), 'v_rmse', 'First charge'),
+         (tuning.load_sweep(tuning.SPECS['dsei_all']), 'v_rmse', 'Through formation aging')],
+        pin_col=tuning.TUNED['diff_vc'], band=2, savename=base + '.svg')
+    fig.savefig(base + '.png', bbox_inches='tight', dpi=200)
+    print(f'Saved {paths.relative(base)}.svg and .png')
 
     if args.show:
         plt.show()

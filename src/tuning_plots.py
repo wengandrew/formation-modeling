@@ -139,3 +139,52 @@ def plot_tuning_summary(rows, savename=None, figsize=None):
     if savename:
         fig.savefig(savename, bbox_inches='tight', metadata={'Date': None})
     return fig
+
+
+PROTOCOL_COLORS = {'base': 'tab:blue', 'fast': 'tab:green', 'fast+': 'tab:red'}
+PROTOCOL_NAMES = {'base': 'Base', 'fast': 'Fast', 'fast+': 'Fast+'}
+
+
+def plot_column_profiles(panels, pin_col=None, band=None, savename=None, figsize=None):
+    """Best metric over the row parameter, as a function of the column parameter.
+
+    For each sweep in panels (list of (result, metric, title)), plots
+    min over rows of the metric for every protocol and their mean. pin_col
+    marks a value with a dotted line; band (in display units, e.g. mV) shades
+    where the mean is within band of its minimum. Returns the figure.
+    """
+    if figsize is None:
+        figsize = (5.5 * len(panels), 4.5)
+    fig, axs = plt.subplots(1, len(panels), figsize=figsize, layout='constrained', squeeze=False)
+    for ax, (result, metric, title) in zip(axs[0], panels):
+        spec = result.spec
+        x_label, x_scale, x_mult = PARAM_AXES[spec.col_param]
+        z_label, z_mult, _ = METRIC_STYLE[metric]
+        x = np.asarray(result.col_vec) * x_mult
+
+        profiles = {p: np.nanmin(result.metrics[metric][p], axis=0) * z_mult for p in tuning.PROTOCOLS}
+        for p, y in profiles.items():
+            ax.plot(x, y, color=PROTOCOL_COLORS[p], label=PROTOCOL_NAMES[p])
+        mean = np.mean(list(profiles.values()), axis=0)
+        ax.plot(x, mean, color='k', ls='--', label='Mean')
+
+        if band is not None:
+            unit = z_label[z_label.rfind('(') + 1:z_label.rfind(')')]
+            ax.fill_between(x, 0, 1, where=mean <= np.nanmin(mean) + band, color='0.85',
+                            transform=ax.get_xaxis_transform(),
+                            label=f'Mean within {band:g} {unit} of min')
+        if pin_col is not None:
+            ax.axvline(pin_col * x_mult, color='darkred', ls=':', lw=1.5,
+                       label=f'{pin_col * x_mult:.3g}')
+
+        ax.set_xscale(x_scale)
+        ax.set_xlim(x.min(), x.max())
+        ax.set_xlabel(x_label)
+        ax.set_ylabel(f'Best {z_label[0].lower()}{z_label[1:]}')
+        ax.set_title(title)
+        ax.grid(False)
+        ax.legend(fontsize=10, frameon=True, facecolor='white', framealpha=1.0)
+
+    if savename:
+        fig.savefig(savename, bbox_inches='tight', metadata={'Date': None})
+    return fig

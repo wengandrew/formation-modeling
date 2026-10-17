@@ -452,3 +452,17 @@ def test_measurements_file_values():
         q1, q2 = tuning.QD_RPT1[p], tuning.QD_RPT2[p]
         assert (q1.t_s, q1.q_ah, q1.q_std) == expected_q1[p]
         assert (q2.t_s, q2.q_ah, q2.q_std) == (534.8 * 3600, 2.46, expected_q1[p][2])
+
+
+def test_plot_column_profiles():
+    from src import tuning_plots
+
+    result = tuning.load_sweep(tuning.SPECS['dsei_fc'])
+    fig = tuning_plots.plot_column_profiles([(result, 'v_rmse', 'First charge')],
+                                            pin_col=1.22e-18, band=2)
+    (ax,) = fig.axes
+    lines = {line.get_label(): line for line in ax.get_lines()}
+    expected = np.nanmin(result.metrics['v_rmse']['base'], axis=0) * 1e3
+    np.testing.assert_allclose(lines['Base'].get_ydata(), expected)
+    assert '1.22e-18' in lines
+    assert 'Mean within 2 mV of min' in [t.get_text() for t in ax.get_legend().get_texts()]

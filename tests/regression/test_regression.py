@@ -18,6 +18,12 @@ with open(REFERENCE_FILE) as f:
     REFERENCES = json.load(f)
 
 
+# Exact hashes of simulation output are recorded on macOS; floating-point
+# results can differ in the last bits on other platforms, so CI skips them.
+exact_simulation = pytest.mark.skipif(
+    bool(os.environ.get('CI')), reason='bit-exact simulation fingerprints are platform-specific')
+
+
 def _params(cases, slow=()):
     return [pytest.param(name, marks=pytest.mark.slow) if name in slow else name
             for name in cases]
@@ -28,11 +34,13 @@ def _check(name, cases):
     assert cases[name]() == REFERENCES[name]
 
 
+@exact_simulation
 @pytest.mark.parametrize('name', _params(RUN_SIM_CASES, SLOW_RUN_SIM_CASES))
 def test_run_sim_unchanged(name):
     _check(name, RUN_SIM_CASES)
 
 
+@exact_simulation
 @pytest.mark.parametrize('name', list(PLOT_CASES))
 def test_simulation_plots_unchanged(name, tmp_path, monkeypatch):
     monkeypatch.setattr(cellsim, 'FIGURE_DIR', str(tmp_path))

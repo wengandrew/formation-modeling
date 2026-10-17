@@ -1,5 +1,7 @@
 # Formation Modeling
 
+[![tests](https://github.com/wengandrew/formation-modeling/actions/workflows/tests.yml/badge.svg)](https://github.com/wengandrew/formation-modeling/actions/workflows/tests.yml)
+
 December 2023
 
 Source code for modeling battery formation.

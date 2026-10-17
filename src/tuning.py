@@ -142,8 +142,10 @@ class SweepSpec:
 
     Matrices are indexed [row, col], with rows over row_param and columns
     over col_param. `fixed` holds the other run_sim arguments; a value may be
-    a dict keyed by protocol. If the cached result was run with different
-    fixed arguments, they are recorded in `cache_fixed` (see as_cached()).
+    a dict keyed by protocol. Every spec uses the same fitting settings;
+    where a cached result was produced with different ones, they are recorded
+    in `cache_overrides` ({field: value}, see as_cached()) so the cache can
+    still be reproduced exactly.
 
     window: 'fc'    first charge only (include_flag=0), voltage + expansion RMSE
             'all'   through formation aging (include_flag=3), voltage + expansion RMSE
@@ -161,7 +163,7 @@ class SweepSpec:
     v_range: tuple = (3.2, 4.2)
     smooth_strain: bool = True
     kink_overrides: dict = field(default_factory=dict)
-    cache_fixed: dict = None
+    cache_overrides: dict = field(default_factory=dict)
 
     @property
     def include_flag(self):
@@ -191,7 +193,7 @@ class SweepSpec:
 
     def as_cached(self):
         """This spec with the fixed arguments its cached result was run with."""
-        return self if self.cache_fixed is None else replace(self, fixed=self.cache_fixed)
+        return replace(self, **self.cache_overrides) if self.cache_overrides else self
 
 
 DATA_DIR = paths.repo_path('notebooks_2026', 'data')
@@ -212,19 +214,22 @@ SPECS = {spec.name: spec for spec in [
         cache=f'{DATA_DIR}/dsei_fc_20261015.pkl',
     ),
     # Step 2: set D_LEDC through formation aging, with rho/kappa at the ASSUMED values.
-    # The cached sweep was run with the cache_fixed rho/kappa instead. Re-running
-    # the D_LVDC = 1.22e-18 column with the ASSUMED values
-    # (data/dsei_all_column_assumed_20261014.pkl) leaves the grid minimum at
-    # D_LEDC = 6.66e-20 for all protocols; interpolating between grid points
-    # moves it about 5% lower (~6.3e-20).
+    # The cached sweep was run with other rho/kappa values and cell 152074's kink
+    # window (cache_overrides). Re-running the D_LVDC = 1.22e-18 column with the
+    # ASSUMED values (data/dsei_all_column_assumed_20261014.pkl) leaves the grid
+    # minimum at D_LEDC = 6.66e-20 for all protocols; interpolating between grid
+    # points moves it about 5% lower (~6.3e-20). The kink window only affects the
+    # expansion RMSE, which step 2 does not use.
     SweepSpec(
         name='dsei_all',
         row_param='diff_ec', row_vec=np.logspace(-20, -16, 35),
         col_param='diff_vc', col_vec=np.logspace(-21, -12, 36),
         window='all',
         fixed={},
-        cache_fixed=dict(rho_ec=1.29, rho_vc=1.49, kappa_ec=0.090e-3, kappa_vc=0.051e-3),
-        kink_overrides={'base': (0.5, 0.85)},
+        cache_overrides=dict(
+            fixed=dict(rho_ec=1.29, rho_vc=1.49, kappa_ec=0.090e-3, kappa_vc=0.051e-3),
+            kink_overrides={'base': (0.5, 0.85)},
+        ),
         cache=f'{DATA_DIR}/simulation_results_clean_dsei_sweep_20260422.pkl',
     ),
     # Step 3 (first-charge counterpart)
@@ -235,12 +240,16 @@ SPECS = {spec.name: spec for spec in [
         window='fc', fixed=_D_TUNED, v_range=(2.0, 4.2),
         cache=f'{DATA_DIR}/simulation_results_first_charge_density_20260429.pkl',
     ),
-    # Step 3: set rho_LVDC and rho_LEDC from the expansion through formation aging
+    # Step 3: set rho_LVDC and rho_LEDC from the expansion through formation aging.
+    # The cached sweep used unsmoothed strain (cache_overrides). Re-running the
+    # rho_LVDC = 1.5 column with smoothing (data/rho_all_column_smoothed_20261017.pkl)
+    # changes the expansion RMSE by at most 0.0025 um and leaves rho_LEDC unchanged.
     SweepSpec(
         name='rho_all',
         row_param='rho_ec', row_vec=np.linspace(0.5, 4, 35),
         col_param='rho_vc', col_vec=np.linspace(0.5, 4, 36),
-        window='all', fixed=_D_TUNED, smooth_strain=False,
+        window='all', fixed=_D_TUNED,
+        cache_overrides=dict(smooth_strain=False),
         cache=f'{DATA_DIR}/simulation_results_density_sweep_20260426.pkl',
     ),
     # Step 4: set kappa_LVDC and kappa_LEDC from the first HPPC resistance

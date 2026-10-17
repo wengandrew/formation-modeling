@@ -73,7 +73,8 @@ class TestSpecsMatchNotebooks:
         np.testing.assert_allclose(s.col_vec, raw['diff_vc_vec'], rtol=1e-12)
         assert s.window == 'all' and s.include_flag == 3
         assert s.expt_cell('base') == 152064
-        assert s.kink_window('base') == (0.5, 0.85)
+        assert s.kink_window('base') == (0.5, 0.75)
+        assert s.as_cached().kink_window('base') == (0.5, 0.85)
         assert s.v_range == (3.2, 4.2)
         assert s.smooth_strain
         # Step 2 uses the assumed rho/kappa, like step 1 ...
@@ -107,7 +108,8 @@ class TestSpecsMatchNotebooks:
         assert s.window == 'all' and s.include_flag == 3
         assert s.expt_cell('base') == 152064
         assert s.v_range == (3.2, 4.2)
-        assert not s.smooth_strain
+        assert s.smooth_strain                      # the cached sweep was not smoothed
+        assert not s.as_cached().smooth_strain
         assert s.sim_kwargs('base', 1.0, 2.0) == dict(
             diff_ec=6.66e-20, diff_vc=1.22e-18, rho_ec=1.0, rho_vc=2.0,
             dt=1, include_flag=3)
@@ -376,10 +378,18 @@ def test_resimulated_point_matches_cache(name):
                 (protocol, metric)
 
 
-def test_specs_without_cache_fixed_are_unchanged_by_as_cached():
+def test_specs_without_cache_overrides_are_unchanged_by_as_cached():
     for spec in tuning.SPECS.values():
-        if spec.cache_fixed is None:
+        if not spec.cache_overrides:
             assert spec.as_cached() is spec
+
+
+def test_all_specs_use_uniform_fitting_settings():
+    for spec in tuning.SPECS.values():
+        assert spec.smooth_strain
+        assert spec.kink_overrides == {}
+        assert spec.base_cell == tuning.EXPT_CELLS['base']
+        assert spec.v_range == ((2.0, 4.2) if spec.window == 'fc' else (3.2, 4.2))
 
 
 def test_step2_uses_same_assumed_values_as_step1():

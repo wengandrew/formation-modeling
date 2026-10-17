@@ -14,7 +14,7 @@ Per-protocol values are listed as {base, fast, fast+}.
 
 \* Step 2 is defined with the same assumed rho/kappa as step 1, but the cached
 step 2 sweep was run with rho_LEDC = 1.29, rho_LVDC = 1.49 g/cm³ and
-kappa_LEDC = 9.0e-5, kappa_LVDC = 5.1e-5 S/m (recorded as `cache_fixed` in
+kappa_LEDC = 9.0e-5, kappa_LVDC = 5.1e-5 S/m (recorded as `cache_overrides` in
 `src/tuning.py`). Re-running the D_LVDC = 1.22e-18 column with the assumed
 values (`data/dsei_all_column_assumed_20261014.pkl`) leaves the grid minimum at
 D_LEDC = 6.66e-20 m²/s for all three protocols and changes the voltage RMSE
@@ -49,9 +49,18 @@ sweep results in `data/`.
 | Sweep | Simulated through | Data compared | Voltage RMSE range | Strain |
 |---|---|---|---|---|
 | `dsei_fc`, `rho_fc` | First charge (`include_flag=0`, no CV hold) | First charge, after the first 0.5 h | 2.0-4.2 V | Kink smoothed |
-| `dsei_all` | Formation aging (`include_flag=3`, ~503 h) | 0.5-497.5 h (end of the data) | 3.2-4.2 V | Kink smoothed (0.5-0.85 h) |
-| `rho_all` | Formation aging (`include_flag=3`, ~503 h) | 0.5-497.5 h (end of the data) | 3.2-4.2 V | Unsmoothed |
+| `dsei_all` | Formation aging (`include_flag=3`, ~503 h) | 0.5-497.5 h (end of the data) | 3.2-4.2 V | Kink smoothed* |
+| `rho_all` | Formation aging (`include_flag=3`, ~503 h) | 0.5-497.5 h (end of the data) | 3.2-4.2 V | Kink smoothed* |
 | `kappa_hppc1` | First RPT (`include_flag=2`) | R_sei + 10 mOhm at the first HPPC pulse | - | - |
+
+All sweeps use cells 152064 / 152071 / 152098 and smooth each cell's early
+expansion kink over its own window (152064: 0.5-0.75 h, 152071: 0.5-0.6 h,
+152098: 0.5-0.55 h). \* Two cached sweeps predate this: `dsei_all` smoothed
+152064 over 0.5-0.85 h, and `rho_all` used unsmoothed strain (recorded as
+`cache_overrides` in `src/tuning.py`). Neither affects a selected value:
+step 2 selects on voltage, and re-running the step 3 selection column with
+smoothing (`data/rho_all_column_smoothed_20261017.pkl`) changes the expansion
+RMSE by at most 0.0025 µm (rho_LEDC unchanged at 1.94 / 2.25 / 1.63).
 
 "Through formation aging (~500 h)" covers 0.5-497.5 h of data (earlier drafts
 called this window "All 400 h"). Voltage RMSE is reported in mV and
@@ -88,6 +97,7 @@ checks that this code reproduces the cached results (`pytest tests/
 | `rho_all` | 3 | `data/simulation_results_density_sweep_20260426.pkl` |
 | `kappa_hppc1` | 4 | `data/resistance_optimization_results_20260504.pkl` |
 | `dsei_all`, one column | 2 (check) | `data/dsei_all_column_assumed_20261014.pkl` |
+| `rho_all`, one column | 3 (check) | `data/rho_all_column_smoothed_20261017.pkl` |
 
 These were produced by the original notebooks, which are in the git history
 (commits ffdc89b and 3f1fd69). Re-runs are saved as `data/<sweep>_<date>.pkl`; point the

@@ -5,8 +5,8 @@ notebooks_2026/README.md). Each step sweeps two parameters on a grid, runs the
 model for the three formation protocols at every grid point, and scores the
 result against experiment:
 
-    D_LEDC x D_LVDC    voltage and expansion RMSE    first charge / all ~400 h
-    rho_LEDC x rho_LVDC voltage and expansion RMSE   first charge / all ~400 h
+    D_LEDC x D_LVDC    voltage and expansion RMSE    first charge / through formation aging
+    rho_LEDC x rho_LVDC voltage and expansion RMSE   first charge / through formation aging
     kappa_LEDC x kappa_LVDC  |R_model - R_meas|      first RPT (HPPC)
 
 A sweep is described by a SweepSpec. run_sweep() evaluates it, and
@@ -131,7 +131,7 @@ def tuned_params(protocol):
 WINDOW_INCLUDE_FLAG = {'fc': 0, 'all': 3, 'hppc1': 2}
 WINDOW_LABELS = {
     'fc': 'First charge',
-    'all': 'All ~400 h',
+    'all': 'Through formation aging (~500 h)',
     'hppc1': 'First RPT (HPPC)',
 }
 
@@ -211,7 +211,7 @@ SPECS = {spec.name: spec for spec in [
         window='fc', fixed={}, v_range=(2.0, 4.2),
         cache=f'{DATA_DIR}/dsei_fc_20261015.pkl',
     ),
-    # Step 2: set D_LEDC from all ~400 h, with rho/kappa at the ASSUMED values.
+    # Step 2: set D_LEDC through formation aging, with rho/kappa at the ASSUMED values.
     # The cached sweep was run with the cache_fixed rho/kappa instead. Re-running
     # the D_LVDC = 1.22e-18 column with the ASSUMED values
     # (data/dsei_all_column_assumed_20261014.pkl) leaves the grid minimum at
@@ -235,7 +235,7 @@ SPECS = {spec.name: spec for spec in [
         window='fc', fixed=_D_TUNED, v_range=(2.0, 4.2),
         cache=f'{DATA_DIR}/simulation_results_first_charge_density_20260429.pkl',
     ),
-    # Step 3: set rho_LVDC and rho_LEDC from the all ~400 h expansion
+    # Step 3: set rho_LVDC and rho_LEDC from the expansion through formation aging
     SweepSpec(
         name='rho_all',
         row_param='rho_ec', row_vec=np.linspace(0.5, 4, 35),

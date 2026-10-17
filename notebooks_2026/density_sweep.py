@@ -1,9 +1,9 @@
 """Step 3 of the SEI parameter tuning: the densities rho_LVDC and rho_LEDC.
 
 With D_LVDC and D_LEDC fixed from steps 1-2, sweep rho_LEDC x rho_LVDC over
-the first charge (rho_fc) and through formation aging (~400 h, rho_all).
+the first charge (rho_fc) and through formation aging (~500 h of data, rho_all).
 rho_LVDC is set to 1.5 g/cm^3 and rho_LEDC, per protocol, to the minimum
-all ~400 h expansion RMSE along it.
+expansion RMSE through formation aging along it.
 
 Plots voltage and expansion RMSE heatmaps for both windows from the cached
 sweeps. Replaces 2026_04_29_first_charge_density_sweep and

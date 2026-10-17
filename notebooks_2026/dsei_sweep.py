@@ -2,7 +2,7 @@
 
 Step 1 (dsei_fc): sweep D_LEDC x D_LVDC over the first charge only and set
     D_LVDC from the voltage RMSE (set by inspection to 1.22e-18 m^2/s).
-Step 2 (dsei_all): sweep through formation aging (~400 h), fix D_LVDC, and set
+Step 2 (dsei_all): sweep through formation aging (~500 h of data), fix D_LVDC, and set
     D_LEDC as the minimum voltage RMSE along that D_LVDC.
 
 Plots voltage and expansion RMSE heatmaps for both windows from the cached

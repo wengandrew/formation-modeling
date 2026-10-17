@@ -6,8 +6,8 @@ paper's main results. Each step fixes the parameters set by the previous steps.
 | Step | Data range | Error metric | D_LVDC | D_LEDC | rho_LVDC | rho_LEDC | kappa_LVDC | kappa_LEDC | Script (sweep) |
 |---|---|---|---|---|---|---|---|---|---|
 | 1 | First charge cycle only | Voltage RMSE | **swept, set 1.22e-18 m²/s** | swept | assumed 1.33 g/cm³ | assumed 1.38 g/cm³ | assumed 4.9e-5 S/m | assumed 8.1e-5 S/m | `dsei_sweep.py` (`dsei_fc`) |
-| 2 | All 400 h | Voltage RMSE | fixed (1) | **swept, set 6.66e-20 m²/s** | assumed 1.33* | assumed 1.38* | assumed 4.9e-5* | assumed 8.1e-5* | `dsei_sweep.py` (`dsei_all`) |
-| 3 | All 400 h | Expansion RMSE | fixed (1) | fixed (2) | **swept, set 1.5 g/cm³** | **swept, set {1.94, 2.25, 1.63} g/cm³** | assumed 4.9e-5 | assumed 8.1e-5 | `density_sweep.py` (`rho_all`) |
+| 2 | Through formation aging (~500 h) | Voltage RMSE | fixed (1) | **swept, set 6.66e-20 m²/s** | assumed 1.33* | assumed 1.38* | assumed 4.9e-5* | assumed 8.1e-5* | `dsei_sweep.py` (`dsei_all`) |
+| 3 | Through formation aging (~500 h) | Expansion RMSE | fixed (1) | fixed (2) | **swept, set 1.5 g/cm³** | **swept, set {1.94, 2.25, 1.63} g/cm³** | assumed 4.9e-5 | assumed 8.1e-5 | `density_sweep.py` (`rho_all`) |
 | 4 | RPT (HPPC) after formation cycles | Absolute resistance error | fixed (1) | fixed (2) | fixed (3) | fixed (3) | **swept, set 5.1e-5 S/m** | **swept, set {7.6, 8.9, 12.9}e-5 S/m** | `conductivity_sweep.py` (`kappa_hppc1`) |
 
 Per-protocol values are listed as {base, fast, fast+}.
@@ -50,8 +50,8 @@ sweep results in `data/`.
 | `rho_all` | Formation aging (`include_flag=3`, ~503 h) | 0.5-497.5 h (end of the data) | 3.2-4.2 V | Unsmoothed |
 | `kappa_hppc1` | First RPT (`include_flag=2`) | R_sei + 10 mOhm at the first HPPC pulse | - | - |
 
-"All 400 h" in the table above refers to this through-formation-aging window,
-which covers 0.5-497.5 h of data. Voltage RMSE is reported in mV and
+"Through formation aging (~500 h)" covers 0.5-497.5 h of data (earlier drafts
+called this window "All 400 h"). Voltage RMSE is reported in mV and
 expansion RMSE in µm.
 
 ## Running
@@ -65,7 +65,7 @@ python notebooks_2026/tuning_summary.py        # composite figures (steps 2-4; D
 ```
 
 The sweep scripts load the cached results below, save voltage and expansion
-RMSE heatmaps (first charge and all ~400 h) or resistance-error heatmaps to
+RMSE heatmaps (first charge and through formation aging) or resistance-error heatmaps to
 `figures/<sweep>_<metric>.svg`, and print the selected parameter values
 next to the tuned ones. Add `--run <sweep>` to re-run a sweep (hours; uses all
 cores, set with `--n-jobs`) and `--show` to display the figures.

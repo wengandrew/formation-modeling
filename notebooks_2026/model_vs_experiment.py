@@ -5,11 +5,19 @@ Runs the model for each formation protocol with the tuned SEI parameters
 expansion, capacity, and resistance against the measurements and prints the
 first-HPPC resistance error. Replaces 2026_05_06_model_vs_experiment.
 
-    python notebooks_2026/model_vs_experiment.py [--show]
+The simulations take a few minutes. A normal run simulates at full resolution
+and plots from those results into figures/ (the published figures). It also
+caches the printed numbers and a 1-minute downsampled copy of the runs in
+data/cache/ (not committed). --preview re-plots from that cache in seconds,
+into figures/preview/ (not committed), so it never touches the published
+figures; the numbers it prints are the full-resolution ones.
+
+    python notebooks_2026/model_vs_experiment.py [--preview] [--show]
 """
 
 import argparse
 import os
+import pickle
 import sys
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -40,6 +48,23 @@ def load_experiments():
             for p in tuning.PROTOCOLS}
 
 
+CACHE_FILE = paths.repo_path('notebooks_2026', 'data', 'cache', 'model_vs_experiment.pkl')
+
+# Columns kept in the cache for plotting, and the downsampling step [s]
+CACHE_COLUMNS = ['t', 'vt', 'expansion', 'q_sei', 'q_sei2', 'R_sei', 'R_sei2', 'rho_sei',
+                 'c_sei1', 'c_sei2', 'D_sei1', 'boost']
+CACHE_STEP_S = 60
+
+EXPANSION_REPORT_HOURS = 400
+
+
+def _run_settings():
+    """What the cached runs depend on; a mismatch triggers a re-run."""
+    return {'params': {p: tuning.tuned_params(p) for p in tuning.PROTOCOLS},
+            'include_flag': 5, 'dt': 1, 'dsei_derating_cycling': DSEI_DERATING_CYCLING,
+            'measurements': (tuning.HPPC1, tuning.QD_RPT1)}
+
+
 def run_model():
     sims = {}
     for p in tuning.PROTOCOLS:
@@ -49,13 +74,55 @@ def run_model():
     return sims
 
 
+def summarize(sims, hours=EXPANSION_REPORT_HOURS):
+    """Numbers reported from the full-resolution runs, keyed by protocol."""
+    t_s = hours * 3600
+    summary = {'expansion_um': {}, 'q0_ah': {}, 'r_err_ohm': {}}
+    for p in tuning.PROTOCOLS:
+        df = sims[p]
+        summary['expansion_um'][p] = df.loc[(df['t'] - t_s).abs().idxmin(), 'expansion'] * 1e6
+        point = tuning.QD_RPT1[p]
+        summary['q0_ah'][p] = point.q_ah + df.loc[(df['t'] - point.t_s).abs().idxmin(), 'q_sei']
+        m = tuning.HPPC1[p]
+        summary['r_err_ohm'][p] = tuning.resistance_error(df, m.t_s, m.r_ohm)
+    return summary
+
+
+def run_and_cache_model():
+    """Full-resolution runs and their summary; also refreshes the preview cache."""
+    full = run_model()
+    summary = summarize(full)
+    preview = {p: df.loc[df.index[::int(CACHE_STEP_S)].union([df.index[-1]]), CACHE_COLUMNS]
+               .reset_index(drop=True) for p, df in full.items()}
+    os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
+    with open(CACHE_FILE, 'wb') as f:
+        pickle.dump({'settings': _run_settings(), 'sims': preview, 'summary': summary}, f)
+    return full, summary
+
+
+def load_preview():
+    """(downsampled sims, summary) from the cache; None if missing or out of date."""
+    if not os.path.exists(CACHE_FILE):
+        return None
+    with open(CACHE_FILE, 'rb') as f:
+        cache = pickle.load(f)
+    if cache['settings'] != _run_settings():
+        return None
+    return cache['sims'], cache['summary']
+
+
 def _hours(t):
     return np.asarray(t) / 3600
 
 
+# Where figures go: FIGURE_DIR for full runs, PREVIEW_DIR for --preview
+_output_dir = FIGURE_DIR
+PREVIEW_DIR = os.path.join(FIGURE_DIR, 'preview')
+
+
 def _save(fig, name):
-    os.makedirs(FIGURE_DIR, exist_ok=True)
-    fig.savefig(os.path.join(FIGURE_DIR, name), format='svg', dpi=300, metadata={'Date': None})
+    os.makedirs(_output_dir, exist_ok=True)
+    fig.savefig(os.path.join(_output_dir, name), format='svg', dpi=300, metadata={'Date': None})
 
 
 def plot_experiment_overview(expts, xmax=650, strain_lim=(0, 200)):
@@ -133,13 +200,12 @@ def plot_model_vs_experiment(expts, sims, xmax=500, xlim_inset=(0, 10),
     _save(fig, f'experimental_strain_{xmax}h.svg')
 
 
-def print_expansion_at(expts, sims, hours=400):
+def print_expansion_at(expts, summary, hours=EXPANSION_REPORT_HOURS):
     """Modeled and measured expansion at a given time."""
     t_s = hours * 3600
     print(f'\nExpansion at {hours} h (model / experiment, µm):')
     for p in tuning.PROTOCOLS:
-        df, expt = sims[p], expts[p]
-        model = df.loc[(df['t'] - t_s).abs().idxmin(), 'expansion'] * 1e6
+        model, expt = summary['expansion_um'][p], expts[p]
         i_expt = (expt['daq_time'] - t_s).abs().idxmin()
         meas = expt['daq_strain'].loc[i_expt]
         print(f'  {NAMES[p]:6s} {model:7.2f} / {meas:7.2f}  '
@@ -190,15 +256,10 @@ def plot_combined_overview(expts, sims, xmax=650):
     _save(fig, 'experimental_vs_simulated_combined_global_dsei.svg')
 
 
-def calibrate_initial_capacity(sims):
-    """Q0 per protocol so the model capacity matches the first RPT exactly."""
-    q0 = {}
+def print_initial_capacity(summary):
+    """Q0 per protocol, chosen so the model capacity matches the first RPT exactly."""
     for p in tuning.PROTOCOLS:
-        df, point = sims[p], tuning.QD_RPT1[p]
-        q_sei = df.loc[(df['t'] - point.t_s).abs().idxmin(), 'q_sei']
-        q0[p] = point.q_ah + q_sei
-        print(f'Q0 = {q0[p]:.5f} Ah  ({p})')
-    return q0
+        print(f'Q0 = {summary["q0_ah"][p]:.5f} Ah  ({p})')
 
 
 def plot_capacity_and_resistance(sims, q0, xmax=650):
@@ -238,12 +299,10 @@ def plot_capacity_and_resistance(sims, q0, xmax=650):
     _save(fig, 'experimental_vs_simulated_resistance.svg')
 
 
-def print_resistance_errors(sims):
+def print_resistance_errors(summary):
     print('\nFirst HPPC resistance error |R_model - R_meas|:')
     for p in tuning.PROTOCOLS:
-        m = tuning.HPPC1[p]
-        err = tuning.resistance_error(sims[p], m.t_s, m.r_ohm)
-        print(f'  {NAMES[p]:6s} {err * 1e3:.2f} mOhm')
+        print(f'  {NAMES[p]:6s} {summary["r_err_ohm"][p] * 1e3:.2f} mOhm')
 
 
 def plot_model_outputs(sims, xmax=80):
@@ -315,22 +374,33 @@ def plot_model_outputs(sims, xmax=80):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument('--preview', action='store_true',
+                        help='re-plot quickly from the cached, downsampled runs into figures/preview/')
     parser.add_argument('--show', action='store_true', help='show the figures')
     args = parser.parse_args(argv)
 
+    global _output_dir
     plotter.initialize(plt)
     expts = load_experiments()
-    sims = run_model()
+    if args.preview:
+        cached = load_preview()
+        if cached is None:
+            raise SystemExit('No up-to-date cache; run once without --preview first.')
+        sims, summary = cached
+        _output_dir = PREVIEW_DIR
+        print(f'Preview from cached, downsampled runs ({paths.relative(CACHE_FILE)})')
+    else:
+        sims, summary = run_and_cache_model()
 
     plot_experiment_overview(expts)
     plot_model_vs_experiment(expts, sims)
-    print_expansion_at(expts, sims, hours=400)
+    print_expansion_at(expts, summary)
     plot_combined_overview(expts, sims)
-    q0 = calibrate_initial_capacity(sims)
-    plot_capacity_and_resistance(sims, q0)
-    print_resistance_errors(sims)
+    print_initial_capacity(summary)
+    plot_capacity_and_resistance(sims, summary['q0_ah'])
+    print_resistance_errors(summary)
     plot_model_outputs(sims)
-    print(f'\nFigures saved to {paths.relative(FIGURE_DIR)}/')
+    print(f'\nFigures saved to {paths.relative(_output_dir)}/')
 
     if args.show:
         plt.show()

@@ -154,3 +154,7 @@ notebooks/outputs/*pkl
 notebooks/outputs/*.csv
 notebooks/outputs/figures/from_root/
 notebooks/outputs/figures/*copy.pdf
+
+# Local caches of the notebooks_2026 scripts
+notebooks_2026/data/cache/
+notebooks_2026/figures/preview/

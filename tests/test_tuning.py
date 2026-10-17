@@ -68,8 +68,9 @@ class TestSpecsMatchNotebooks:
     def test_dsei_all(self):
         s = tuning.SPECS['dsei_all']
         raw = _raw('dsei_all')
-        np.testing.assert_array_equal(s.row_vec, raw['diff_ec_vec'])
-        np.testing.assert_array_equal(s.col_vec, raw['diff_vc_vec'])
+        # logspace can differ in the last bits across platforms
+        np.testing.assert_allclose(s.row_vec, raw['diff_ec_vec'], rtol=1e-12)
+        np.testing.assert_allclose(s.col_vec, raw['diff_vc_vec'], rtol=1e-12)
         assert s.window == 'all' and s.include_flag == 3
         assert s.expt_cell('base') == 152064
         assert s.kink_window('base') == (0.5, 0.85)

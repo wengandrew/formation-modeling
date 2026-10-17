@@ -11,8 +11,8 @@ import numpy as np
 from matplotlib import colors as mcolors
 
 
-def _hash_array(values):
-    arr = np.ascontiguousarray(np.asarray(values, dtype=float))
+def _hash_array(values, dtype=float):
+    arr = np.ascontiguousarray(np.asarray(values, dtype=float).astype(dtype))
     return hashlib.sha256(arr.tobytes()).hexdigest()[:16]
 
 
@@ -52,8 +52,10 @@ def _axes_fingerprint(ax):
                 'ls': line.get_linestyle(),
                 'lw': float(line.get_linewidth()),
                 'marker': str(line.get_marker()),
-                'x': _hash_array(line.get_xdata()),
-                'y': _hash_array(line.get_ydata()),
+                # float32: plotted positions such as np.logspace grid values can
+                # differ in the last bits across platforms
+                'x': _hash_array(line.get_xdata(), np.float32),
+                'y': _hash_array(line.get_ydata(), np.float32),
             }
             for line in ax.get_lines()
         ],

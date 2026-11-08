@@ -38,3 +38,20 @@ refactor them into Python source files under `src/`.
 # Writing source code
 
 Source code is meant for re-use. The core OCV-R model, for example, is a good example of a code that can be re-used across different applications. So this should be kept as a source code rather than 'hard-coded' inside a notebook. 
+
+# Paper scripts
+
+The analysis behind the paper's SEI parameter tuning lives in `notebooks_2026/`
+as plain Python scripts rather than notebooks, so it can be reviewed, tested
+and re-run. Each script writes its figures to `notebooks_2026/figures/`, and
+expensive sweep results are cached in `notebooks_2026/data/`. Put tuned
+parameter values in `src/tuning.py` rather than in a script.
+
+# Tests
+
+Run `pytest tests/` from the repo root before committing. After changing
+simulation or plotting code, also run
+`python -m tests.regression.make_references --check`, which compares
+`run_sim()` output and every figure against recorded references. Re-record a
+reference (`--only <case prefix>`) only when the change is intended, and say so
+in the commit message.

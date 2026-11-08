@@ -27,6 +27,9 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# macOS system files
+.DS_Store
+
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
@@ -141,3 +144,17 @@ data/raw/*
 # VS Code studd
 
 .vscode/
+
+# Local editor / agent worktrees
+.claude/worktrees/
+.cursor/
+
+# Notebook outputs kept locally (old sweep iterations, exported data)
+notebooks/outputs/*pkl
+notebooks/outputs/*.csv
+notebooks/outputs/figures/from_root/
+notebooks/outputs/figures/*copy.pdf
+
+# Local caches of the notebooks_2026 scripts
+notebooks_2026/data/cache/
+notebooks_2026/figures/preview/

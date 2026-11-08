@@ -1,0 +1,39 @@
+# Measured values the model is compared against, with their provenance.
+#
+# Cells: 152064 (base), 152071 (fast), 152098 (fast+). Times are test time
+# since the start of the formation step, the model's time base (the tap-charge
+# file is not part of it). Loaded by src/tuning.py.
+
+hppc_resistance:
+  source: >-
+    Median series resistance over the pulses of each HPPC sequence, from
+    notebooks/2025_04_16_hppc.ipynb (calculate_resistance_estimates). Recomputed
+    medians: HPPC1 21.43 / 17.70 / 16.63 mOhm, HPPC2 37.52 / 36.64 / 36.61 mOhm.
+  comparison_time: >-
+    Midpoint of each ~30 h HPPC sequence: sequence start + offset_s. HPPC1 starts
+    at 69.39 / 16.17 / 7.465 h. HPPC2 uses 505.23 h for all protocols (the fast
+    and fast+ start; base starts at 502.74 h, so its midpoint is ~1 h earlier).
+  error: External source; not derivable from the data in this repository.
+  hppc1:   # after formation (first RPT); used to tune kappa (step 4)
+    base:  {t_start_h: 69.39, offset_s: 54000, r_ohm: 21.5e-3, r_err_ohm: 4.7e-3}
+    fast:  {t_start_h: 16.17, offset_s: 54000, r_ohm: 17.7e-3, r_err_ohm: 3.9e-3}
+    fast+: {t_start_h: 7.465, offset_s: 54000, r_ohm: 16.6e-3, r_err_ohm: 4.3e-3}
+  hppc2:   # after formation aging (second RPT); comparison only
+    base:  {t_start_h: 505.23, offset_s: 5.0e+4, r_ohm: 0.0375, r_err_ohm: 4.7e-3}
+    fast:  {t_start_h: 505.23, offset_s: 5.0e+4, r_ohm: 0.0366, r_err_ohm: 3.9e-3}
+    fast+: {t_start_h: 505.23, offset_s: 5.0e+4, r_ohm: 0.0366, r_err_ohm: 4.3e-3}
+
+discharge_capacity:
+  source: >-
+    Read manually from the measured discharge capacity at each RPT (originally
+    in notebooks/2025_04_16_model_vs_experiment.ipynb; the extraction itself
+    was not recorded).
+  error: External source; not derivable from the data in this repository.
+  rpt1:    # after formation
+    base:  {t_h: 100.6, q_ah: 2.53, q_err_ah: 0.0069}
+    fast:  {t_h: 47.5, q_ah: 2.54, q_err_ah: 0.0116}
+    fast+: {t_h: 38.7, q_ah: 2.54, q_err_ah: 0.0714}
+  rpt2:    # after formation aging
+    base:  {t_h: 534.8, q_ah: 2.46, q_err_ah: 0.0069}
+    fast:  {t_h: 534.8, q_ah: 2.46, q_err_ah: 0.0116}
+    fast+: {t_h: 534.8, q_ah: 2.46, q_err_ah: 0.0714}

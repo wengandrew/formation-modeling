@@ -1,0 +1,26 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Python 3.11: the pinned pandas 1.5.3 has no prebuilt wheels for 3.12
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # The experimental data is not in the repo, so tests that need it skip.
+      # Bit-exact run_sim/plot fingerprints are recorded on macOS and skip on
+      # CI (floating-point results can differ in the last bits across platforms).
+      - name: Run tests
+        run: pytest tests/ -q

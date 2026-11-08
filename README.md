@@ -1,18 +1,20 @@
 # Formation Modeling
 
+[![tests](https://github.com/wengandrew/formation-modeling/actions/workflows/tests.yml/badge.svg)](https://github.com/wengandrew/formation-modeling/actions/workflows/tests.yml)
+
 December 2023
 
 Source code for modeling battery formation.
 
 This work is published in the Journal of the Electrochemical Society [here](https://iopscience.iop.org/article/10.1149/1945-7111/aceffe).
 
-The code runs on Python 3.8.8.
+The code runs on Python 3.12 (the notebooks use Python 3.10+ syntax).
 
 # Getting Started
 
 1. Clone this repository.
 
-2. Make sure you have Python 3.8.8 installed. Another version of Python will probably work, but no guarantees!
+2. Make sure you have Python 3.12 installed. Python 3.10 or later will probably work, but no guarantees!
 
 3. Set up your Python virtual environment
   - Make sure you're in the root directory of the repo
@@ -30,3 +32,16 @@ The code runs on Python 3.8.8.
 
 5. Download the data files
   - Follow the link in the `data` folder
+
+# Repository layout
+
+- `src/`: simulation engine (`cellsim.py`, `simutils.py`) and the SEI parameter
+  tuning code (`tuning.py`).
+- `notebooks_2026/`: scripts behind the paper's SEI parameter tuning and
+  model-vs-experiment figures, with their cached sweep results and figures.
+  See `notebooks_2026/README.md`.
+- `notebooks/`: exploratory analysis notebooks; their figures and pickled
+  results are in `notebooks/outputs/`.
+- `params/`: cell parameter sets (YAML).
+- `tests/`: run `pytest tests/` from the repo root (`--runslow` also
+  re-simulates cached sweep points; needs the data files).

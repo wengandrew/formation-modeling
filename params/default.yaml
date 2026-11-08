@@ -4,24 +4,24 @@
 
 # Anode geometrical properties
  R_n: 20.0e-6         # m          Anode particle radius
- L_n: 80.0e-6         # m          Anode thickness
+ L_n: 80.0e-6         # m          Anode geometric thickness
  A_n: 0.097566        # m2         Anode active area
  epsilon_n: 0.7       # [-]        Anode solid material fraction
- a_sn: 105000         # 1/m        Anode specific surface area (3*epsilon/R)
+ a_sn: 105000         # 1/m         Anode specific surface area (3*epsilon/R)
 
  # Positive electrode geometrical properties
- L_p: 80.0e-6         #
- R_p: 20.0e-6
+ L_p: 80.0e-6         #            Cathode geometrical thickness
+ R_p: 20.0e-6         #            Cathode particle radius
 
  # SEI Properties
  alpha_SEI: 0.5       # [-]        SEI charge transfer coefficient
- delta_SEI_0: 5.0e-9  # m          Initial SEI thickness
- gamma_boost: 2.4e+7  # s/m        Boost stress sensitivity
+ gamma_boost: 2.4e+7  # s/m        Boost stress sensitivity (set to 0 to turn off boosting)
  tau_boost: 600       # s          Boost activation rate
  tau_decay: 6000      # s          Boost decay rate
 
  # First SEI component
- SEI1_name: EC
+ SEI1_name: EC        # 2Li+ + 2e- + EC -> LEDC + Gas
+ delta_SEI1_0: 0      # m          Initial SEI thickness
  c_SEI1_0: 4541       # mol/m3     Concentration in bulk electrolyte
  n_SEI1: 2.0          # -          Number of electrons
  V_SEI1: 9.585e-5     # m3/mol     SEI molar volume, solid phase
@@ -29,32 +29,42 @@
  D_SEI11: 4.2e-20     # m2/s       SEI 1 diffusivity in solid layer 1
  D_SEI12: 6.6e-18     # m2/s       SEI 1 diffusivity in solid layer 2
  U_SEI1: 0.8          # V          SEI equilibrium reaction potential
+ kappa_SEI1: 1.0e-4   # S/m        SEI 1 conductivity (lit. puts this at 1e-10 to 3e-10 S/cm)
+ rho_SEI1: 1.6        # g/cm3      Density of EC / poly(EC)
+ MW_SEI1: 153.36      # g/mol
 
  # Second SEI component
- SEI2_name: VC
+ SEI2_name: VC        # 2Li+ + 2e- + VC -> LVDC + Gas
+ delta_SEI2_0: 5.0e-9 # m          Initial SEI thickness
  c_SEI2_0: 304.4      # mol/m3     Concentration in bulk electrolyte
  n_SEI2 : 2.0         # -          Number of electrons
  V_SEI2: 5.810e-5     # m3/mol     SEI molar volume, solid phase
- k_SEI2: 7.0e-19      # m/s        SEI kinetic rate constant
+ k_SEI2: 1.0e-21      # m/s        SEI kinetic rate constant
  D_SEI21: 4.2e-20     # m2/s       SEI 2 diffusivity in solid layer 1
- D_SEI22: 6.6e-18    # m2/s       SEI 2 diffusivity in solid layer 2
- U_SEI2: 1.35          # V          SEI equilibrium reaction potential
+ D_SEI22: 6.6e-18     # m2/s       SEI 2 diffusivity in solid layer 2
+ U_SEI2: 1.35         # V          SEI equilibrium reaction potential; set this to -1000 to turn off the SEI2 reaction
+ kappa_SEI2: 4.0e-5   # S/m        SEI 2 conductivity (lit. puts this at 1e-7 to 1e-8 S/cm) 
+ rho_SEI2: 1.3        # g/cm3      Density of LVDC / poly(VC)
+ MW_SEI2: 75.53       # g/mol
 
- # Expansion
+ # Expansion; empirical coefficients
  c0: 127
  c1: 0.00045
  c2: 0.00045
 
  # Overpotentials
- R0p: 0.01  # positive charge transfer resistance
- R0n: 0.01  # negative charge transfer resistance
- R1p: 0.001 # positive diffusion resistance
- R1n: 0.001 # negative diffusion resistance
- C1p: 76000 # positive diffusion capacitance
- C1n: 76000 # negative diffusion capacitance
+ R0p: 0.01   # positive charge transfer resistance
+ R1p: 0.0085 # positive diffusion resistance
+ R1n: 0.0085 # negative diffusion resistance
+ C1p: 76000  # positive diffusion capacitance
+ C1n: 76000  # negative diffusion capacitance
+
+ # R0n, the negative charge transfer (SEI) resistance, is calculated in the model
 
  # Electrode stoichiometry model
  Cn: 3.14 # Ah
  Cp: 3.02 # Ah
+
+ # Initial lithium stoichiometrics (before formation)
  theta_n: 0.0
  theta_p: 1.0

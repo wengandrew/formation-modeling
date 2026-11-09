@@ -27,6 +27,7 @@ sys.path.insert(0, REPO_ROOT)
 import matplotlib.patches as patches  # noqa: E402
 import numpy as np  # noqa: E402
 from matplotlib import pyplot as plt  # noqa: E402
+from matplotlib.lines import Line2D  # noqa: E402
 from mpl_toolkits.axes_grid1.inset_locator import mark_inset  # noqa: E402
 
 from src import ioutils, paths, plotter, simutils, tuning  # noqa: E402
@@ -184,32 +185,49 @@ def plot_experiment_overview(expts, xmax=650, strain_lim=(0, 200)):
 BASE_PARAMS_STYLE = dict(color='0.45', ls='-.', zorder=1.9)   # drawn under the protocol-param model
 
 
-def _model_vs_experiment_panels(expts, sims, sims_base, t_key, y_key, model_y, ylabel, ylim,
-                                xmax, xlim_inset, ylim_inset, inset_locs, inset_grid):
-    fig, axs = plt.subplots(3, 1, figsize=(6, 9), sharex=True, sharey=True)
-    insets = []
-    for ax, p in zip(axs, tuning.PROTOCOLS):
-        t_expt, y_expt = _hours(expts[p][t_key]), expts[p][y_key]
-        t_model, y_model = _hours(sims[p]['t']), model_y(sims[p])
-        t_base, y_base = _hours(sims_base[p]['t']), model_y(sims_base[p])
-        ax.plot(t_expt, y_expt, label='Experiment', color='k')
-        ax.plot(t_model, y_model, label='Model (protocol params)', color=LONG_COLORS[p], ls='--')
-        ax.plot(t_base, y_base, label='Model (baseline params)', **BASE_PARAMS_STYLE)
-        ax.set_ylabel(ylabel)
-        ax.set_title(TITLES[p], loc='left', fontsize='medium')
-        ax.legend(loc='lower left', bbox_to_anchor=(0.02, 0.02), **LEGEND)
-        ax.grid(False)
+def _panel_settings(strain_lim_inset=(0, 130)):
+    """(voltage, expansion) settings for _comparison_panel."""
+    voltage = dict(t_key='arbin_time', y_key='arbin_voltage', model_y=lambda df: df['vt'],
+                   ylabel='Potential (V)', ylim_inset=(3, 4.25), inset_locs=(2, 4),
+                   inset_grid=False)
+    expansion = dict(t_key='daq_time', y_key='daq_strain',
+                     model_y=lambda df: df['expansion'] * 1e6, ylabel='Expansion (µm)',
+                     ylim_inset=strain_lim_inset, inset_locs=(2, 3), inset_grid=True)
+    return voltage, expansion
 
-        axins = ax.inset_axes([0.50, 0.15, 0.45, 0.6])
-        axins.plot(t_expt, y_expt, color='k')
-        axins.plot(t_model, y_model, color=LONG_COLORS[p], ls='--')
-        axins.plot(t_base, y_base, **BASE_PARAMS_STYLE)
-        axins.set_xlim(xlim_inset)
-        axins.set_ylim(ylim_inset)
-        axins.tick_params(axis='both', labelsize='small')
-        axins.grid(inset_grid)
-        mark_inset(ax, axins, loc1=inset_locs[0], loc2=inset_locs[1], fc='0.8', ec='0.8')
-        insets.append(axins)
+
+def _comparison_panel(ax, expt, sim, sim_base, protocol, t_key, y_key, model_y, ylabel,
+                      xlim_inset, ylim_inset, inset_locs, inset_grid, legend=True):
+    """Experiment, protocol-parameter model and baseline-parameter model on one
+    panel, with an inset zoomed on xlim_inset."""
+    t_expt, y_expt = _hours(expt[t_key]), expt[y_key]
+    t_model, y_model = _hours(sim['t']), model_y(sim)
+    t_base, y_base = _hours(sim_base['t']), model_y(sim_base)
+    ax.plot(t_expt, y_expt, label='Experiment', color='k')
+    ax.plot(t_model, y_model, label='Model (protocol params)', color=LONG_COLORS[protocol], ls='--')
+    ax.plot(t_base, y_base, label='Model (baseline params)', **BASE_PARAMS_STYLE)
+    ax.set_ylabel(ylabel)
+    ax.set_title(TITLES[protocol], loc='left', fontsize='medium')
+    if legend:
+        ax.legend(loc='lower left', bbox_to_anchor=(0.02, 0.02), **LEGEND)
+    ax.grid(False)
+
+    axins = ax.inset_axes([0.50, 0.15, 0.45, 0.6])
+    axins.plot(t_expt, y_expt, color='k')
+    axins.plot(t_model, y_model, color=LONG_COLORS[protocol], ls='--')
+    axins.plot(t_base, y_base, **BASE_PARAMS_STYLE)
+    axins.set_xlim(xlim_inset)
+    axins.set_ylim(ylim_inset)
+    axins.tick_params(axis='both', labelsize='small')
+    axins.grid(inset_grid)
+    mark_inset(ax, axins, loc1=inset_locs[0], loc2=inset_locs[1], fc='0.8', ec='0.8')
+
+
+def _model_vs_experiment_panels(expts, sims, sims_base, panel, ylim, xmax, xlim_inset):
+    """One column of panels (base, fast, fast+) for one quantity."""
+    fig, axs = plt.subplots(3, 1, figsize=(6, 9), sharex=True, sharey=True)
+    for ax, p in zip(axs, tuning.PROTOCOLS):
+        _comparison_panel(ax, expts[p], sims[p], sims_base[p], p, xlim_inset=xlim_inset, **panel)
 
     if ylim is not None:
         axs[2].set_ylim(ylim)
@@ -228,15 +246,52 @@ def plot_model_vs_experiment(expts, sims, sims_base, xmax=500, xlim_inset=(0, 10
     parameters (sims), and the model with the baseline protocol's parameters
     (sims_base; identical to sims for the baseline protocol).
     """
-    fig = _model_vs_experiment_panels(
-        expts, sims, sims_base, 'arbin_time', 'arbin_voltage', lambda df: df['vt'],
-        'Potential (V)', None, xmax, xlim_inset, (3, 4.25), (2, 4), False)
+    voltage, expansion = _panel_settings(strain_lim_inset)
+    fig = _model_vs_experiment_panels(expts, sims, sims_base, voltage, None, xmax, xlim_inset)
     _save(fig, f'experimental_voltage_{xmax}h.svg')
 
-    fig = _model_vs_experiment_panels(
-        expts, sims, sims_base, 'daq_time', 'daq_strain', lambda df: df['expansion'] * 1e6,
-        'Expansion (µm)', strain_lim, xmax, xlim_inset, strain_lim_inset, (2, 3), True)
+    fig = _model_vs_experiment_panels(expts, sims, sims_base, expansion, strain_lim, xmax,
+                                      xlim_inset)
     _save(fig, f'experimental_strain_{xmax}h.svg')
+
+
+def plot_voltage_and_expansion(expts, sims, sims_base, xmax=500, xlim_inset=(0, 10),
+                               strain_lim=(0, 160), strain_lim_inset=(0, 130)):
+    """The voltage (left) and expansion (right) panels in one figure.
+
+    Rows are the base, fast and fast+ protocols; panels are labelled (a)-(f)
+    in reading order. One legend above the panels (the protocol-parameter
+    model is drawn in each row's color). Saved as SVG, plus a PNG for LaTeX.
+    """
+    voltage, expansion = _panel_settings(strain_lim_inset)
+    fig, axs = plt.subplots(3, 2, figsize=(11, 9), sharex=True)
+    letters = iter('abcdef')
+    for r, p in enumerate(tuning.PROTOCOLS):
+        for c, (panel, ylim) in enumerate(((voltage, None), (expansion, strain_lim))):
+            ax = axs[r, c]
+            if r > 0:
+                ax.sharey(axs[0, c])
+            _comparison_panel(ax, expts[p], sims[p], sims_base[p], p, xlim_inset=xlim_inset,
+                              legend=False, **panel)
+            if ylim is not None:
+                ax.set_ylim(ylim)
+            ax.text(-0.17, 1.04, f'({next(letters)})', transform=ax.transAxes,
+                    fontsize=15, fontweight='bold', va='bottom')
+
+    axs[0, 0].set_xlim(-5, xmax)
+    for ax in axs[-1]:
+        ax.set_xlabel('Time (hrs)')
+    for c in range(2):
+        fig.align_ylabels(axs[:, c])
+    handles = [Line2D([], [], color='k', label='Experiment'),
+               Line2D([], [], color='k', ls='--', label='Model (protocol params)'),
+               Line2D([], [], label='Model (baseline params)', **BASE_PARAMS_STYLE)]
+    fig.tight_layout(rect=(0, 0, 1, 0.95))
+    fig.legend(handles=handles, loc='upper center', ncols=3, frameon=False,
+               bbox_to_anchor=(0.5, 1.0))
+    name = 'model_vs_experiment_voltage_expansion'
+    _save(fig, f'{name}.svg')
+    fig.savefig(os.path.join(_output_dir, f'{name}.png'), dpi=300, bbox_inches='tight')
 
 
 def print_expansion_at(expts, summary, hours=EXPANSION_REPORT_HOURS):
@@ -433,6 +488,7 @@ def main(argv=None):
 
     plot_experiment_overview(expts)
     plot_model_vs_experiment(expts, sims, sims_base)
+    plot_voltage_and_expansion(expts, sims, sims_base)
     print_expansion_at(expts, summary)
     plot_combined_overview(expts, sims)
     print_initial_capacity(summary)

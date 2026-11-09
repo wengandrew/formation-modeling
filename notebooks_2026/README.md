@@ -42,7 +42,8 @@ first charge only. `model_vs_experiment.py` runs the fully tuned model and
 compares it against the voltage, expansion, capacity and resistance data. Its
 voltage and expansion panels also show each protocol simulated with the baseline
 protocol's parameters, to show the effect of the protocol-specific rho_LEDC and
-kappa_LEDC.
+kappa_LEDC. `figures/model_vs_experiment_voltage_expansion.svg` combines
+the voltage (left) and expansion (right) panels into one figure, labelled (a)-(f).
 
 Everything the scripts produce stays in this folder: figures in `figures/`,
 sweep results in `data/`.

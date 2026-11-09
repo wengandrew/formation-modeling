@@ -1,9 +1,10 @@
 """Compare the fully tuned model against experiment.
 
-Runs the model for each formation protocol with the tuned SEI parameters
-(src/tuning.py: TUNED) through the aging cycles, then plots voltage,
-expansion, capacity, and resistance against the measurements and prints the
-first-HPPC resistance error. Replaces 2026_05_06_model_vs_experiment.
+Runs the model for each formation protocol with its tuned SEI parameters
+(src/tuning.py: TUNED) through the aging cycles, and again with the baseline
+protocol's parameters for comparison. Plots voltage, expansion, capacity, and
+resistance against the measurements and prints the first-HPPC resistance error.
+Replaces 2026_05_06_model_vs_experiment.
 
 The simulations take a few minutes. A normal run simulates at full resolution
 and plots from those results into figures/ (the published figures). It also
@@ -60,7 +61,8 @@ EXPANSION_REPORT_HOURS = 400
 
 def _run_settings():
     """What the cached runs depend on; a mismatch triggers a re-run."""
-    return {'params': {p: tuning.tuned_params(p) for p in tuning.PROTOCOLS},
+    return {'version': 2,
+            'params': {p: tuning.tuned_params(p) for p in tuning.PROTOCOLS},
             'include_flag': 5, 'dt': 1, 'dsei_derating_cycling': DSEI_DERATING_CYCLING,
             'measurements': (tuning.HPPC1, tuning.QD_RPT1)}
 
@@ -72,6 +74,23 @@ def run_model():
         sims[p] = simutils.run_sim(p, **tuning.tuned_params(p), dt=1, include_flag=5,
                                    dsei_derating_cycling=DSEI_DERATING_CYCLING)
     return sims
+
+
+def run_model_with_baseline_params(sims):
+    """Each protocol simulated with the baseline protocol's tuned parameters.
+
+    For the baseline protocol this is the same run as in sims, so it is reused.
+    """
+    base_params = tuning.tuned_params('base')
+    out = {}
+    for p in tuning.PROTOCOLS:
+        if tuning.tuned_params(p) == base_params:
+            out[p] = sims[p]
+            continue
+        print(f'Simulating {p} formation with baseline parameters...')
+        out[p] = simutils.run_sim(p, **base_params, dt=1, include_flag=5,
+                                  dsei_derating_cycling=DSEI_DERATING_CYCLING)
+    return out
 
 
 def summarize(sims, hours=EXPANSION_REPORT_HOURS):
@@ -88,16 +107,24 @@ def summarize(sims, hours=EXPANSION_REPORT_HOURS):
     return summary
 
 
+def _downsample(sims):
+    return {p: df.loc[df.index[::int(CACHE_STEP_S)].union([df.index[-1]]), CACHE_COLUMNS]
+            .reset_index(drop=True) for p, df in sims.items()}
+
+
 def run_and_cache_model():
-    """Full-resolution runs and their summary; also refreshes the preview cache."""
+    """Full-resolution runs (protocol and baseline parameters) and their summary.
+
+    Also refreshes the preview cache.
+    """
     full = run_model()
+    full_base = run_model_with_baseline_params(full)
     summary = summarize(full)
-    preview = {p: df.loc[df.index[::int(CACHE_STEP_S)].union([df.index[-1]]), CACHE_COLUMNS]
-               .reset_index(drop=True) for p, df in full.items()}
     os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
     with open(CACHE_FILE, 'wb') as f:
-        pickle.dump({'settings': _run_settings(), 'sims': preview, 'summary': summary}, f)
-    return full, summary
+        pickle.dump({'settings': _run_settings(), 'sims': _downsample(full),
+                     'sims_base_params': _downsample(full_base), 'summary': summary}, f)
+    return full, full_base, summary
 
 
 def load_preview():
@@ -108,7 +135,7 @@ def load_preview():
         cache = pickle.load(f)
     if cache['settings'] != _run_settings():
         return None
-    return cache['sims'], cache['summary']
+    return cache['sims'], cache['sims_base_params'], cache['summary']
 
 
 def _hours(t):
@@ -153,15 +180,21 @@ def plot_experiment_overview(expts, xmax=650, strain_lim=(0, 200)):
     _save(fig_e, f'experiment_strain_{xmax}h.svg')
 
 
-def _model_vs_experiment_panels(expts, sims, t_key, y_key, model_y, ylabel, ylim,
+# Style of the model run with the baseline protocol's parameters
+BASE_PARAMS_STYLE = dict(color='0.45', ls='-.', zorder=1.9)   # drawn under the protocol-param model
+
+
+def _model_vs_experiment_panels(expts, sims, sims_base, t_key, y_key, model_y, ylabel, ylim,
                                 xmax, xlim_inset, ylim_inset, inset_locs, inset_grid):
     fig, axs = plt.subplots(3, 1, figsize=(6, 9), sharex=True, sharey=True)
     insets = []
     for ax, p in zip(axs, tuning.PROTOCOLS):
         t_expt, y_expt = _hours(expts[p][t_key]), expts[p][y_key]
         t_model, y_model = _hours(sims[p]['t']), model_y(sims[p])
+        t_base, y_base = _hours(sims_base[p]['t']), model_y(sims_base[p])
         ax.plot(t_expt, y_expt, label='Experiment', color='k')
-        ax.plot(t_model, y_model, label='Model', color=LONG_COLORS[p], ls='--')
+        ax.plot(t_model, y_model, label='Model (protocol params)', color=LONG_COLORS[p], ls='--')
+        ax.plot(t_base, y_base, label='Model (baseline params)', **BASE_PARAMS_STYLE)
         ax.set_ylabel(ylabel)
         ax.set_title(TITLES[p], loc='left', fontsize='medium')
         ax.legend(loc='lower left', bbox_to_anchor=(0.02, 0.02), **LEGEND)
@@ -170,6 +203,7 @@ def _model_vs_experiment_panels(expts, sims, t_key, y_key, model_y, ylabel, ylim
         axins = ax.inset_axes([0.50, 0.15, 0.45, 0.6])
         axins.plot(t_expt, y_expt, color='k')
         axins.plot(t_model, y_model, color=LONG_COLORS[p], ls='--')
+        axins.plot(t_base, y_base, **BASE_PARAMS_STYLE)
         axins.set_xlim(xlim_inset)
         axins.set_ylim(ylim_inset)
         axins.tick_params(axis='both', labelsize='small')
@@ -186,16 +220,21 @@ def _model_vs_experiment_panels(expts, sims, t_key, y_key, model_y, ylabel, ylim
     return fig
 
 
-def plot_model_vs_experiment(expts, sims, xmax=500, xlim_inset=(0, 10),
+def plot_model_vs_experiment(expts, sims, sims_base, xmax=500, xlim_inset=(0, 10),
                              strain_lim=(0, 160), strain_lim_inset=(0, 130)):
-    """Per-protocol voltage and expansion, model vs experiment, with early-time insets."""
+    """Per-protocol voltage and expansion, with early-time insets.
+
+    Each panel shows the experiment, the model with that protocol's tuned
+    parameters (sims), and the model with the baseline protocol's parameters
+    (sims_base; identical to sims for the baseline protocol).
+    """
     fig = _model_vs_experiment_panels(
-        expts, sims, 'arbin_time', 'arbin_voltage', lambda df: df['vt'],
+        expts, sims, sims_base, 'arbin_time', 'arbin_voltage', lambda df: df['vt'],
         'Potential (V)', None, xmax, xlim_inset, (3, 4.25), (2, 4), False)
     _save(fig, f'experimental_voltage_{xmax}h.svg')
 
     fig = _model_vs_experiment_panels(
-        expts, sims, 'daq_time', 'daq_strain', lambda df: df['expansion'] * 1e6,
+        expts, sims, sims_base, 'daq_time', 'daq_strain', lambda df: df['expansion'] * 1e6,
         'Expansion (µm)', strain_lim, xmax, xlim_inset, strain_lim_inset, (2, 3), True)
     _save(fig, f'experimental_strain_{xmax}h.svg')
 
@@ -386,14 +425,14 @@ def main(argv=None):
         cached = load_preview()
         if cached is None:
             raise SystemExit('No up-to-date cache; run once without --preview first.')
-        sims, summary = cached
+        sims, sims_base, summary = cached
         _output_dir = PREVIEW_DIR
         print(f'Preview from cached, downsampled runs ({paths.relative(CACHE_FILE)})')
     else:
-        sims, summary = run_and_cache_model()
+        sims, sims_base, summary = run_and_cache_model()
 
     plot_experiment_overview(expts)
-    plot_model_vs_experiment(expts, sims)
+    plot_model_vs_experiment(expts, sims, sims_base)
     print_expansion_at(expts, summary)
     plot_combined_overview(expts, sims)
     print_initial_capacity(summary)

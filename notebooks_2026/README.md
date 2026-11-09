@@ -39,7 +39,10 @@ why D_LVDC is set from the first charge.
 
 `density_sweep.py` also plots `rho_fc`, the step 3 sweep repeated over the
 first charge only. `model_vs_experiment.py` runs the fully tuned model and
-compares it against the voltage, expansion, capacity and resistance data.
+compares it against the voltage, expansion, capacity and resistance data. Its
+voltage and expansion panels also show each protocol simulated with the baseline
+protocol's parameters, to show the effect of the protocol-specific rho_LEDC and
+kappa_LEDC.
 
 Everything the scripts produce stays in this folder: figures in `figures/`,
 sweep results in `data/`.

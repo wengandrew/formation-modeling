@@ -13,6 +13,7 @@ src/            Core Python source
   modelutils.py Electrochemistry lookup functions (OCP, expansion, resistance)
   dvdq.py       eSOH -> open-circuit voltage helpers (tested; not used by current notebooks)
   ioutils.py    Data loading utilities (cell IDs → CSV paths)
+  hppc.py       Series resistance from HPPC pulses (per-pulse R vs SOC)
   plotter.py    Matplotlib style initialization
   paths.py      Repo-root paths (data, params, outputs) independent of the working directory
   tuning.py     SEI parameter sweeps: specs, tuned values, metrics, cached results

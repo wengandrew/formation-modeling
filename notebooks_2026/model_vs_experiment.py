@@ -30,7 +30,7 @@ from matplotlib import pyplot as plt  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
 from mpl_toolkits.axes_grid1.inset_locator import mark_inset  # noqa: E402
 
-from src import ioutils, paths, plotter, simutils, tuning  # noqa: E402
+from src import hppc, ioutils, paths, plotter, simutils, tuning  # noqa: E402
 from src.tuning_plots import FIGURE_DIR  # noqa: E402
 
 COLORS = {'base': 'b', 'fast': 'g', 'fast+': 'r'}
@@ -45,9 +45,22 @@ DSEI_DERATING_CYCLING = 0.1
 LEGEND = dict(fontsize='small', frameon=True, facecolor=(1, 1, 1, 0), edgecolor='black')
 
 
+def load_data():
+    """(experiments, HPPC pulses), keyed by protocol.
+
+    HPPC pulses: {1: (SOC %, R Ohm), 2: (...)} for the HPPC after formation (1)
+    and after formation aging (2), from the cycler data (src/hppc.py).
+    """
+    expts, pulses = {}, {}
+    for p in tuning.PROTOCOLS:
+        cellid = tuning.EXPT_CELLS[p]
+        expts[p], df_arbin = ioutils.fetch_experimental_data(cellid, to_include_cycling=True)
+        pulses[p] = {n: hppc.hppc_resistance(df_arbin, cellid, n) for n in (1, 2)}
+    return expts, pulses
+
+
 def load_experiments():
-    return {p: ioutils.fetch_experimental_data(tuning.EXPT_CELLS[p], to_include_cycling=True)[0]
-            for p in tuning.PROTOCOLS}
+    return load_data()[0]
 
 
 CACHE_FILE = paths.repo_path('notebooks_2026', 'data', 'cache', 'model_vs_experiment.pkl')
@@ -62,7 +75,7 @@ EXPANSION_REPORT_HOURS = 400
 
 def _run_settings():
     """What the cached runs depend on; a mismatch triggers a re-run."""
-    return {'version': 2,
+    return {'version': 3,
             'params': {p: tuning.tuned_params(p) for p in tuning.PROTOCOLS},
             'include_flag': 5, 'dt': 1, 'dsei_derating_cycling': DSEI_DERATING_CYCLING,
             'measurements': (tuning.HPPC1, tuning.QD_RPT1)}
@@ -105,6 +118,8 @@ def summarize(sims, hours=EXPANSION_REPORT_HOURS):
         summary['q0_ah'][p] = point.q_ah + df.loc[(df['t'] - point.t_s).abs().idxmin(), 'q_sei']
         m = tuning.HPPC1[p]
         summary['r_err_ohm'][p] = tuning.resistance_error(df, m.t_s, m.r_ohm)
+    # One Q0 for all protocols: the least-squares fit to the three RPT 1 points
+    summary['q0_shared_ah'] = float(np.mean(list(summary['q0_ah'].values())))
     return summary
 
 
@@ -351,46 +366,165 @@ def plot_combined_overview(expts, sims, xmax=650):
 
 
 def print_initial_capacity(summary):
-    """Q0 per protocol, chosen so the model capacity matches the first RPT exactly."""
+    """Q0 per protocol, chosen so the model capacity matches the first RPT exactly,
+    and the single Q0 fitted to all three RPT 1 points."""
     for p in tuning.PROTOCOLS:
         print(f'Q0 = {summary["q0_ah"][p]:.5f} Ah  ({p})')
+    print(f'Q0 = {summary["q0_shared_ah"]:.5f} Ah  (shared, fitted to all RPT 1 points)')
+
+
+def _capacity_panel(ax, sims, q0, legend=True):
+    """Modeled capacity Q0 - Q_sei and the measured RPT capacities."""
+    for p in tuning.PROTOCOLS:
+        c, n, df = COLORS[p], NAMES[p], sims[p]
+        ax.plot(_hours(df['t']), q0[p] - df['q_sei'], color=c, ls='--', label=f'{n} (model)')
+    for p in tuning.PROTOCOLS:
+        c, n = COLORS[p], NAMES[p]
+        for k, point in enumerate((tuning.QD_RPT1[p], tuning.QD_RPT2[p])):
+            ax.plot(_hours(point.t_s), point.q_ah, c + 'o', markersize=8,
+                    label=f'{n} (meas.)' if k == 0 else '')
+            ax.errorbar(_hours(point.t_s), point.q_ah, yerr=point.q_std,
+                        fmt='none', ecolor=c, capsize=3)
+    ax.set_ylabel('Cell Capacity (Ah)')
+    if legend:
+        ax.legend(loc='upper right', ncols=2, **LEGEND)
+    ax.set_ylim(2.3, 2.95)
+
+
+def _resistance_panel(ax, sims, legend=True):
+    """Modeled R_sei + R_ct+ and the measured HPPC series resistances."""
+    for p in tuning.PROTOCOLS:
+        c, n, df = COLORS[p], NAMES[p], sims[p]
+        ax.plot(_hours(df['t']), df['R_sei'] * 1000 + tuning.R_OFFSET * 1000, color=c, ls='--',
+                label=rf'{n} (model $R_{{\mathrm{{sei}}}} + R_{{\mathrm{{ct}}}}^+)$')
+    for p in tuning.PROTOCOLS:
+        c, n = COLORS[p], NAMES[p]
+        for k, m in enumerate((tuning.HPPC1[p], tuning.HPPC2[p])):
+            ax.plot(_hours(m.t_s), m.r_ohm * 1000, c + 'o', markersize=8,
+                    label=rf'{n} (measured $R_s$)' if k == 0 else '')
+            ax.errorbar(_hours(m.t_s), m.r_ohm * 1000, yerr=m.r_std * 1000,
+                        fmt='none', ecolor=c, capsize=3)
+    if legend:
+        ax.legend(loc='upper left', ncols=2, fontsize='small', frameon=False)
+    ax.set_ylabel(r'Cell Resistance (m$\Omega$)')
+    ax.set_ylim(10, 45)
 
 
 def plot_capacity_and_resistance(sims, q0, xmax=650):
     fig, axs = plt.subplots(2, 1, figsize=(10, 5), sharex=True)
-
-    for p in tuning.PROTOCOLS:
-        c, n, df = COLORS[p], NAMES[p], sims[p]
-        axs[0].plot(_hours(df['t']), q0[p] - df['q_sei'], color=c, ls='--', label=f'{n} (model)')
-        axs[1].plot(_hours(df['t']), df['R_sei'] * 1000 + tuning.R_OFFSET * 1000, color=c, ls='--',
-                    label=rf'{n} (model $R_{{\mathrm{{sei}}}} + R_{{\mathrm{{ct}}}}^+)$')
-
-    for p in tuning.PROTOCOLS:
-        c, n = COLORS[p], NAMES[p]
-        for k, point in enumerate((tuning.QD_RPT1[p], tuning.QD_RPT2[p])):
-            axs[0].plot(_hours(point.t_s), point.q_ah, c + 'o', markersize=8,
-                        label=f'{n} (meas.)' if k == 0 else '')
-            axs[0].errorbar(_hours(point.t_s), point.q_ah, yerr=point.q_std,
-                            fmt='none', ecolor=c, capsize=3)
-        for k, m in enumerate((tuning.HPPC1[p], tuning.HPPC2[p])):
-            axs[1].plot(_hours(m.t_s), m.r_ohm * 1000, c + 'o', markersize=8,
-                        label=rf'{n} (measured $R_s$)' if k == 0 else '')
-            axs[1].errorbar(_hours(m.t_s), m.r_ohm * 1000, yerr=m.r_std * 1000,
-                            fmt='none', ecolor=c, capsize=3)
-
-    axs[0].set_ylabel('Cell Capacity (Ah)')
-    axs[0].legend(loc='upper right', ncols=2, **LEGEND)
-    axs[0].set_ylim(2.3, 2.95)
+    _capacity_panel(axs[0], sims, q0)
+    _resistance_panel(axs[1], sims)
     axs[1].set_xlim(-5, xmax)
-    axs[1].legend(loc='upper left', ncols=2, fontsize='small', frameon=False)
-    axs[1].set_ylabel(r'Cell Resistance (m$\Omega$)')
-    axs[1].set_ylim(10, 45)
     axs[1].set_xlabel('Time (hrs)')
     for ax in axs:
         ax.grid(False)
     fig.align_ylabels(axs)
     fig.tight_layout()
     _save(fig, 'experimental_vs_simulated_resistance.svg')
+
+
+# Vertical offsets [V] stacking the voltage traces in the capacity/resistance summary
+VOLTAGE_STACK_OFFSET = {'base': 3.2, 'fast': 1.6, 'fast+': 0.0}
+ANNOTATION_GRAY = '0.35'
+
+
+def _panel_label(ax, letter, x=-0.07):
+    ax.text(x, 1.02, f'({letter})', transform=ax.transAxes, fontsize=15,
+            fontweight='bold', va='bottom', ha='right')
+
+
+def _gap_arrow(ax, x, y_low, y_high, text, text_dx):
+    """Double-headed gray arrow from y_low to y_high at x, labelled on the right."""
+    ax.annotate('', xy=(x, y_high), xytext=(x, y_low),
+                arrowprops=dict(arrowstyle='<->', color=ANNOTATION_GRAY, lw=1.5))
+    ax.text(x + text_dx, (y_low + y_high) / 2, text, color=ANNOTATION_GRAY,
+            va='center', ha='left', fontsize='medium')
+
+
+def plot_capacity_resistance_summary(expts, pulses, sims, q0, xmax=650):
+    """Time-resolved capacities and resistances, measured versus modeled.
+
+    (a) measured voltage, stacked by protocol, marking the HPPC and RPT checks;
+    (b) capacity, modeled as q0 - Q_sei with one q0 for all protocols;
+    (c) resistance, modeled as R_sei + R_ct+, vs the median HPPC series
+    resistance; (d, e) per-pulse series resistance vs SOC for HPPC 1 and 2,
+    with the modeled resistance at that HPPC. Saved as SVG and PNG.
+    """
+    fig = plt.figure(figsize=(11, 13.5), layout='constrained')
+    grid = fig.add_gridspec(4, 2, height_ratios=[1.25, 1, 1, 1.15])
+    ax_a = fig.add_subplot(grid[0, :])
+    ax_b = fig.add_subplot(grid[1, :], sharex=ax_a)
+    ax_c = fig.add_subplot(grid[2, :], sharex=ax_a)
+    ax_d = fig.add_subplot(grid[3, 0])
+    ax_e = fig.add_subplot(grid[3, 1], sharey=ax_d)
+    q0_all = {p: q0 for p in tuning.PROTOCOLS}
+
+    # (a) measured voltage, stacked
+    for p in tuning.PROTOCOLS:
+        offset = VOLTAGE_STACK_OFFSET[p]
+        ax_a.plot(_hours(expts[p]['arbin_time']), expts[p]['arbin_voltage'] + offset,
+                  color=COLORS[p], lw=1.5)
+        ax_a.text(330, offset + 3.8, TITLES[p], ha='center', va='center', fontsize='medium')
+    ax_a.set_ylabel('Potential (V)')
+    ax_a.set_yticks([])
+    ax_a.set_ylim(2.6, 9.0)
+    y_tip = VOLTAGE_STACK_OFFSET['base'] + 4.35
+    for label, t_s, side in (('HPPC 1', tuning.HPPC1['base'].t_s, -1),
+                             ('RPT 1', tuning.QD_RPT1['base'].t_s, +1),
+                             ('HPPC 2', tuning.HPPC2['base'].t_s, -1),
+                             ('RPT 2', tuning.QD_RPT2['base'].t_s, +1)):
+        t_h = _hours(t_s)
+        ax_a.annotate(label, xy=(t_h, y_tip), xytext=(t_h + side * 12, y_tip + 0.9),
+                      ha='right' if side < 0 else 'left', va='bottom', fontsize='medium',
+                      arrowprops=dict(arrowstyle='-|>', color='k', lw=1.5))
+
+    # (b) capacity with one Q0
+    _capacity_panel(ax_b, sims, q0_all)
+    ax_b.text(_hours(tuning.QD_RPT1['fast'].t_s) + 5, 2.63, 'RPT 1', fontsize='medium')
+    ax_b.text(_hours(tuning.QD_RPT2['base'].t_s) + 8, 2.52, 'RPT 2', fontsize='medium')
+
+    # (c) resistance
+    _resistance_panel(ax_c, sims)
+    ax_c.text(_hours(tuning.HPPC1['base'].t_s) - 55, 27, 'HPPC 1', fontsize='medium')
+    t2 = tuning.HPPC2['base'].t_s
+    ax_c.text(_hours(t2) + 12, 37, 'HPPC 2', fontsize='medium', va='center')
+    model_r2 = max(tuning.model_resistance(sims[p], tuning.HPPC2[p].t_s) for p in tuning.PROTOCOLS)
+    meas_r2 = min(tuning.HPPC2[p].r_ohm - tuning.HPPC2[p].r_std for p in tuning.PROTOCOLS)
+    _gap_arrow(ax_c, _hours(t2), model_r2 * 1e3 + 1.0, meas_r2 * 1e3 - 0.5, 'Cathode?', 12)
+    ax_c.set_xlim(-5, xmax)
+    ax_c.set_xlabel('Time (hrs)')
+    plt.setp(ax_a.get_xticklabels() + ax_b.get_xticklabels(), visible=False)
+
+    # (d, e) per-pulse resistance vs SOC, with the modeled value at that HPPC
+    for ax, n, measurements in ((ax_d, 1, tuning.HPPC1), (ax_e, 2, tuning.HPPC2)):
+        for p in tuning.PROTOCOLS:
+            soc, resistance = pulses[p][n]
+            ax.plot(soc, resistance * 1e3, 'o', color=COLORS[p], markersize=3,
+                    label=f'{NAMES[p]} (meas.)')
+        for p in tuning.PROTOCOLS:
+            r_model = tuning.model_resistance(sims[p], measurements[p].t_s) * 1e3
+            ax.axhline(r_model, color=COLORS[p], ls='--', lw=1, label=f'{NAMES[p]} (modeled)')
+        ax.text(0.05, 0.62 if n == 1 else 0.38, f'HPPC {n}', transform=ax.transAxes,
+                fontsize='large')
+        ax.set_xlabel('SOC (%)')
+        ax.set_ylim(15, 55)
+        ax.legend(loc='upper right', ncols=2, fontsize='x-small', frameon=False)
+    ax_d.set_ylabel(r'Resistance (m$\Omega$)')
+    soc_mid = 57
+    model_e = max(tuning.model_resistance(sims[p], tuning.HPPC2[p].t_s) for p in tuning.PROTOCOLS)
+    meas_e = min(np.interp(soc_mid, *pulses[p][2]) for p in tuning.PROTOCOLS)
+    _gap_arrow(ax_e, soc_mid, model_e * 1e3 + 1.0, meas_e * 1e3 - 1.0, 'Cathode?', 3)
+
+    for ax in (ax_a, ax_b, ax_c, ax_d, ax_e):
+        ax.grid(False)
+    for ax, letter, x in ((ax_a, 'a', -0.07), (ax_b, 'b', -0.07), (ax_c, 'c', -0.07),
+                          (ax_d, 'd', -0.14), (ax_e, 'e', -0.14)):
+        _panel_label(ax, letter, x)
+    fig.align_ylabels([ax_a, ax_b, ax_c])
+
+    name = 'capacity_and_resistance_summary'
+    _save(fig, f'{name}.svg')
+    fig.savefig(os.path.join(_output_dir, f'{name}.png'), dpi=300, bbox_inches='tight')
 
 
 def print_resistance_errors(summary):
@@ -475,7 +609,7 @@ def main(argv=None):
 
     global _output_dir
     plotter.initialize(plt)
-    expts = load_experiments()
+    expts, pulses = load_data()
     if args.preview:
         cached = load_preview()
         if cached is None:
@@ -493,6 +627,7 @@ def main(argv=None):
     plot_combined_overview(expts, sims)
     print_initial_capacity(summary)
     plot_capacity_and_resistance(sims, summary['q0_ah'])
+    plot_capacity_resistance_summary(expts, pulses, sims, summary['q0_shared_ah'])
     print_resistance_errors(summary)
     plot_model_outputs(sims)
     print(f'\nFigures saved to {paths.relative(_output_dir)}/')

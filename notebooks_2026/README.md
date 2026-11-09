@@ -44,6 +44,11 @@ voltage and expansion panels also show each protocol simulated with the baseline
 protocol's parameters, to show the effect of the protocol-specific rho_LEDC and
 kappa_LEDC. `figures/model_vs_experiment_voltage_expansion.svg` combines
 the voltage (left) and expansion (right) panels into one figure, labelled (a)-(f).
+`figures/capacity_and_resistance_summary.svg` compiles the measured voltage
+(marking the HPPC and RPT checks), modeled versus measured capacity and
+resistance over time, and per-pulse HPPC resistance versus SOC (`src/hppc.py`).
+Its modeled capacity uses one Q0 for all protocols, fitted to the three RPT 1
+points; the separate capacity figure calibrates Q0 per protocol.
 
 Everything the scripts produce stays in this folder: figures in `figures/`,
 sweep results in `data/`.

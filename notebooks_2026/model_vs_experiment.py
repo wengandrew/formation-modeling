@@ -189,7 +189,7 @@ def _panel_settings(strain_lim_inset=(0, 130)):
     """(voltage, expansion) settings for _comparison_panel."""
     voltage = dict(t_key='arbin_time', y_key='arbin_voltage', model_y=lambda df: df['vt'],
                    ylabel='Potential (V)', ylim_inset=(3, 4.25), inset_locs=(2, 4),
-                   inset_grid=False)
+                   inset_grid=True)
     expansion = dict(t_key='daq_time', y_key='daq_strain',
                      model_y=lambda df: df['expansion'] * 1e6, ylabel='Expansion (µm)',
                      ylim_inset=strain_lim_inset, inset_locs=(2, 3), inset_grid=True)
